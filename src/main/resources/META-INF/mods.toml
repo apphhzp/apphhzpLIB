@@ -1,0 +1,23 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="Academic Free License v3.0"
+
+[[mods]]
+modId="apphhzp_lib"
+version="1.0.0"
+displayName="apphhzpLIB"
+displayURL=""
+credits=""
+authors="apphhzp"
+description="apphhzp制作的LIB"
+
+[[dependencies.apphhzp_lib]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[1.20.1]"
+    ordering="NONE"
+    side="BOTH"
+
+
+
+

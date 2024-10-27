@@ -1,0 +1,31 @@
+plugins {
+    id 'java'
+}
+
+group = 'apphhzp.lib'
+version = '1.0.0'
+repositories {
+    mavenCentral()
+}
+
+
+
+dependencies {
+    implementation 'org.ow2.asm:asm:9.5'
+    implementation 'org.ow2.asm:asm-commons:9.5'
+    implementation 'org.ow2.asm:asm-util:9.5'
+    implementation 'org.ow2.asm:asm-tree:9.5'
+    implementation 'org.ow2.asm:asm-analysis:9.5'
+    implementation 'org.apache.commons:commons-lang3:3.14.0'
+    implementation 'it.unimi.dsi:fastutil:8.5.9'
+    implementation 'com.google.code.findbugs:jsr305:3.0.2'
+    implementation 'org.apache.logging.log4j:log4j-core:2.19.0'
+    implementation 'org.apache.logging.log4j:log4j-api:2.19.0'
+    implementation 'net.sf.jopt-simple:jopt-simple:5.0.4'
+    implementation 'net.java.dev.jna:jna:5.12.1'
+    implementation 'net.java.dev.jna:jna-platform:5.12.1'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
+}
