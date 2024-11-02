@@ -4,20 +4,29 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="2792053e-b2f9-412d-83c2-51f1e86a7597" name="更改" comment="." />
+    <list default="true" id="9ca22632-21c7-4fc4-930f-2cd8a2ab25e0" name="更改" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/ClassHelper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/ClassHelper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/Debugger.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/Debugger.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/TestSuper.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/code/CodeHeap.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/code/CodeHeap.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/code/InterpreterCodelet.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/code/InterpreterCodelet.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/code/blob/CodeBlob.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/code/blob/CodeBlob.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/code/blob/CompiledMethod.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/code/blob/CompiledMethod.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/code/blob/NMethod.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/code/blob/NMethod.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/compiler/CompLevel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/compiler/CompLevel.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/gc/ThreadLocalAllocBuffer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/gc/ThreadLocalAllocBuffer.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/interpreter/InvocationCounter.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/interpreter/InvocationCounter.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/memory/VirtualSpace.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/memory/VirtualSpace.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/method/Method.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/method/Method.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/instrumentation/ObjectInstrumentationImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/instrumentation/ObjectInstrumentationImpl.java" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
-  </component>
-  <component name="ChangesViewManager" show_ignored="true">
-    <option name="groupingKeys">
-      <option value="directory" />
-      <option value="module" />
-    </option>
-  </component>
-  <component name="CodeInsightWorkspaceSettings">
-    <option name="optimizeImportsOnTheFly" value="true" />
   </component>
   <component name="ExternalProjectsData">
     <projectState path="$PROJECT_DIR$">
@@ -27,9 +36,6 @@
   <component name="ExternalProjectsManager">
     <system id="GRADLE">
       <state>
-        <task path="$PROJECT_DIR$">
-          <activation />
-        </task>
         <projects_view>
           <tree_state>
             <expand>
@@ -47,74 +53,49 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="AnnotationType" />
-        <option value="Interface" />
         <option value="Class" />
+        <option value="Enum" />
       </list>
     </option>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="jar://$USER_HOME$/.jdks/corretto-17.0.10/lib/src.zip!/java.base/java/util/HashMap.java" root0="FORCE_HIGHLIGHTING" />
+  </component>
   <component name="ProjectColorInfo">{
-  &quot;associatedIndex&quot;: 7
+  &quot;associatedIndex&quot;: 1
 }</component>
-  <component name="ProjectId" id="2j8nRqOCHUiMpsGcwCA93kf7yXR" />
-  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectId" id="2o12KSuHEwKBgbAdCr4cSmrznqK" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="1" id="Add" />
+  </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Gradle.apphhzpLIB [:Debugger.main()].executor&quot;: &quot;Run&quot;,
-    &quot;Gradle.apphhzpLIB [build].executor&quot;: &quot;Run&quot;,
-    &quot;Gradle.apphhzpLIB [jar].executor&quot;: &quot;Run&quot;,
-    &quot;Gradle.下载源代码.executor&quot;: &quot;Run&quot;,
-    &quot;JavaClassFindUsagesOptions.isDerivedInterfaces&quot;: &quot;true&quot;,
-    &quot;JavaClassFindUsagesOptions.isFieldsUsages&quot;: &quot;true&quot;,
-    &quot;JavaClassFindUsagesOptions.isImplementingClasses&quot;: &quot;true&quot;,
-    &quot;JavaClassFindUsagesOptions.isMethodsUsages&quot;: &quot;true&quot;,
-    &quot;JavaVariableFindUsagesOptions.isSearchForAccessors&quot;: &quot;true&quot;,
-    &quot;JavaVariableFindUsagesOptions.isSearchForTextOccurrences&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/Hardy/Desktop/apphhzpLIB/src/main/resources&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;模块&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.34057972&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.language.and.region&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Gradle.apphhzpLIB [:Debugger.main()].executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "master",
+    "ignore.virus.scanning.warn.message": "true",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "D:/apphhzpLIB/build.gradle",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "project.structure.last.edited": "项目",
+    "project.structure.proportion": "0.15",
+    "project.structure.side.proportion": "0.3264368",
+    "settings.editor.selected.configurable": "editor.preferences.completion",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
-  <component name="RecentsManager">
-    <key name="CreateClassDialog.RecentsKey">
-      <recent name="net.minecraftforge.fml.common" />
-      <recent name="apphhzp.lib.service" />
-    </key>
-    <key name="CopyFile.RECENT_KEYS">
-      <recent name="C:\Users\Hardy\Desktop\apphhzpLIB\src\main\resources" />
-      <recent name="C:\Users\Hardy\Desktop\apphhzpLIB\build\libs" />
-      <recent name="C:\Users\Hardy\Desktop\apphhzpLIB\src\main\java\apphhzp\lib" />
-    </key>
-    <key name="MoveFile.RECENT_KEYS">
-      <recent name="C:\Users\Hardy\Desktop\apphhzpLIB\src\main\resources" />
-    </key>
-    <key name="CopyClassDialog.RECENTS_KEY">
-      <recent name="apphhzp.lib" />
-    </key>
-  </component>
-  <component name="RunAnythingCache">
-    <option name="myCommands">
-      <command value="javac Test.java" />
-      <command value="jhsdb hsdb" />
-      <command value="jps" />
-    </option>
-  </component>
-  <component name="RunManager" selected="Gradle.apphhzpLIB [:Debugger.main()]">
+}]]></component>
+  <component name="RunManager">
     <configuration name="Debugger" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="apphhzp.lib.hotspot.Debugger" />
       <module name="apphhzpLIB.main" />
@@ -128,125 +109,31 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="apphhzpLIB [:Debugger.main()]" type="GradleRunConfiguration" factoryName="Gradle">
-      <ExternalSystemSettings>
-        <option name="executionName" />
-        <option name="externalProjectPath" value="$PROJECT_DIR$" />
-        <option name="externalSystemIdString" value="GRADLE" />
-        <option name="scriptParameters" value="" />
-        <option name="taskDescriptions">
-          <list />
-        </option>
-        <option name="taskNames">
-          <list>
-            <option value=":Debugger.main()" />
-          </list>
-        </option>
-        <option name="vmOptions" value="--add-exports java.base/jdk.internal.misc=ALL-UNNAMED --add-exports java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED --add-exports java.base/jdk.internal.access=ALL-UNNAMED" />
-      </ExternalSystemSettings>
-      <ExternalSystemDebugServerProcess>false</ExternalSystemDebugServerProcess>
-      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
-      <DebugAllEnabled>false</DebugAllEnabled>
-      <RunAsTest>false</RunAsTest>
-      <method v="2" />
-    </configuration>
-    <configuration name="apphhzpLIB [build]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
-      <ExternalSystemSettings>
-        <option name="executionName" />
-        <option name="externalProjectPath" value="$PROJECT_DIR$" />
-        <option name="externalSystemIdString" value="GRADLE" />
-        <option name="scriptParameters" />
-        <option name="taskDescriptions">
-          <list />
-        </option>
-        <option name="taskNames">
-          <list>
-            <option value="build" />
-          </list>
-        </option>
-        <option name="vmOptions" />
-      </ExternalSystemSettings>
-      <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
-      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
-      <DebugAllEnabled>false</DebugAllEnabled>
-      <RunAsTest>false</RunAsTest>
-      <method v="2" />
-    </configuration>
-    <configuration name="apphhzpLIB [jar]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
-      <ExternalSystemSettings>
-        <option name="executionName" />
-        <option name="externalProjectPath" value="$PROJECT_DIR$" />
-        <option name="externalSystemIdString" value="GRADLE" />
-        <option name="scriptParameters" />
-        <option name="taskDescriptions">
-          <list />
-        </option>
-        <option name="taskNames">
-          <list>
-            <option value="jar" />
-          </list>
-        </option>
-        <option name="vmOptions" />
-      </ExternalSystemSettings>
-      <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
-      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
-      <DebugAllEnabled>false</DebugAllEnabled>
-      <RunAsTest>false</RunAsTest>
-      <method v="2" />
-    </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Gradle.apphhzpLIB [jar]" />
-        <item itemvalue="Gradle.apphhzpLIB [build]" />
+        <item itemvalue="应用程序.Debugger" />
       </list>
     </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-jdk-9823dce3aa75-28b599e66164-intellij.indexing.shared.core-IU-242.23726.103" />
-        <option value="bundled-js-predefined-d6986cc7102b-5c90d61e3bab-JavaScript-IU-242.23726.103" />
+        <option value="bundled-jdk-9f38398b9061-39b83d9b5494-intellij.indexing.shared.core-IU-241.18968.26" />
+        <option value="bundled-js-predefined-1d06a55b98c1-0b3e54e931b4-JavaScript-IU-241.18968.26" />
       </set>
     </attachedChunks>
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="应用程序级" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="默认任务">
-      <changelist id="2792053e-b2f9-412d-83c2-51f1e86a7597" name="更改" comment="" />
-      <created>1720777565305</created>
+      <changelist id="9ca22632-21c7-4fc4-930f-2cd8a2ab25e0" name="更改" comment="" />
+      <created>1730022697926</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
-      <updated>1720777565305</updated>
-      <workItem from="1730016985220" duration="149000" />
-      <workItem from="1730017140714" duration="99000" />
-      <workItem from="1730017246110" duration="117000" />
-      <workItem from="1730017437824" duration="121000" />
+      <updated>1730022697926</updated>
+      <workItem from="1730022698946" duration="8304000" />
+      <workItem from="1730471868488" duration="3238000" />
     </task>
-    <task id="LOCAL-00001" summary=".">
-      <option name="closed" value="true" />
-      <created>1730014074416</created>
-      <option name="number" value="00001" />
-      <option name="presentableId" value="LOCAL-00001" />
-      <option name="project" value="LOCAL" />
-      <updated>1730014074416</updated>
-    </task>
-    <task id="LOCAL-00002" summary=".">
-      <option name="closed" value="true" />
-      <created>1730014602402</created>
-      <option name="number" value="00002" />
-      <option name="presentableId" value="LOCAL-00002" />
-      <option name="project" value="LOCAL" />
-      <updated>1730014602402</updated>
-    </task>
-    <task id="LOCAL-00003" summary=".">
-      <option name="closed" value="true" />
-      <created>1730015131993</created>
-      <option name="number" value="00003" />
-      <option name="presentableId" value="LOCAL-00003" />
-      <option name="project" value="LOCAL" />
-      <updated>1730015131993</updated>
-    </task>
-    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -262,13 +149,5 @@
         </entry>
       </map>
     </option>
-  </component>
-  <component name="VcsManagerConfiguration">
-    <MESSAGE value="." />
-    <option name="LAST_COMMIT_MESSAGE" value="." />
-  </component>
-  <component name="XSLT-Support.FileAssociations.UIState">
-    <expand />
-    <select />
   </component>
 </project>

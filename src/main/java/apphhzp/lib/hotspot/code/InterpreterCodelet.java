@@ -23,4 +23,9 @@ public class InterpreterCodelet extends Stub{
     public String getDesc(){
         return JVM.getStringRef(this.address+DESC_OFFSET);
     }
+
+    @Override
+    public String toString() {
+        return "InterpreterCodelet0x"+Long.toHexString(this.address);
+    }
 }

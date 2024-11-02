@@ -61,6 +61,10 @@ public class CompiledMethod extends CodeBlob {
 //            }
 //        }
     }
+
+    public long getVerifiedEntryPoint(){
+        return 0L;
+    }
     public static final class States{
         public static final int
                 not_installed = -1, // in construction, only the owner doing the construction is allowed to advance state

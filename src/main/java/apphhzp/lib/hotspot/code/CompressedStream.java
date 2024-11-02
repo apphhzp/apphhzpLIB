@@ -19,36 +19,14 @@ public class CompressedStream extends JVMObject {
     public static final int L = (1<<BitsPerByte) - H; // number of low codes (192)
     public static final int MAX_i = 4;      // bytes are numbered in (0..4)
     protected int pos;
-    public CompressedStream(long addr) {
-        this(addr,0);
-    }
 
     public CompressedStream(long addr,int st_pos){
         super(addr);
         this.pos=st_pos;
     }
 
-    /**NOT the _position field in the VM.*/
     public int pos(){
         return this.pos;
-    }
-
-    public long getBuffer(){
-        return unsafe.getAddress(this.address+BUFFER_OFFSET);
-    }
-
-    public void setBuffer(long buffer){
-        unsafe.putAddress(this.address+BUFFER_OFFSET,buffer);
-    }
-
-    //The _position field in the VM
-
-    public int getPosition(){
-        return unsafe.getInt(this.address+POSITION_OFFSET);
-    }
-
-    public void setPosition(int pos){
-        unsafe.putInt(this.address+POSITION_OFFSET,pos);
     }
 
     public static int encodeSign(int value) {

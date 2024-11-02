@@ -16,6 +16,7 @@ public class NMethod extends CompiledMethod {
     public static final int SIZE = TYPE.size;
     public static final long ENTRY_BCI_OFFSET = TYPE.offset("_entry_bci");
     public static final long OSR_LINK_OFFSET = TYPE.offset("_osr_link");
+    public static final long VERIFIED_ENTRY_POINT_OFFSET = TYPE.offset("_verified_entry_point");
     public static final long COMP_LEVEL_OFFSET = TYPE.offset("_comp_level");
     public static final long STATE_OFFSET = TYPE.offset("_state");
     public static final long LOCK_COUNT_OFFSET = TYPE.offset("_lock_count");
@@ -43,6 +44,13 @@ public class NMethod extends CompiledMethod {
 
     public void setNext(@Nullable NMethod nMethod) {
         unsafe.putAddress(this.address + OSR_LINK_OFFSET, nMethod == null ? 0L : nMethod.address);
+    }
+    public long getVerifiedEntryPoint() {
+        return unsafe.getLong(this.address + VERIFIED_ENTRY_POINT_OFFSET);
+    }
+
+    public void setVerifiedEntryPoint(long verifiedEntryPoint) {
+        unsafe.putAddress(this.address+VERIFIED_ENTRY_POINT_OFFSET, verifiedEntryPoint);
     }
 
     public CompLevel getCompLevel() {
@@ -132,7 +140,9 @@ public class NMethod extends CompiledMethod {
     }
 
     public void inc_decompile_count() {
-        //if (!is_compiled_by_c2() && !is_compiled_by_jvmci()) return;
+        if (!this.isCompiledByC2() && !this.isCompiledByJVMCI()) {
+            return;
+        }
         Method m = this.getMethod();
         if (m == null) return;
         MethodData mdo = m.getMethodData();

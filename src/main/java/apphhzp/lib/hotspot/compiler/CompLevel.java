@@ -21,7 +21,7 @@ public enum CompLevel{
     public static CompLevel of(int lvl){
         CompLevel re = lvl == ALL.id ? ALL : lvl == NONE.id ? NONE : lvl == SIMPLE.id ? SIMPLE : lvl == LIMITED_PROFILE.id ? LIMITED_PROFILE : lvl == FULL_PROFILE.id ? FULL_PROFILE : lvl == FULL_OPTIMIZATION.id ? FULL_OPTIMIZATION : null;
         if (re==null){
-            throw new NoSuchElementException();
+            throw new NoSuchElementException(""+lvl);
         }
         return re;
     }

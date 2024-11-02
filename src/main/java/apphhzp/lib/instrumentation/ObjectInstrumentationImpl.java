@@ -94,8 +94,6 @@ class ObjectInstrumentationImpl implements ObjectInstrumentation {
         ObjectMemoryMonitor[] oldList = this.transformers;
         int oldLength = oldList.length;
         int newLength = oldLength - 1;
-        // look for it in the list, starting at the last added, and remember
-        // where it was if we found it
         int matchingIndex = 0;
         for (int x = oldLength - 1; x >= 0; x--) {
             if (oldList[x] == monitor) {
@@ -104,10 +102,8 @@ class ObjectInstrumentationImpl implements ObjectInstrumentation {
                 break;
             }
         }
-        // make a copy of the array without the matching element
         if (found) {
             ObjectMemoryMonitor[] newList = new ObjectMemoryMonitor[newLength];
-            // copy up to but not including the match
             if (matchingIndex > 0) {
                 System.arraycopy(oldList,
                         0,
@@ -115,7 +111,6 @@ class ObjectInstrumentationImpl implements ObjectInstrumentation {
                         0,
                         matchingIndex);
             }
-            // if there is anything after the match, copy it as well
             if (matchingIndex < (newLength)) {
                 System.arraycopy(oldList,
                         matchingIndex + 1,

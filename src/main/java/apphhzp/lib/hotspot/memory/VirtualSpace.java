@@ -39,4 +39,9 @@ public class VirtualSpace extends JVMObject {
     public boolean contains(long addr){
         return this.low()<=addr&&addr<this.high();
     }
+
+    @Override
+    public String toString() {
+        return "VirtualSpace@0x"+Long.toHexString(this.address);
+    }
 }

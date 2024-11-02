@@ -11,6 +11,7 @@ import apphhzp.lib.hotspot.oop.InstanceKlass;
 import apphhzp.lib.hotspot.oop.MethodCounters;
 import apphhzp.lib.hotspot.oop.MethodData;
 import apphhzp.lib.hotspot.prims.VMIntrinsics;
+import apphhzp.lib.hotspot.runtime.AdapterHandlerEntry;
 import org.objectweb.asm.Opcodes;
 
 import javax.annotation.Nullable;
@@ -25,6 +26,7 @@ public class Method extends JVMObject {
     public static final long CONSTMETHOD_OFFSET = TYPE.offset("_constMethod");
     public static final long METHOD_DATA_OFFSET=TYPE.offset("_method_data");
     public static final long METHODCOUNTERS_OFFSET = TYPE.offset("_method_counters");
+    public static final long ADAPTER_OFFSET = METHODCOUNTERS_OFFSET+JVM.oopSize;
     public static final long ACC_FLAGS_OFFSET = TYPE.offset("_access_flags");
     public static final long INTRINSIC_ID_OFFSET=TYPE.offset("_intrinsic_id");
     public static final long FLAGS_OFFSET=TYPE.offset("_flags");
@@ -42,6 +44,7 @@ public class Method extends JVMObject {
     private ConstMethod constMethodCache;
     private CompiledMethod codeCache;
     private MethodCounters countersCache;
+    private AdapterHandlerEntry adapterCache;
     private MethodData dataCache;
 
     public static Method getOrCreate(long addr){
@@ -102,6 +105,22 @@ public class Method extends JVMObject {
 
     public void setCounters(@Nullable MethodCounters counters) {
         unsafe.putAddress(this.address + METHODCOUNTERS_OFFSET, counters==null?0L:counters.address);
+    }
+
+    @Nullable
+    public AdapterHandlerEntry getAdapter() {
+        long addr = unsafe.getAddress(this.address + ADAPTER_OFFSET);
+        if (addr==0L){
+            return null;
+        }
+        if (!isEqual(this.adapterCache, addr)) {
+            this.adapterCache = new AdapterHandlerEntry(addr);
+        }
+        return this.adapterCache;
+    }
+
+    public void setAdapter(@Nullable AdapterHandlerEntry adapter) {
+        unsafe.putAddress(this.address + ADAPTER_OFFSET, adapter==null?0L:adapter.address);
     }
 
     public AccessFlags getAccessFlags() {
@@ -179,22 +198,23 @@ public class Method extends JVMObject {
     }
 
     public void unlinkCode(CompiledMethod compare) {
-//        if (unsafe.getAddress(this.address+CODE_OFFSET) == compare.address ||
-//                this.getFromCompiledEntry()==compare.verified_entry_point()) {
-//            clear_code();
-//        }
+        if (unsafe.getAddress(this.address+CODE_OFFSET) == compare.address ||
+                this.getFromCompiledEntry()==compare.getVerifiedEntryPoint()) {
+            this.clearCode();
+        }
     }
 
     public void unlinkCode() {
-        this.clear_code();
+        this.clearCode();
     }
 
-    public void clear_code() {
-//        if (adapter() == NULL) {
-//            _from_compiled_entry    = NULL;
-//        } else {
-//            _from_compiled_entry    = adapter()->get_c2i_entry();
-//        }
+    public void clearCode() {
+        AdapterHandlerEntry adapter=this.getAdapter();
+        if (adapter==null) {
+            this.setFromCompiledEntry(0L);
+        }else{
+            this.setFromCompiledEntry(adapter.getC2IEntry());
+        }
         this.setFromInterpretedEntry(this.getI2IEntry());
         this.setCode(null);
     }

@@ -36,4 +36,9 @@ public class InvocationCounter extends JVMObject {
     public void set(int count, boolean carry) {
         unsafe.putInt(this.address, count << count_shift | (carry ? 1 : 0));
     }
+
+    @Override
+    public String toString() {
+        return "InvocationCounter0x"+Long.toHexString(this.address);
+    }
 }

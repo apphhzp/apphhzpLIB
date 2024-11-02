@@ -182,6 +182,7 @@ public final class ClassHelper {
             throw new RuntimeException("Could not define a hidden class:"+name,t);
         }
     }
+
     public enum ClassOption {
         NESTMATE(1),
         STRONG(4);

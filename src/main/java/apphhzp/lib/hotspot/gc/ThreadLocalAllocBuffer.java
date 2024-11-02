@@ -37,4 +37,9 @@ public class ThreadLocalAllocBuffer extends JVMObject {
     public static int getReserveForAllocationPrefetch(){
         return unsafe.getInt(reserve_for_allocation_prefetch_address);
     }
+
+    @Override
+    public String toString() {
+        return "ThreadLocalAllocBuffer@0x"+Long.toHexString(address);
+    }
 }

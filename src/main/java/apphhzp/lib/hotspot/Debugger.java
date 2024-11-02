@@ -68,6 +68,7 @@ public final class Debugger {
         JVM.printAllTypes();
         JVM.printAllConstants();
         JVM.printAllVTBL();
+
         MethodCounters counters=Klass.asKlass(JVM.class).asInstanceKlass().getMethod("getStringRef","(J)Ljava/lang/String;").getCounters();
         for (long x=counters.address+24,i=0;i<20;i++,x++){
             System.err.println(Long.toHexString(x) +"==0x"+Long.toHexString(Byte.toUnsignedLong(ClassHelper.unsafe.getByte(x))));

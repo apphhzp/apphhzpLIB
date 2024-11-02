@@ -3,9 +3,6 @@ package apphhzp.lib.hotspot.code;
 import static apphhzp.lib.ClassHelper.unsafe;
 
 public class CompressedReadStream extends CompressedStream{
-    public CompressedReadStream(long addr) {
-        this(addr,0);
-    }
 
     public CompressedReadStream(long addr, int st_pos) {
         super(addr, st_pos);
@@ -59,10 +56,6 @@ public class CompressedReadStream extends CompressedStream{
         return (high << 32) | low;
     }
 
-    //--------------------------------------------------------------------------------
-    // Internals only below this point
-    //
-
 
     // This encoding, called UNSIGNED5, is taken from J2SE Pack200.
     // It assumes that most values have lots of leading zeroes.
@@ -100,7 +93,6 @@ public class CompressedReadStream extends CompressedStream{
         return (short)(unsafe.getByte(this.address+index)&0xff);
     }
 
-    /** Reads an unsigned byte, but returns it as a short */
     private short read() {
         return (short) (unsafe.getByte(this.address+(pos++))&0xff);
     }
