@@ -294,7 +294,7 @@ public class InstanceKlass extends Klass {
         FieldInfo[] re=new FieldInfo[len];
         long base=unsafe.getAddress(this.address+FIELDS_OFFSET)+U2Array.DATA_OFFSET;
         for (int i=0;i<len;i++){
-            re[i]=new FieldInfo(this,base+i*2L*6L);
+            re[i]=new FieldInfo(base+i*2L*6L);
         }
         return re;
     }

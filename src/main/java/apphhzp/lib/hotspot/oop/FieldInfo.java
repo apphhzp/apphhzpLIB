@@ -1,94 +1,145 @@
 package apphhzp.lib.hotspot.oop;
 
+import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.hotspot.JVMObject;
+import apphhzp.lib.hotspot.oop.constant.ConstantPool;
 import apphhzp.lib.hotspot.oop.constant.Utf8Constant;
 import org.objectweb.asm.Opcodes;
 
 import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.hotspot.oop.AccessFlags.JVM_ACC_FIELD_INTERNAL;
+import static apphhzp.lib.hotspot.oop.AccessFlags.JVM_ACC_FIELD_STABLE;
 
 public class FieldInfo extends JVMObject {
-    public final InstanceKlass owner;
+    public static final int access_flags_offset = JVM.intConstant("FieldInfo::access_flags_offset");
+    public static final int name_index_offset = JVM.intConstant("FieldInfo::name_index_offset");
+    public static final int signature_index_offset = JVM.intConstant("FieldInfo::signature_index_offset");
+    public static final int initval_index_offset = JVM.intConstant("FieldInfo::initval_index_offset");
+    public static final int low_packed_offset = JVM.intConstant("FieldInfo::low_packed_offset");
+    public static final int high_packed_offset = JVM.intConstant("FieldInfo::high_packed_offset");
+    public static final int field_slots = JVM.intConstant("FieldInfo::field_slots");
+    public static final int FIELDINFO_TAG_SIZE = JVM.intConstant("FIELDINFO_TAG_SIZE");
+    public static final int FIELDINFO_TAG_OFFSET = JVM.intConstant("FIELDINFO_TAG_OFFSET");
+    public static final int FIELDINFO_TAG_CONTENDED= 2;
 
-    public FieldInfo(InstanceKlass klass, long fake) {
-        super(fake);
-        this.owner = klass;
+    public FieldInfo(long address) {
+        super(address);
+    }
+
+    public static FieldInfo from_field_array(U2Array fields, int index) {
+        return new FieldInfo(fields.address+U2Array.DATA_OFFSET+2L*index * field_slots);
+    }
+    public static FieldInfo from_field_array(long fields, int index) {
+        return new FieldInfo(fields + 2L*index * field_slots);
     }
 
     public AccessFlags getAccessFlags() {
-        return AccessFlags.getOrCreate(unsafe.getShort(this.address) & 0xffff);
+        return AccessFlags.getOrCreate(unsafe.getShort(this.address + access_flags_offset * 2L) & 0xffff);
     }
 
     public void setAccessFlags(int flags) {
-        unsafe.putShort(this.address, (short) (flags & 0xffff));
+        unsafe.putShort(this.address + access_flags_offset * 2L, (short) (flags & 0xffff));
     }
 
-    public Symbol getName() {
-        return ((Utf8Constant) this.owner.getConstantPool().getConstant(this.getNameIndex())).str;
+    public Symbol getName(ConstantPool pool) {
+        return ((Utf8Constant) pool.getConstant(this.getNameIndex())).str;
     }
 
     public int getNameIndex() {
-        return unsafe.getShort(this.address + 2) & 0xffff;
+        return unsafe.getShort(this.address + name_index_offset * 2L) & 0xffff;
     }
 
     public void setNameIndex(int index) {
-        unsafe.putShort(this.address + 2, (short) (index & 0xffff));
+        unsafe.putShort(this.address + name_index_offset * 2L, (short) (index & 0xffff));
     }
 
-    public Symbol getSignature() {
-        return ((Utf8Constant) this.owner.getConstantPool().getConstant(this.getSignatureIndex())).str;
+    public Symbol getSignature(ConstantPool pool) {
+        return ((Utf8Constant) pool.getConstant(this.getSignatureIndex())).str;
     }
 
     public int getSignatureIndex() {
-        return unsafe.getShort(this.address + 4) & 0xffff;
+        return unsafe.getShort(this.address + signature_index_offset * 2L) & 0xffff;
     }
 
     public void setSignatureIndex(int index) {
-        unsafe.putShort(this.address + 4, (short) (index & 0xffff));
+        unsafe.putShort(this.address + signature_index_offset * 2L, (short) (index & 0xffff));
     }
 
     public int getInitialValueIndex() {
-        return unsafe.getShort(this.address + 6) & 0xffff;
+        return unsafe.getShort(this.address + initval_index_offset * 2L) & 0xffff;
     }
 
     public void setInitialValueIndex(int index) {
-        unsafe.putShort(this.address + 6, (short) (index & 0xffff));
+        unsafe.putShort(this.address + initval_index_offset * 2L, (short) (index & 0xffff));
     }
+
+    public boolean is_contended() {
+        return (unsafe.getShort(this.address+low_packed_offset*2L)&FIELDINFO_TAG_CONTENDED) != 0;
+    }
+
+    public int contended_group() {
+        if ((unsafe.getShort(this.address+low_packed_offset*2L)&FIELDINFO_TAG_OFFSET)!=0){
+            throw new IllegalStateException("Offset must not have been set");
+        }
+        if ((unsafe.getShort(this.address+low_packed_offset*2L)&FIELDINFO_TAG_CONTENDED)==0){
+            throw new IllegalStateException("Field must be contended");
+        }
+        return unsafe.getShort(this.address+high_packed_offset*2L)&0xffff;
+    }
+
+
+    // Packed field has the tag, and can be either of:
+    //    hi bits <--------------------------- lo bits
+    //   |---------high---------|---------low---------|
+    //    ..........................................CO
+    //    ..........................................00  - non-contended field
+    //    [--contention_group--]....................10  - contended field with contention group
+    //    [------------------offset----------------]01  - real field offset
+
+    // Bit O indicates if the packed field contains an offset (O=1) or not (O=0)
+    // Bit C indicates if the field is contended (C=1) or not (C=0)
+    //       (if it is contended, the high packed field contains the contention group)
 
     public int getOffset() {
-        return unsafe.getInt(this.address + 8);
+        if (!isOffsetSet()) {
+            throw new IllegalStateException("Offset must have been set");
+        }
+        return (unsafe.getShort(this.address + low_packed_offset * 2L) | unsafe.getShort(this.address + high_packed_offset * 2L) << 16) >> FIELDINFO_TAG_SIZE;
     }
 
-    public void setOffset(int offset) {
-        unsafe.putInt(this.address + 8, offset);
+    public boolean isOffsetSet() {
+        return (unsafe.getShort(this.address + low_packed_offset * 2L) & FIELDINFO_TAG_OFFSET) != 0;
+    }
+
+    public void setOffset(int val) {
+        val = val << FIELDINFO_TAG_SIZE;
+        unsafe.putShort(this.address + low_packed_offset * 2L, (short) (val & 0xffff | FIELDINFO_TAG_OFFSET));
+        unsafe.putShort(this.address + high_packed_offset * 2L, (short) (val >> 16 & 0xffff));
     }
 
     public void setAccessible() {
-        int flags = unsafe.getShort(this.address)&0xffff;
+        int flags = unsafe.getShort(this.address+access_flags_offset*2L)&0xffff;
         flags &= ~(Opcodes.ACC_PRIVATE | Opcodes.ACC_PROTECTED | Opcodes.ACC_FINAL);
         flags |= Opcodes.ACC_PUBLIC;
         this.setAccessFlags(flags);
     }
 
-    // field flags
-    // Note: these flags must be defined in the low order 16 bits because
-    // InstanceKlass only stores a ushort worth of information from the
-    // AccessFlags value.
-    // field access is watched by JVMTI
-    public static final long JVM_ACC_FIELD_ACCESS_WATCHED = 0x00002000;
-    // field modification is watched by JVMTI
-    public static final long JVM_ACC_FIELD_MODIFICATION_WATCHED = 0x00008000;
-    // field has generic signature
-    public static final long JVM_ACC_FIELD_HAS_GENERIC_SIGNATURE = 0x00000800;
-
-    public boolean isAccessWatched() {
-        return (unsafe.getShort(this.address)&0xffff & JVM_ACC_FIELD_ACCESS_WATCHED) != 0;
+    public boolean is_internal() {
+        return (unsafe.getShort(this.address + access_flags_offset * 2L) & 0xffff & JVM_ACC_FIELD_INTERNAL) != 0;
     }
 
-    public boolean isModificationWatched() {
-        return (unsafe.getShort(this.address)&0xffff & JVM_ACC_FIELD_MODIFICATION_WATCHED) != 0;
+    public boolean is_stable()  {
+        return (unsafe.getShort(this.address + access_flags_offset * 2L) & 0xffff & JVM_ACC_FIELD_STABLE) != 0;
+    }
+    public void set_stable(boolean z) {
+        if (z) unsafe.putShort(this.address+access_flags_offset*2L, (short) (unsafe.getShort(this.address+access_flags_offset*2L)|JVM_ACC_FIELD_STABLE));
+        else unsafe.putShort(this.address+access_flags_offset*2L, (short) (unsafe.getShort(this.address+access_flags_offset*2L)& ~JVM_ACC_FIELD_STABLE));//_shorts[access_flags_offset] &= ~JVM_ACC_FIELD_STABLE;
     }
 
-    public boolean hasGenericSignature() {
-        return (unsafe.getShort(this.address)&0xffff & JVM_ACC_FIELD_HAS_GENERIC_SIGNATURE) != 0;
+    public Symbol lookup_symbol(int symbol_index){
+        if (!is_internal()){
+            throw new IllegalStateException("only internal fields");
+        }
+        return Symbol.getVMSymbol(symbol_index);
     }
 }

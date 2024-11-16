@@ -3,7 +3,7 @@ package apphhzp.lib.hotspot.oop.method;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.JVMObject;
-import apphhzp.lib.hotspot.code.CompressedLineNumberReadStream;
+import apphhzp.lib.hotspot.stream.CompressedLineNumberReadStream;
 import apphhzp.lib.hotspot.oop.Symbol;
 import apphhzp.lib.hotspot.oop.constant.ConstantPool;
 import apphhzp.lib.hotspot.oop.constant.Utf8Constant;

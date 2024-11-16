@@ -16,6 +16,10 @@ public class U1Array extends JVMObject implements Iterable<Byte>{
     public U1Array(long addr) {
         super(addr);
     }
+    public U1Array(byte[] arr) {
+        super(unsafe.allocateMemory(arr.length+TYPE.size+1));
+
+    }
 
     public byte get(int index) {
         checkBound(index);

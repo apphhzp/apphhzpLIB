@@ -17,9 +17,13 @@ public class NMethod extends CompiledMethod {
     public static final long ENTRY_BCI_OFFSET = TYPE.offset("_entry_bci");
     public static final long OSR_LINK_OFFSET = TYPE.offset("_osr_link");
     public static final long VERIFIED_ENTRY_POINT_OFFSET = TYPE.offset("_verified_entry_point");
+    public static final long CONSTS_OFFSET_OFFSET = TYPE.offset("_consts_offset");
+    public static final long STUB_OFFSET_OFFSET = TYPE.offset("_stub_offset");
+    public static final long OOPS_OFFSET_OFFSET = TYPE.offset("_oops_offset");
     public static final long COMP_LEVEL_OFFSET = TYPE.offset("_comp_level");
     public static final long STATE_OFFSET = TYPE.offset("_state");
     public static final long LOCK_COUNT_OFFSET = TYPE.offset("_lock_count");
+    public static final long STACK_TRAVERSAL_MARK_OFFSET = TYPE.offset("_stack_traversal_mark");
     private NMethod nextCache;
 
     public NMethod(long addr) {
@@ -45,12 +49,34 @@ public class NMethod extends CompiledMethod {
     public void setNext(@Nullable NMethod nMethod) {
         unsafe.putAddress(this.address + OSR_LINK_OFFSET, nMethod == null ? 0L : nMethod.address);
     }
+
+    @Override
     public long getVerifiedEntryPoint() {
         return unsafe.getLong(this.address + VERIFIED_ENTRY_POINT_OFFSET);
     }
 
     public void setVerifiedEntryPoint(long verifiedEntryPoint) {
-        unsafe.putAddress(this.address+VERIFIED_ENTRY_POINT_OFFSET, verifiedEntryPoint);
+        unsafe.putAddress(this.address + VERIFIED_ENTRY_POINT_OFFSET, verifiedEntryPoint);
+    }
+
+    @Override
+    public long constsBegin() {
+        return this.address + unsafe.getInt(this.address+CONSTS_OFFSET_OFFSET);
+    }
+
+    @Override
+    public long constsEnd() {
+        return super.codeBegin();
+    }
+
+    @Override
+    public long stubBegin() {
+        return this.address+ unsafe.getInt(this.address+STUB_OFFSET_OFFSET);
+    }
+
+    @Override
+    public long stubEnd() {
+        return this.address + unsafe.getInt(this.address+OOPS_OFFSET_OFFSET);
     }
 
     public CompLevel getCompLevel() {
@@ -71,6 +97,14 @@ public class NMethod extends CompiledMethod {
 
     public void setLockCount(int count) {
         unsafe.putInt(this.address + LOCK_COUNT_OFFSET, count);
+    }
+
+    public long getStackTraversalMark() {
+        return JVM.getCLevelLong(this.address+STACK_TRAVERSAL_MARK_OFFSET);
+    }
+
+    public void setStackTraversalMark(long mark){
+        JVM.putCLevelLong(this.address+STACK_TRAVERSAL_MARK_OFFSET, mark);
     }
 
     public boolean isOsrMethod() {
@@ -102,23 +136,25 @@ public class NMethod extends CompiledMethod {
     public boolean isLockedByVM() {
         return this.getLockCount() > 0;
     }
-    public void invalidateOsrMethod(){
-        if (this.getEntryBci()!=JVM.invocationEntryBci){
+
+    public void invalidateOsrMethod() {
+        if (this.getEntryBci() != JVM.invocationEntryBci) {
             throw new IllegalStateException("wrong kind of nmethod");
         }
-        Method method=this.getMethod();
-        if (method!=null){
+        Method method = this.getMethod();
+        if (method != null) {
             method.getHolder().remove_osr_nmethod(this);
         }
     }
+
     @Override
     public boolean makeNotEntrant() {
-        return this.makeNotEntrantOrZombie(States.not_entrant);
+        return false;//this.makeNotEntrantOrZombie(States.not_entrant);
     }
 
-    public void unlinkFromMethod(){
-        Method method=this.getMethod();
-        if (method!=null){
+    public void unlinkFromMethod() {
+        Method method = this.getMethod();
+        if (method != null) {
             method.unlinkCode(this);
         }
     }
@@ -130,12 +166,9 @@ public class NMethod extends CompiledMethod {
             if (old_state >= new_state) {
                 return false;
             }
-            if (ClassHelper.compareAndSwapByte(null,this.address+STATE_OFFSET,old_state,new_state)){
+            if (ClassHelper.compareAndSwapByte(null, this.address + STATE_OFFSET, old_state, new_state)) {
                 return true;
             }
-//            if (Atomic::cmpxchg(&_state, old_state, new_state) == old_state) {
-//                return true;
-//            }
         }
     }
 
@@ -149,110 +182,110 @@ public class NMethod extends CompiledMethod {
         if (mdo == null) return;
         mdo.incDecompileCount();
     }
-    public boolean makeNotEntrantOrZombie(int state){
-        if (state!=States.zombie&&state!=States.not_entrant){
-            throw new IllegalArgumentException("must be zombie or not_entrant");
-        }
-        if (this.getState() >= state) {
-            return false;
-        }
-        boolean nmethod_needs_unregister = false;
-        {
-            // Enter critical section.  Does not block for safepoint.
-            //MutexLocker ml(CompiledMethod_lock->owned_by_self() ? NULL : CompiledMethod_lock, Mutex::_no_safepoint_check_flag);
 
-            // This logic is equivalent to the logic below for patching the
-            // verified entry point of regular methods. We check that the
-            // nmethod is in use to ensure that it is invalidated only once.
-            if (this.isOsrMethod() &&this.isInUse()) {
-                // this effectively makes the osr nmethod not entrant
-                this.invalidateOsrMethod();
-            }
+    //This is unrealistic....
 
-            if (this.getState()>= state) {
-                return false;
-            }
-
-            // The caller can be calling the method statically or through an inline
-            // cache call.
-//            if (!this.isOsrMethod() && !is_not_entrant()) {
-//                NativeJump::patch_verified_entry(entry_point(), verified_entry_point(),
-//                        SharedRuntime::get_handle_wrong_method_stub());
+//    public boolean makeNotEntrantOrZombie(int state) {
+//        if (state != States.zombie && state != States.not_entrant) {
+//            throw new IllegalArgumentException("must be zombie or not_entrant");
+//        }
+//        if (this.getState() >= state) {
+//            return false;
+//        }
+//        boolean nmethod_needs_unregister = false;
+//        {
+//            // Enter critical section.  Does not block for safepoint.
+//            //MutexLocker ml(CompiledMethod_lock->owned_by_self() ? NULL : CompiledMethod_lock, Mutex::_no_safepoint_check_flag);
+//
+//            // This logic is equivalent to the logic below for patching the
+//            // verified entry point of regular methods. We check that the
+//            // nmethod is in use to ensure that it is invalidated only once.
+//            if (this.isOsrMethod() && this.isInUse()) {
+//                // this effectively makes the osr nmethod not entrant
+//                this.invalidateOsrMethod();
 //            }
+//
+//            if (this.getState() >= state) {
+//                return false;
+//            }
+//
+//            // The caller can be calling the method statically or through an inline
+//            // cache call.
+////            if (!this.isOsrMethod() && !is_not_entrant()) {
+////                NativeJump::patch_verified_entry(entry_point(), verified_entry_point(),
+////                        SharedRuntime::get_handle_wrong_method_stub());
+////            }
 //            if (this.isInUse() && update_recompile_counts()) {
 //                inc_decompile_count();
 //            }
 //            if ((state == States.zombie) && !this.isUnloaded()) {
 //                nmethod_needs_unregister = true;
 //            }
-//
+////
 //            if (state == States.not_entrant) {
-//                mark_as_seen_on_stack();
+//                this.markAsSeenOnStack();
 //                //OrderAccess::storestore();
 //            }
+////
+//            if (!tryTransition(state)) {
+//                return false;
+//            }
 //
-            if (!tryTransition(state)) {
-                return false;
-            }
-
-
-
-
-            this.unlinkFromMethod();
-
-        }
-
-//#if INCLUDE_JVMCI
-//        JVMCINMethodData* nmethod_data = jvmci_nmethod_data();
-//        if (nmethod_data != NULL) {
-//            nmethod_data->invalidate_nmethod_mirror(this);
+//
+//            this.unlinkFromMethod();
+//
 //        }
-//#endif
-
-
-        if (state == States.zombie) {
-
-            // Flushing dependencies must be done before any possible
-            // safepoint can sneak in, otherwise the oops used by the
-            // dependency logic could have become stale.
-//            if (nmethod_needs_unregister) {
-//                Universe::heap()->unregister_nmethod(this);
-//            }
-//            flush_dependencies(true);
-//            if (JVM.includeJVMCI) {
-//                // Now that the nmethod has been unregistered, it's
-//                // safe to clear the HotSpotNmethod mirror oop.
-//                if (nmethod_data != NULL) {
-//                    nmethod_data -> clear_nmethod_mirror(this);
-//                }
+//
+////#if INCLUDE_JVMCI
+////        JVMCINMethodData* nmethod_data = jvmci_nmethod_data();
+////        if (nmethod_data != NULL) {
+////            nmethod_data->invalidate_nmethod_mirror(this);
+////        }
+////#endif
+//
+//
+//        if (state == States.zombie) {
+//
+//            // Flushing dependencies must be done before any possible
+//            // safepoint can sneak in, otherwise the oops used by the
+//            // dependency logic could have become stale.
+////            if (nmethod_needs_unregister) {
+////                Universe::heap()->unregister_nmethod(this);
+////            }
+////            flush_dependencies(true);
+////            if (JVM.includeJVMCI) {
+////                // Now that the nmethod has been unregistered, it's
+////                // safe to clear the HotSpotNmethod mirror oop.
+////                if (nmethod_data != NULL) {
+////                    nmethod_data -> clear_nmethod_mirror(this);
+////                }
+////            }
+////
+////            // Clear ICStubs to prevent back patching stubs of zombie or flushed
+////            // nmethods during the next safepoint (see ICStub::finalize), as well
+////            // as to free up CompiledICHolder resources.
+//            {
+//                this.clearICCallsites();
 //            }
 //
-//            // Clear ICStubs to prevent back patching stubs of zombie or flushed
-//            // nmethods during the next safepoint (see ICStub::finalize), as well
-//            // as to free up CompiledICHolder resources.
-//            {
-//                CompiledICLocker ml(this);
-//                clear_ic_callsites();
+//            // zombie only - if a JVMTI agent has enabled the CompiledMethodUnload
+//            // event and it hasn't already been reported for this nmethod then
+//            // report it now. The event may have been reported earlier if the GC
+//            // marked it for unloading). JvmtiDeferredEventQueue support means
+//            // we no longer go to a safepoint here.
+//            //post_compiled_method_unload();
+//
+//
+//            // the Method may be reclaimed by class unloading now that the
+//            // nmethod is in zombie state
+//            this.setMethod(null);
+//        } else {
+//            if (state != States.not_entrant) {
+//                throw new IllegalStateException("other cases may need to be handled differently");
 //            }
-
-            // zombie only - if a JVMTI agent has enabled the CompiledMethodUnload
-            // event and it hasn't already been reported for this nmethod then
-            // report it now. The event may have been reported earlier if the GC
-            // marked it for unloading). JvmtiDeferredEventQueue support means
-            // we no longer go to a safepoint here.
-            //post_compiled_method_unload();
-
-
-            // the Method may be reclaimed by class unloading now that the
-            // nmethod is in zombie state
-            this.setMethod(null);
-        } else {
-            if (state== States.not_entrant){
-                throw new IllegalStateException("other cases may need to be handled differently");
-            }
-        }
-
-        //NMethodSweeper::report_state_change(this);
-        return true;
-    }
+//        }
+//
+//        //NMethodSweeper::report_state_change(this);
+//        return true;
+//    }
 }

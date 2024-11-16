@@ -1,10 +1,8 @@
-package apphhzp.lib.hotspot.code;
+package apphhzp.lib.hotspot.stream;
 
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.JVMObject;
-
-import static apphhzp.lib.ClassHelper.unsafe;
 
 public class CompressedStream extends JVMObject {
     public static final Type TYPE= JVM.type("CompressedStream");

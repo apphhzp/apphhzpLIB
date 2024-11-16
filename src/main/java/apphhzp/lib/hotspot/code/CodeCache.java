@@ -126,7 +126,7 @@ public class CodeCache {
             for (CodeBlob blob : heap) {
                 if (blob instanceof CompiledMethod compiledMethod) {
                     if (!compiledMethod.isMarkedForDeoptimization()) {
-                        System.err.println(compiledMethod.getMethod().getConstMethod().getName());
+                        //System.err.println(compiledMethod.getMethod().getConstMethod().getName());
                         compiledMethod.makeNotEntrant();
                     }
                 }

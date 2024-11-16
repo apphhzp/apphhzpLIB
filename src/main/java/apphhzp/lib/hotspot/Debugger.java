@@ -2,9 +2,9 @@ package apphhzp.lib.hotspot;
 
 import apphhzp.lib.ClassHelper;
 import apphhzp.lib.helfy.JVM;
+import apphhzp.lib.hotspot.oop.FieldInfo;
 import apphhzp.lib.hotspot.oop.InstanceKlass;
 import apphhzp.lib.hotspot.oop.Klass;
-import apphhzp.lib.hotspot.oop.MethodCounters;
 import apphhzp.lib.hotspot.oop.constant.ConstantPool;
 import apphhzp.lib.hotspot.oop.constant.ConstantTag;
 import apphhzp.lib.hotspot.oop.constant.MethodRefConstant;
@@ -68,17 +68,19 @@ public final class Debugger {
         JVM.printAllTypes();
         JVM.printAllConstants();
         JVM.printAllVTBL();
-
-        MethodCounters counters=Klass.asKlass(JVM.class).asInstanceKlass().getMethod("getStringRef","(J)Ljava/lang/String;").getCounters();
-        for (long x=counters.address+24,i=0;i<20;i++,x++){
-            System.err.println(Long.toHexString(x) +"==0x"+Long.toHexString(Byte.toUnsignedLong(ClassHelper.unsafe.getByte(x))));
+        InstanceKlass klass=Klass.getOrCreate(ClassHelper.unsafe.getAddress(JVM.type("vmClasses").global("_klasses[static_cast<int>(vmClassID::ClassLoader_klass_knum)]"))).asInstanceKlass();
+        System.err.println(klass.getName());
+        for (FieldInfo info:klass.getFieldInfos()){
+            System.err.println(info.getName(klass.getConstantPool()));
         }
+
 //        InstanceKlass klass=Klass.asKlass(TestSuper.class).asInstanceKlass();
 //        Method method=klass.getMethod("call1","()V");
 //        for (int i=0;i<291993;i++){
 //            test();
 //        }
 //        CodeCache.markAllNMethodsForDeoptimization();
+//        CodeCache.makeMarkedNMethodsNotEntrant();
 //        modifyConstant();
 //        //CodeCache.markAllNMethodsForEvolDeoptimization();
 //

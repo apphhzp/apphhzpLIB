@@ -26,6 +26,7 @@ public final class JVM {
     public static final Map<String, Number> constants = new LinkedHashMap<>();
     public static final int oopSize;
     public static final int intSize;
+    public static final int longSize;
     public static final int size_tSize;
     public static final int heapWordSize;
     public static final boolean isJVMTISupported;
@@ -299,6 +300,36 @@ public final class JVM {
         }
     }
 
+    public static void putCLevelLong(long address,long val){
+        if (longSize==4){
+            unsafe.putInt(address,(int) val);
+        }else {
+            unsafe.putLong(address,val);
+        }
+    }
+    public static long getCLevelLong(long address){
+        if (longSize==4){
+            return unsafe.getInt(address);
+        }else {
+            return unsafe.getLong(address);
+        }
+    }
+
+    public static void putSizeT(long address,long val){
+        if (size_tSize==4){
+            unsafe.putInt(address,(int) val);
+        }else {
+            unsafe.putLong(address,val);
+        }
+    }
+    public static long getSizeT(long address){
+        if (size_tSize==4){
+            return unsafe.getInt(address);
+        }else {
+            return unsafe.getLong(address);
+        }
+    }
+
     public static void clearAllCacheMaps(){
         Method.clearCacheMap();
         ConstantPool.clearCacheMap();
@@ -428,6 +459,7 @@ public final class JVM {
                 }
                 oopSize = intConstant("oopSize");
                 intSize = type("int").size;
+                longSize=type("long").size;
                 size_tSize = type("size_t").size;
                 heapWordSize = intConstant("HeapWordSize");
                 isJVMTISupported = type("InstanceKlass").contains("_breakpoints");
@@ -497,7 +529,7 @@ public final class JVM {
 //                }
             } else {
                 JVM = null;
-                oopSize = intSize = size_tSize = heapWordSize = 0;
+                oopSize = intSize = size_tSize = heapWordSize =longSize= 0;
                 isJVMTISupported = usingClientCompiler = usingServerCompiler = usingSharedSpaces = usingTLAB = includeJVMCI = false;
                 usingCompressedOops = Unsafe.ARRAY_OBJECT_INDEX_SCALE == 4;
                 boolean flag = true;

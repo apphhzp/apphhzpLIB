@@ -1,4 +1,4 @@
-package apphhzp.lib.hotspot.code;
+package apphhzp.lib.hotspot.stream;
 
 import static apphhzp.lib.ClassHelper.unsafe;
 

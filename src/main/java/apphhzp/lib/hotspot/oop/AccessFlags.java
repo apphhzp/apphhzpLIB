@@ -1,5 +1,6 @@
 package apphhzp.lib.hotspot.oop;
 
+import apphhzp.lib.helfy.JVM;
 import org.objectweb.asm.Opcodes;
 
 import java.util.HashMap;
@@ -7,7 +8,9 @@ import java.util.Map;
 import java.util.StringJoiner;
 
 public class AccessFlags {
-    public static final Map<Integer,AccessFlags> cache=new HashMap<>();
+    public static final int JVM_ACC_FIELD_STABLE= JVM.intConstant("JVM_ACC_FIELD_STABLE");
+    public static final int JVM_ACC_FIELD_INTERNAL=JVM.intConstant("JVM_ACC_FIELD_INTERNAL");
+    private static final Map<Integer,AccessFlags> cache=new HashMap<>();
     public final String klassACCPrefix;
     public final String methodACCPrefix;
     public final String fieldACCPrefix;
@@ -160,5 +163,9 @@ public class AccessFlags {
 
     public boolean isStrict() {
         return (this.flags & Opcodes.ACC_STRICT) != 0;
+    }
+
+    public boolean fieldHasGenericSignature(){
+        return false;
     }
 }

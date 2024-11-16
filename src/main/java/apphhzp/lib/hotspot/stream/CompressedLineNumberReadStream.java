@@ -1,4 +1,4 @@
-package apphhzp.lib.hotspot.code;
+package apphhzp.lib.hotspot.stream;
 
 public class CompressedLineNumberReadStream extends CompressedReadStream {
     private int bci;
