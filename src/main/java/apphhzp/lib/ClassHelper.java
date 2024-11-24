@@ -8,11 +8,10 @@ import apphhzp.lib.natives.NativeUtil;
 import com.sun.jna.ptr.IntByReference;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.Type;
 import sun.misc.Unsafe;
 
 import javax.annotation.Nullable;
+import java.io.InputStream;
 import java.lang.instrument.Instrumentation;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -33,7 +32,7 @@ import java.util.*;
 
 import static apphhzp.lib.ClassHelper.ClassOption.optionsToFlag;
 
-@SuppressWarnings("unused")
+@SuppressWarnings({"unused", "ResultOfMethodCallIgnored"})
 public final class ClassHelper {
     private static final Logger LOGGER;
     public static final MethodHandles.Lookup lookup;
@@ -56,7 +55,7 @@ public final class ClassHelper {
     public static final boolean is64BitJVM;
     public static final boolean isHotspotJVM;
     private static final IntByReference oldProtect;
-    private static final Map<CodeSource,ProtectionDomain> pdCache;
+    private static final Map<CodeSource, ProtectionDomain> pdCache;
     public static final Object JLA_INSTANCE;
 
     static {
@@ -64,7 +63,7 @@ public final class ClassHelper {
             LOGGER = LogManager.getLogger(ClassHelper.class);
             String osName = System.getProperty("os.name").toLowerCase(Locale.ROOT);
             isWindows = osName.contains("win");
-            isLinux = osName.contains("nux")||osName.contains("nix");//||osName.contains("unix")
+            isLinux = osName.contains("nux") || osName.contains("nix");//||osName.contains("unix")
             Unsafe tmp;
             Constructor<Unsafe> c = Unsafe.class.getDeclaredConstructor();
             c.setAccessible(true);
@@ -78,20 +77,20 @@ public final class ClassHelper {
             staticFieldBaseMethod = lookup.findVirtual(internalClass, "staticFieldBase", MethodType.methodType(Object.class, Field.class));
             staticFieldOffsetMethod = lookup.findVirtual(internalClass, "staticFieldOffset", MethodType.methodType(long.class, Field.class));
             objectFieldOffsetMethod = lookup.findVirtual(internalClass, "objectFieldOffset", MethodType.methodType(long.class, Field.class));
-            defineClassMethod = lookup.findVirtual(internalClass,"defineClass",MethodType.methodType(Class.class,String.class,byte[].class,int.class,int.class,ClassLoader.class, ProtectionDomain.class));
-            compareAndSetByteMethod=lookup.findVirtual(internalClass,"compareAndSetByte",MethodType.methodType(boolean.class,Object.class,long.class,byte.class,byte.class));
-            JLA_defineClassMethod=lookup.findVirtual(Class.forName("jdk.internal.access.JavaLangAccess"),"defineClass",MethodType.methodType(Class.class,ClassLoader.class,Class.class,String.class,byte[].class,ProtectionDomain.class,boolean.class,int.class,Object.class));
-            lookupConstructor=lookup.findConstructor(MethodHandles.Lookup.class,MethodType.methodType(void.class,Class.class,Class.class,int.class));
+            defineClassMethod = lookup.findVirtual(internalClass, "defineClass", MethodType.methodType(Class.class, String.class, byte[].class, int.class, int.class, ClassLoader.class, ProtectionDomain.class));
+            compareAndSetByteMethod = lookup.findVirtual(internalClass, "compareAndSetByte", MethodType.methodType(boolean.class, Object.class, long.class, byte.class, byte.class));
+            JLA_defineClassMethod = lookup.findVirtual(Class.forName("jdk.internal.access.JavaLangAccess"), "defineClass", MethodType.methodType(Class.class, ClassLoader.class, Class.class, String.class, byte[].class, ProtectionDomain.class, boolean.class, int.class, Object.class));
+            lookupConstructor = lookup.findConstructor(MethodHandles.Lookup.class, MethodType.methodType(void.class, Class.class, Class.class, int.class));
             exportJDKInternalModule();
             if (isWindows && !Debugger.isDebug) {
                 instImpl = NativeUtil.createInstrumentationImpl();
-                objectInstImpl =NativeUtil.createObjectInstrumentationImpl();
+                objectInstImpl = NativeUtil.createObjectInstrumentationImpl();
             } else {
                 instImpl = null;
-                objectInstImpl =null;
+                objectInstImpl = null;
             }
-            oldProtect=new IntByReference(1);
-            pdCache=new HashMap<>();
+            oldProtect = new IntByReference(1);
+            pdCache = new HashMap<>();
             JLA_INSTANCE = lookup.unreflectVarHandle(Class.forName("jdk.internal.access.SharedSecrets").getDeclaredField("javaLangAccess")).get();
         } catch (Throwable throwable) {
             throw new ExceptionInInitializerError(throwable);
@@ -116,9 +115,8 @@ public final class ClassHelper {
             Module module = klass.getModule();
             Field accField = Class.forName("jdk.internal.access.SharedSecrets").getDeclaredField("javaLangAccess");
             Object o = lookup.unreflectVarHandle(accField).get();
-            MethodHandle addExport=lookup.findVirtual(Class.forName("jdk.internal.access.JavaLangAccess"),"addExports",MethodType.methodType(void.class, Module.class, String.class));
-            for(String name:module.getPackages()){
-                //System.err.println("name:"+name);
+            MethodHandle addExport = lookup.findVirtual(Class.forName("jdk.internal.access.JavaLangAccess"), "addExports", MethodType.methodType(void.class, Module.class, String.class));
+            for (String name : module.getPackages()) {
                 addExport.invoke(o, module, name);
             }
         } catch (Throwable t) {
@@ -126,60 +124,87 @@ public final class ClassHelper {
         }
     }
 
-    public static void addExportImpl(Module current,String pkg){
+    public static void addExportImpl(Module current, String pkg) {
         try {
             Field accField = Class.forName("jdk.internal.access.SharedSecrets").getDeclaredField("javaLangAccess");
             Object o = lookup.unreflectVarHandle(accField).get();
             Method addExport = Class.forName("jdk.internal.access.JavaLangAccess").getDeclaredMethod("addExports", Module.class, String.class);
             lookup.unreflect(addExport).invoke(o, current, pkg);
-        } catch (Throwable t){
+        } catch (Throwable t) {
             throw new RuntimeException(t);
         }
     }
 
-    public static Class<?> defineClass(String name,byte[] bytecodes,ClassLoader loader){
+    public static Class<?> defineClass(String name, byte[] bytecodes, ClassLoader loader) {
         try {
-            return (Class<?>) defineClassMethod.invoke(internalUnsafe,name,bytecodes,0,bytecodes.length,loader,null);
-        }catch (Throwable t){
+            return (Class<?>) defineClassMethod.invoke(internalUnsafe, name, bytecodes, 0, bytecodes.length, loader, null);
+        } catch (Throwable t) {
             throw new RuntimeException(t);
         }
     }
 
     public static ProtectionDomain createProtectionDomain(CodeSource codeSource, ClassLoader cl) {
-        return pdCache.computeIfAbsent(codeSource, cs->{
+        return pdCache.computeIfAbsent(codeSource, cs -> {
             Permissions perms = new Permissions();
             perms.add(new AllPermission());
             return new ProtectionDomain(codeSource, perms, cl, null);
         });
     }
 
-
-    public static MethodHandles.Lookup defineHiddenClass(byte[] bytes,String name, boolean initialize,Class<?> lookupClass, ClassLoader loader, ProtectionDomain pd, ClassOption... options) {
-        Objects.requireNonNull(bytes);
-        Objects.requireNonNull(options);
-        int flags = 2|optionsToFlag(Set.of(options));
-        if (loader == null || loader == ClassLoader.getPlatformClassLoader()) {
-            flags |= 8;
-        }
+    public static MethodHandles.Lookup defineHiddenClass(String name, Class<?> lookupClass, boolean initialize, ProtectionDomain pd, ClassOption... options) {
         try {
-            return (MethodHandles.Lookup) lookupConstructor.invoke(JLA_defineClassMethod.invoke(JLA_INSTANCE,loader, lookupClass, name, bytes, pd, initialize, flags, null), null, 95);
-        }catch (Throwable t){
-            throw new RuntimeException("Could not define a hidden class:"+name,t);
+            InputStream is = lookupClass.getResourceAsStream("/" + name.replace('.', '/') + ".class");
+            byte[] dat = new byte[is.available()];
+            is.read(dat);
+            is.close();
+            return defineHiddenClass(dat, name, initialize, lookupClass, lookupClass.getClassLoader(), pd, options);
+        } catch (NullPointerException e) {
+            throw new RuntimeException("Could not find class in jar: " + name, e);
+        } catch (Throwable t) {
+            throw new RuntimeException(t);
         }
     }
 
-    public MethodHandles.Lookup defineHiddenClassWithClassData(byte[] bytes,String name, Object classData, boolean initialize,Class<?> lookupClass,ClassLoader loader, ProtectionDomain pd, ClassOption... options) {
+    public static MethodHandles.Lookup defineHiddenClassWithClassData(String name, Object data, Class<?> lookupClass, boolean initialize, ProtectionDomain pd, ClassOption... options) {
+        try {
+            InputStream is = lookupClass.getResourceAsStream("/" + name.replace('.', '/') + ".class");
+            byte[] dat = new byte[is.available()];
+            is.read(dat);
+            is.close();
+            return defineHiddenClassWithClassData(dat, name, data, initialize, lookupClass, lookupClass.getClassLoader(), pd, options);
+        } catch (NullPointerException e) {
+            throw new RuntimeException("Could not find class in jar: " + name, e);
+        } catch (Throwable t) {
+            throw new RuntimeException(t);
+        }
+    }
+
+    public static MethodHandles.Lookup defineHiddenClass(byte[] bytes, String name, boolean initialize, Class<?> lookupClass, ClassLoader loader, ProtectionDomain pd, ClassOption... options) {
         Objects.requireNonNull(bytes);
-        Objects.requireNonNull(classData);
         Objects.requireNonNull(options);
-        int flags = 2|optionsToFlag(Set.of(options));
+        int flags = 2 | optionsToFlag(Set.of(options));
         if (loader == null || loader == ClassLoader.getPlatformClassLoader()) {
             flags |= 8;
         }
         try {
-            return (MethodHandles.Lookup) lookupConstructor.invoke(JLA_defineClassMethod.invoke(JLA_INSTANCE,loader, lookupClass, name, bytes, pd, initialize, flags, classData), null, 95);
-        }catch (Throwable t){
-            throw new RuntimeException("Could not define a hidden class:"+name,t);
+            return (MethodHandles.Lookup) lookupConstructor.invoke(JLA_defineClassMethod.invoke(JLA_INSTANCE, loader, lookupClass, name, bytes, pd, initialize, flags, null), null, 95);
+        } catch (Throwable t) {
+            throw new RuntimeException("Could not define a hidden class:" + name, t);
+        }
+    }
+
+    public static MethodHandles.Lookup defineHiddenClassWithClassData(byte[] bytes, String name, Object classData, boolean initialize, Class<?> lookupClass, ClassLoader loader, ProtectionDomain pd, ClassOption... options) {
+        Objects.requireNonNull(bytes);
+        Objects.requireNonNull(classData);
+        Objects.requireNonNull(options);
+        int flags = 2 | optionsToFlag(Set.of(options));
+        if (loader == null || loader == ClassLoader.getPlatformClassLoader()) {
+            flags |= 8;
+        }
+        try {
+            return (MethodHandles.Lookup) lookupConstructor.invoke(JLA_defineClassMethod.invoke(JLA_INSTANCE, loader, lookupClass, name, bytes, pd, initialize, flags, classData), null, 95);
+        } catch (Throwable t) {
+            throw new RuntimeException("Could not define a hidden class:" + name, t);
         }
     }
 
@@ -187,9 +212,11 @@ public final class ClassHelper {
         NESTMATE(1),
         STRONG(4);
         private final int flag;
+
         ClassOption(int flag) {
             this.flag = flag;
         }
+
         static int optionsToFlag(Set<ClassOption> options) {
             int flags = 0;
             for (ClassOption cp : options) {
@@ -199,30 +226,64 @@ public final class ClassHelper {
         }
     }
 
+    private static final WeakHashMap<byte[], String> classNameCache = new WeakHashMap<>();
+
+    public static String getClassNameWithCaches(byte[] bytes) {
+        return classNameCache.computeIfAbsent(bytes, ClassHelper::getClassName);
+    }
+
     public static String getClassName(byte[] bytes) {
-        if (4 > bytes.length) {
-            throw new ClassFormatError("Invalid ClassFile structure");
-        }
-        int magic = ((bytes[0] & 0xFF) << 24) | ((bytes[1] & 0xFF) << 16) | ((bytes[2] & 0xFF) << 8) | (bytes[3] & 0xFF);
-        if (magic != 0xCAFEBABE) {
-            throw new ClassFormatError("Incompatible magic value: " + magic);
-        }
-        try {
-            ClassReader reader = new ClassReader(bytes);
-            int thisClass = reader.readUnsignedShort(reader.header + 2);
-            Object constant = reader.readConst(thisClass, new char[reader.getMaxStringLength()]);
-            if (!(constant instanceof Type type)) {
-                throw new ClassFormatError("this_class item: #" + thisClass + " not a CONSTANT_Class_info");
+        int int1 = 0, header = 10;
+        int[] cpInfoOffsets;
+        int int2, cpInfoSize, currentCpInfoIndex;
+        byte val;
+        for (int2 = ((bytes[8] & 0xFF) << 8) | (bytes[9] & 0xFF), cpInfoOffsets = new int[int2], currentCpInfoIndex = 1;
+             currentCpInfoIndex < int2; header += cpInfoSize) {
+            cpInfoOffsets[currentCpInfoIndex++] = header + 1;
+            val = bytes[header];
+            if (val == 9 || val == 10 || val == 11 || val == 3 || val == 4 || val == 12 || val == 17 || val == 18) {
+                cpInfoSize = 5;
+            } else if (val == 5 || val == 6) {
+                cpInfoSize = 9;
+                currentCpInfoIndex++;
+            } else if (val == 1) {
+                cpInfoSize = 3 + (((bytes[header + 1] & 0xFF) << 8) | (bytes[header + 2] & 0xFF));
+                if (cpInfoSize > int1) {
+                    int1 = cpInfoSize;
+                }
+            } else if (val == 15) {
+                cpInfoSize = 4;
+            } else if (val == 7 || val == 8 || val == 16 || val == 20 || val == 19) {
+                cpInfoSize = 3;
+            } else {
+                throw new IllegalArgumentException();
             }
-            if (!type.getDescriptor().startsWith("L")) {
-                throw new ClassFormatError("this_class item: #" + thisClass + " not a CONSTANT_Class_info");
-            }
-            return type.getClassName();
-        } catch (RuntimeException e) {
-            ClassFormatError cfe = new ClassFormatError();
-            cfe.initCause(e);
-            throw cfe;
         }
+        char[] charBuffer = new char[int1];
+        int1 = (((bytes[header + 2] & 0xFF) << 8) | (bytes[header + 3] & 0xFF));
+        int offset = cpInfoOffsets[int1];
+        if (bytes[offset - 1] == 7) {
+            int1 = ((bytes[offset] & 0xFF) << 8) | (bytes[offset + 1] & 0xFF);
+            if (int1 == 0) {
+                throw new ClassFormatError();
+            }
+            offset = cpInfoOffsets[int1];
+            int2 = offset + 2 + (((bytes[offset] & 0xFF) << 8) | (bytes[offset + 1] & 0xFF));
+            offset += 2;
+            int1 = 0;
+            while (offset < int2) {
+                val = bytes[offset++];
+                if ((val & 0x80) == 0) {
+                    charBuffer[int1++] = (char) (val & 0x7F);
+                } else if ((val & 0xE0) == 0xC0) {
+                    charBuffer[int1++] = (char) (((val & 0x1F) << 6) + (bytes[offset++] & 0x3F));
+                } else {
+                    charBuffer[int1++] = (char) (((val & 0xF) << 12) + ((bytes[offset++] & 0x3F) << 6) + (bytes[offset++] & 0x3F));
+                }
+            }
+            return new String(charBuffer, 0, int1);
+        }
+        throw new ClassFormatError("this_class item: #" + int1 + " not a CONSTANT_Class_info");
     }
 
 //    public static int addReturn0ToCFunction(long[] func_addr){
@@ -325,10 +386,10 @@ public final class ClassHelper {
         return URLDecoder.decode(file, StandardCharsets.UTF_8);
     }
 
-    public static boolean compareAndSwapByte(Object o,long offset,byte expected,byte x){
+    public static boolean compareAndSwapByte(Object o, long offset, byte expected, byte x) {
         try {
-            return (boolean) compareAndSetByteMethod.invoke(internalUnsafe,o,offset,expected,x);
-        }catch (Throwable t){
+            return (boolean) compareAndSetByteMethod.invoke(internalUnsafe, o, offset, expected, x);
+        } catch (Throwable t) {
             throw new RuntimeException(t);
         }
     }
