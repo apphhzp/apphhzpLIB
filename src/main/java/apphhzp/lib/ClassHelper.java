@@ -233,21 +233,21 @@ public final class ClassHelper {
     }
 
     public static String getClassName(byte[] bytes) {
-        int int1 = 0, header = 10;
+        int int1 = 0, offset = 10;
         int[] cpInfoOffsets;
         int int2, cpInfoSize, currentCpInfoIndex;
         byte val;
         for (int2 = ((bytes[8] & 0xFF) << 8) | (bytes[9] & 0xFF), cpInfoOffsets = new int[int2], currentCpInfoIndex = 1;
-             currentCpInfoIndex < int2; header += cpInfoSize) {
-            cpInfoOffsets[currentCpInfoIndex++] = header + 1;
-            val = bytes[header];
+             currentCpInfoIndex < int2; offset += cpInfoSize) {
+            cpInfoOffsets[currentCpInfoIndex++] = offset + 1;
+            val = bytes[offset];
             if (val == 9 || val == 10 || val == 11 || val == 3 || val == 4 || val == 12 || val == 17 || val == 18) {
                 cpInfoSize = 5;
             } else if (val == 5 || val == 6) {
                 cpInfoSize = 9;
                 currentCpInfoIndex++;
             } else if (val == 1) {
-                cpInfoSize = 3 + (((bytes[header + 1] & 0xFF) << 8) | (bytes[header + 2] & 0xFF));
+                cpInfoSize = 3 + (((bytes[offset + 1] & 0xFF) << 8) | (bytes[offset + 2] & 0xFF));
                 if (cpInfoSize > int1) {
                     int1 = cpInfoSize;
                 }
@@ -260,8 +260,8 @@ public final class ClassHelper {
             }
         }
         char[] charBuffer = new char[int1];
-        int1 = (((bytes[header + 2] & 0xFF) << 8) | (bytes[header + 3] & 0xFF));
-        int offset = cpInfoOffsets[int1];
+        int1 = (((bytes[offset + 2] & 0xFF) << 8) | (bytes[offset + 3] & 0xFF));
+        offset = cpInfoOffsets[int1];
         if (bytes[offset - 1] == 7) {
             int1 = ((bytes[offset] & 0xFF) << 8) | (bytes[offset + 1] & 0xFF);
             if (int1 == 0) {
@@ -284,6 +284,127 @@ public final class ClassHelper {
             return new String(charBuffer, 0, int1);
         }
         throw new ClassFormatError("this_class item: #" + int1 + " not a CONSTANT_Class_info");
+    }
+
+    public static String getSuperName(byte[] bytes) {
+        int index = 1;
+        int offset = 10;
+        int maxStringLength = 0;
+        int currentByte;
+        int val = ((bytes[8] & 0xFF) << 8) | (bytes[9] & 0xFF);
+        int[] cpInfoOffsets = new int[val];
+        while (index < val) {
+            cpInfoOffsets[index++] = offset + 1;
+            int cpInfoSize;
+            currentByte = bytes[offset];
+            if (currentByte == 9 || currentByte == 10 || currentByte == 11 || currentByte == 12 || currentByte == 3 || currentByte == 4 || currentByte == 18 || currentByte == 17) {
+                cpInfoSize = 5;
+            } else if (currentByte == 5 || currentByte == 6) {
+                cpInfoSize = 9;
+                index++;
+            } else if (currentByte == 1) {
+                cpInfoSize = 3 + (((bytes[offset + 1] & 0xFF) << 8) | (bytes[offset + 2] & 0xFF));
+                if (cpInfoSize > maxStringLength) {
+                    maxStringLength = cpInfoSize;
+                }
+            } else if (currentByte == 15) {
+                cpInfoSize = 4;
+            } else if (currentByte == 7 || currentByte == 8 || currentByte == 16 || currentByte == 20 || currentByte == 19) {
+                cpInfoSize = 3;
+            } else {
+                throw new IllegalArgumentException();
+            }
+            offset += cpInfoSize;
+        }
+        char[] charBuffer = new char[maxStringLength];
+        offset=cpInfoOffsets[((bytes[offset + 4] & 0xFF) << 8) | (bytes[offset + 5] & 0xFF)];
+        val = (((bytes[offset] & 0xFF) << 8) | (bytes[offset + 1] & 0xFF));
+        if (offset == 0 || val == 0) {
+            throw new ClassFormatError();
+        }
+        offset = cpInfoOffsets[val];
+        val = offset + 2 + (((bytes[offset] & 0xFF) << 8) | (bytes[offset + 1] & 0xFF));
+        offset += 2;
+        index = 0;
+        while (offset < val) {
+            currentByte = bytes[offset++];
+            if ((currentByte & 0x80) == 0) {
+                charBuffer[index++] = (char) (currentByte & 0x7F);
+            } else if ((currentByte & 0xE0) == 0xC0) {
+                charBuffer[index++] = (char) (((currentByte & 0x1F) << 6) + (bytes[offset++] & 0x3F));
+            } else {
+                charBuffer[index++] = (char) (((currentByte & 0xF) << 12) + ((bytes[offset++] & 0x3F) << 6) + (bytes[offset++] & 0x3F));
+            }
+        }
+        return new String(charBuffer, 0, index);
+    }
+
+    public static String[] getInterfaceNames(byte[] bytes) {
+        int cnt = ((bytes[8] & 0xFF) << 8) | (bytes[9] & 0xFF);
+        int[] cpInfoOffsets;
+        int index = 1;
+        int offset = 10;
+        int maxStringLength = 0;
+        int currentByte;
+        cpInfoOffsets = new int[cnt];
+        while (index < cnt) {
+            cpInfoOffsets[index++] = offset + 1;
+            int cpInfoSize;
+            currentByte = bytes[offset];
+            if (currentByte == 9 || currentByte == 10 || currentByte == 11 || currentByte == 12 || currentByte == 3 || currentByte == 4 || currentByte == 18 || currentByte == 17) {
+                cpInfoSize = 5;
+            } else if (currentByte == 5 || currentByte == 6) {
+                cpInfoSize = 9;
+                index++;
+            } else if (currentByte == 1) {
+                cpInfoSize = 3 + (((bytes[offset + 1] & 0xFF) << 8) | (bytes[offset + 2] & 0xFF));
+                if (cpInfoSize > maxStringLength) {
+                    maxStringLength = cpInfoSize;
+                }
+            } else if (currentByte == 15) {
+                cpInfoSize = 4;
+            } else if (currentByte == 7 || currentByte == 8 || currentByte == 16 || currentByte == 20 || currentByte == 19) {
+                cpInfoSize = 3;
+            } else {
+                throw new IllegalArgumentException();
+            }
+            offset += cpInfoSize;
+        }
+        index = offset + 6;
+        cnt = ((bytes[index] & 0xFF) << 8) | (bytes[index + 1] & 0xFF);
+        String[] interfaces = new String[cnt];
+        if (cnt > 0) {
+            char[] charBuffer = new char[maxStringLength];
+            for (int i = 0; i < cnt; ++i) {
+                index += 2;
+                offset = cpInfoOffsets[((bytes[index] & 0xFF) << 8) | (bytes[index + 1] & 0xFF)];
+                int constantPoolEntryIndex = ((bytes[offset] & 0xFF) << 8) | (bytes[offset + 1] & 0xFF);
+                if (offset == 0 || constantPoolEntryIndex == 0) {
+                    throw new ClassFormatError();
+                }
+                offset = cpInfoOffsets[constantPoolEntryIndex];
+                int endOffset = offset + 2 + (((bytes[offset] & 0xFF) << 8) | (bytes[offset + 1] & 0xFF));
+                int strLength = 0;
+                offset += 2;
+                while (offset < endOffset) {
+                    currentByte = bytes[offset++];
+                    if ((currentByte & 0x80) == 0) {
+                        charBuffer[strLength++] = (char) (currentByte & 0x7F);
+                    } else if ((currentByte & 0xE0) == 0xC0) {
+                        charBuffer[strLength++] =
+                                (char) (((currentByte & 0x1F) << 6) + (bytes[offset++] & 0x3F));
+                    } else {
+                        charBuffer[strLength++] =
+                                (char)
+                                        (((currentByte & 0xF) << 12)
+                                                + ((bytes[offset++] & 0x3F) << 6)
+                                                + (bytes[offset++] & 0x3F));
+                    }
+                }
+                interfaces[i] = new String(charBuffer, 0, strLength);
+            }
+        }
+        return interfaces;
     }
 
 //    public static int addReturn0ToCFunction(long[] func_addr){
