@@ -20,7 +20,7 @@ import java.util.NoSuchElementException;
 
 import static apphhzp.lib.ClassHelper.unsafe;
 
-public class Method extends JVMObject {
+public class Method extends MethodData {
     public static final Type TYPE = JVM.type("Method");
     public static final int SIZE = TYPE.size;
     public static final long CONSTMETHOD_OFFSET = TYPE.offset("_constMethod");

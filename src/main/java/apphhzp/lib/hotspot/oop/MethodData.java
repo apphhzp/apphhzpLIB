@@ -7,7 +7,7 @@ import apphhzp.lib.hotspot.oop.method.Method;
 
 import static apphhzp.lib.ClassHelper.unsafe;
 
-public class MethodData extends JVMObject {
+public class MethodData extends Metadata {
     public static final Type TYPE= JVM.type("MethodData");
     public static final int SIZE=TYPE.size;
     public static final long METHOD_OFFSET=TYPE.offset("_method");

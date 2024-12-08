@@ -15,7 +15,7 @@ import java.util.List;
 import static apphhzp.lib.ClassHelper.*;
 import static apphhzp.lib.helfy.JVM.oopSize;
 
-public class Klass extends JVMObject {
+public class Klass extends Metadata {
     public static final long klassOffset = unsafe.getInt(JVM.type("java_lang_Class").global("_klass_offset"));
     public static final Type TYPE = JVM.type("Klass");
     public static final int SIZE = TYPE.size;
@@ -111,6 +111,10 @@ public class Klass extends JVMObject {
 
     public Symbol getName() {
         long addr = unsafe.getAddress(this.address + NAME_OFFSET);
+        //Unlikely
+        if (addr==0L){
+            return null;
+        }
         if (!isEqual(this.nameCache,addr)) {
             this.nameCache = new Symbol(addr);
         }

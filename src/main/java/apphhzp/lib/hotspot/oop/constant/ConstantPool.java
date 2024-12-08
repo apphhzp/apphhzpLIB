@@ -13,7 +13,7 @@ import java.util.function.Predicate;
 import static apphhzp.lib.ClassHelper.unsafe;
 import static apphhzp.lib.hotspot.oop.constant.ConstantTag.*;
 
-public class ConstantPool extends JVMObject {
+public class ConstantPool extends Metadata {
     public static final Type TYPE = JVM.type("ConstantPool");
     public static final int SIZE = TYPE.size;
     public static final long TAGS_OFFSET = TYPE.offset("_tags");
