@@ -15,12 +15,12 @@ public class FieldStreamBase {
         return FieldInfo.from_field_array (_fields, _index);
     }
 
-    public int init_generic_signature_start_slot() {
+    public int initGenericSignatureStartSlot() {
         int length = _fields.length();
         int num_fields = _index;
         int skipped_generic_signature_slots = 0;
-        FieldInfo fi = null;
-        AccessFlags flags = null;
+        FieldInfo fi;
+        AccessFlags flags;
     /* Scan from 0 to the current _index. Count the number of generic
        signature slots for field[0] to field[_index - 1]. */
         for (int i = 0; i < _index; i++) {
@@ -47,11 +47,11 @@ public class FieldStreamBase {
         return num_fields;
     }
 
-    public FieldStreamBase(U2Array fields, ConstantPool constants, int start, int limit) {
+    protected FieldStreamBase(U2Array fields, ConstantPool constants, int start, int limit) {
         _fields = fields;
         _constants = constants;
         _index = start;
-        int num_fields = init_generic_signature_start_slot();
+        int num_fields = initGenericSignatureStartSlot();
         if (limit < start) {
             _limit = num_fields;
         } else {
@@ -59,20 +59,20 @@ public class FieldStreamBase {
         }
     }
 
-    public FieldStreamBase(U2Array fields, ConstantPool constants) {
+    protected FieldStreamBase(U2Array fields, ConstantPool constants) {
         _fields = fields;
         _constants = constants;
         _index = 0;
-        _limit = init_generic_signature_start_slot();
+        _limit = initGenericSignatureStartSlot();
     }
 
-    public FieldStreamBase(InstanceKlass klass) {
+    protected FieldStreamBase(InstanceKlass klass) {
         _fields = klass.getFields();
         _constants = klass.getConstantPool();
         _index = 0;
         _limit = klass.getFieldsCount();
-        init_generic_signature_start_slot();
-        if (!klass.equals(field_holder())) {
+        initGenericSignatureStartSlot();
+        if (!klass.equals(getFieldHolder())) {
             throw new IllegalStateException();
         }
     }
@@ -82,12 +82,12 @@ public class FieldStreamBase {
         return _index;
     }
 
-    public InstanceKlass field_holder() {
+    public InstanceKlass getFieldHolder() {
         return _constants.getHolder();
     }
 
     public void next() {
-        if (access_flags().fieldHasGenericSignature()) {
+        if (getAccessFlags().fieldHasGenericSignature()) {
             _generic_signature_slot++;
             if (_generic_signature_slot > _fields.length()) {
                 throw new IllegalStateException();
@@ -101,28 +101,28 @@ public class FieldStreamBase {
     }
 
     // Accessors for current field
-    public AccessFlags access_flags() {
+    public AccessFlags getAccessFlags() {
         return field().getAccessFlags();
     }
 
-    public void set_access_flags(int flags) {
+    public void setAccessFlags(int flags) {
         field().setAccessFlags(flags);
     }
 
-    public void set_access_flags(AccessFlags flags) {
-        set_access_flags(flags.flags);
+    public void setAccessFlags(AccessFlags flags) {
+        setAccessFlags(flags.flags);
     }
 
-    public Symbol name() {
+    public Symbol getName() {
         return field().getName(this._constants);
     }
 
-    public Symbol signature() {
+    public Symbol getSignature() {
         return field().getSignature(this._constants);
     }
 
-    public Symbol generic_signature() {
-        if (access_flags().fieldHasGenericSignature()) {
+    public Symbol getGenericSignature() {
+        if (getAccessFlags().fieldHasGenericSignature()) {
             if (_generic_signature_slot >= _fields.length()) {
                 throw new IllegalStateException("out of bounds");
             }
@@ -133,23 +133,23 @@ public class FieldStreamBase {
         }
     }
 
-    public int offset() {
+    public int getOffset() {
         return field().getOffset();
     }
 
-    public void set_offset(int offset) {
+    public void setOffset(int offset) {
         field().setOffset(offset);
     }
 
-    public boolean is_offset_set() {
+    public boolean isOffsetSet() {
         return field().isOffsetSet();
     }
 
-    public boolean is_contended() {
+    public boolean isContended() {
         return field().is_contended();
     }
 
-    public int contended_group() {
+    public int contendedGroup() {
         return field().contended_group();
     }
 }

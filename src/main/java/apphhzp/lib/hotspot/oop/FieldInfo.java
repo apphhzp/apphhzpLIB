@@ -42,6 +42,9 @@ public class FieldInfo extends JVMObject {
     }
 
     public Symbol getName(ConstantPool pool) {
+        if (this.is_internal()){
+            return Symbol.getVMSymbol(this.getNameIndex());
+        }
         return ((Utf8Constant) pool.getConstant(this.getNameIndex())).str;
     }
 
@@ -54,6 +57,9 @@ public class FieldInfo extends JVMObject {
     }
 
     public Symbol getSignature(ConstantPool pool) {
+        if (this.is_internal()){
+            return Symbol.getVMSymbol(this.getSignatureIndex());
+        }
         return ((Utf8Constant) pool.getConstant(this.getSignatureIndex())).str;
     }
 
