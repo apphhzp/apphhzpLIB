@@ -1,9 +1,11 @@
 package apphhzp.lib.helfy;
 
+import apphhzp.lib.PlatformInfo;
 import apphhzp.lib.hotspot.JVMUtil;
 import apphhzp.lib.hotspot.NativeLibrary;
 import apphhzp.lib.hotspot.cds.FileMapHeader;
 import apphhzp.lib.hotspot.cds.FileMapInfo;
+import apphhzp.lib.hotspot.oop.Symbol;
 import apphhzp.lib.hotspot.oop.constant.ConstantPool;
 import apphhzp.lib.hotspot.oop.method.Method;
 import apphhzp.lib.hotspot.runtime.JVMFlag;
@@ -22,6 +24,7 @@ import static apphhzp.lib.ClassHelper.*;
 public final class JVM {
     public static final boolean ASSERTS_ENABLED=true;
     private static final NativeLibrary JVM;
+    public static final String cpu=PlatformInfo.getCPU();
     public static final Map<String, Type> types = new LinkedHashMap<>();
     public static final Map<String, Number> constants = new LinkedHashMap<>();
     public static final int oopSize;
@@ -41,7 +44,34 @@ public final class JVM {
     private static final Object2LongOpenHashMap<Type> type2vtbl = new Object2LongOpenHashMap<>();
     public static final int invocationEntryBci;
     public static final long PerMethodRecompilationCutoff;
-
+    public static final int objectAlignmentInBytes;
+    public static final int logMinObjAlignmentInBytes;
+    public static final int heapOopSize;
+    public static final boolean isLP64;
+    public static final int LogBytesPerShort   = 1;
+    public static final int LogBytesPerInt     = 2;
+    public static final int LogBytesPerWord="aarch64".equals(cpu) || "amd64".equals(cpu) || "x86_64".equals(cpu) || "ppc64".equals(cpu)?3:2;
+    public static final int LogBytesPerLong    = 3;
+    public static final int BytesPerShort      = 1 << LogBytesPerShort;
+    public static final int BytesPerInt        = 1 << LogBytesPerInt;
+    public static final int BytesPerWord       = 1 << LogBytesPerWord;
+    public static final int BytesPerLong       = 1 << LogBytesPerLong;
+    public static final int LogBitsPerByte     = 3;
+    public static final int LogBitsPerShort    = LogBitsPerByte + LogBytesPerShort;
+    public static final int LogBitsPerInt      = LogBitsPerByte + LogBytesPerInt;
+    public static final int LogBitsPerWord     = LogBitsPerByte + LogBytesPerWord;
+    public static final int LogBitsPerLong     = LogBitsPerByte + LogBytesPerLong;
+    public static final int BitsPerByte        = 1 << LogBitsPerByte;
+    public static final int BitsPerShort       = 1 << LogBitsPerShort;
+    public static final int BitsPerInt         = 1 << LogBitsPerInt;
+    public static final int BitsPerWord        = 1 << LogBitsPerWord;
+    public static final int BitsPerLong        = 1 << LogBitsPerLong;
+    public static final int WordAlignmentMask  = (1 << LogBytesPerWord) - 1;
+    public static final int LongAlignmentMask  = (1 << LogBytesPerLong) - 1;
+    public static final boolean restrictContended;
+    public static final boolean enableContended;
+    public static final boolean restrictReservedStack;
+    public static final boolean diagnoseSyncOnValueBasedClasses;
     private JVM() {
     }
 
@@ -123,10 +153,10 @@ public final class JVM {
         long arrayStride = getSymbol("gHotSpotVMTypeEntryArrayStride");
         for (Map.Entry<String,Set<Field>> entry1:structs.entrySet()){
             if (!types.containsKey(entry1.getKey())){
-                types.put(entry1.getKey(),new Type(entry1.getKey(),null,1,false,false,false,entry1.getValue()));
-            }else {
-                Type old=types.get(entry1.getKey());
-                types.put(entry1.getKey(),new Type(old.name,old.superName,old.size,old.isOop,old.isInt,old.isUnsigned,updateOrCreateFields(entry1.getValue(),old)));
+                types.put(entry1.getKey(),new Type.UnknownType(entry1.getKey(),entry1.getValue()));
+            }else{
+                //noinspection DataFlowIssue
+                types.compute(entry1.getKey(), (k, old) -> new Type(old.name, old.superName, old.size, old.isOop, old.isInt, old.isUnsigned, updateOrCreateFields(entry1.getValue(), old)));
             }
         }
         for (; ; entry += arrayStride) {
@@ -440,6 +470,21 @@ public final class JVM {
         }
     }
 
+    public static long alignUp(long size, long alignment) {
+        return size + alignment - 1 & -alignment;
+    }
+
+    public static long alignDown(long size, long alignment) {
+        return size & -alignment;
+    }
+
+    public static int nthBit(int n){
+        return n >= BitsPerWord ? 0 : 1 << n;
+    }
+
+    public static boolean  includeCDS(){
+        return usingSharedSpaces;
+    }
 //    public boolean isCore() {
 //        return !(usingClientCompiler || usingServerCompiler);
 //    }
@@ -476,8 +521,11 @@ public final class JVM {
                     usingClientCompiler = usingServerCompiler = false;
                 }
                 JVMFlag[] flags = JVMFlag.getAllFlags();
-                boolean sharedSpaces = false, compressedOops = false, compressedClassPointers = false, TLAB = false;
+                boolean sharedSpaces = false, compressedOops = false, compressedClassPointers = false, TLAB = false,
+                        RestrictContended=false, RestrictReservedStack=false,EnableContended =false,
+                        DiagnoseSyncOnValueBasedClasses=false;
                 long PMRC=0;
+                int OAIB=8;
                 for (JVMFlag flag : flags) {
                     String name = flag.getName();
                     if ("UseSharedSpaces".equals(name)) {
@@ -498,7 +546,18 @@ public final class JVM {
                         }
                     } else if ("PerMethodRecompilationCutoff".equals(name)) {
                         PMRC = unsafe.getLong(flag.getAddress());
+                    }else if ("ObjectAlignmentInBytes".equals(name)){
+                        OAIB=unsafe.getInt(flag.getAddress());
+                    }else if ("RestrictContended".equals(name)){
+                        RestrictContended=flag.getAddress()!=0;
+                    }else if ("RestrictReservedStack".equals(name)){
+                        RestrictReservedStack=flag.getAddress()!=0;
+                    }else if ("EnableContended".equals(name)){
+                        EnableContended=flag.getAddress()!=0;
+                    }else if ("DiagnoseSyncOnValueBasedClasses".equals(name)){
+                        DiagnoseSyncOnValueBasedClasses=flag.getAddress()!=0;
                     }
+                    System.err.println(name);
                 }
                 usingSharedSpaces = sharedSpaces;
                 usingCompressedOops = compressedOops;
@@ -506,6 +565,17 @@ public final class JVM {
                 usingTLAB = TLAB;
                 invocationEntryBci=intConstant("InvocationEntryBci");
                 PerMethodRecompilationCutoff=PMRC;
+                objectAlignmentInBytes=OAIB;
+                logMinObjAlignmentInBytes= Integer.numberOfTrailingZeros(OAIB);
+                if (usingCompressedOops){
+                    heapOopSize=intSize;
+                }else {
+                    heapOopSize=oopSize;
+                }
+                restrictContended=RestrictContended;
+                restrictReservedStack=RestrictReservedStack;
+                enableContended=EnableContended;
+                diagnoseSyncOnValueBasedClasses=DiagnoseSyncOnValueBasedClasses;
 //                String cpu = getCPU();
 //                Class<?> machDescClass = Class.forName("sun.jvm.hotspot.debugger.MachineDescription");
 //                int pid=getPid();
@@ -529,9 +599,15 @@ public final class JVM {
 //                }
             } else {
                 JVM = null;
-                oopSize = intSize = size_tSize = heapWordSize =longSize= 0;
-                isJVMTISupported = usingClientCompiler = usingServerCompiler = usingSharedSpaces = usingTLAB = includeJVMCI = false;
+                logMinObjAlignmentInBytes=objectAlignmentInBytes=oopSize = intSize = size_tSize = heapWordSize =longSize= 0;
+                diagnoseSyncOnValueBasedClasses=enableContended=restrictReservedStack=restrictContended=isJVMTISupported
+                        = usingClientCompiler = usingServerCompiler = usingSharedSpaces = usingTLAB = includeJVMCI = false;
                 usingCompressedOops = Unsafe.ARRAY_OBJECT_INDEX_SCALE == 4;
+                if (usingCompressedOops) {
+                    heapOopSize=4;
+                }else {
+                    heapOopSize=unsafe.addressSize();
+                }
                 boolean flag = true;
                 for (String s : ManagementFactory.getRuntimeMXBean().getInputArguments()) {
                     if (s.contains("-UseCompressedClassPointers")) {
@@ -543,6 +619,8 @@ public final class JVM {
                 invocationEntryBci=-1;
                 PerMethodRecompilationCutoff=-1;
             }
+            isLP64= "aarch64".equals(cpu) || "amd64".equals(cpu) || "x86_64".equals(cpu) || "ppc64".equals(cpu);
+
         } catch (Throwable t) {
             throw new ExceptionInInitializerError(t);
         }
