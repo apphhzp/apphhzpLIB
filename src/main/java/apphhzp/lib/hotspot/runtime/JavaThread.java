@@ -2,7 +2,7 @@ package apphhzp.lib.hotspot.runtime;
 
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
-import apphhzp.lib.hotspot.oop.Oop;
+import apphhzp.lib.hotspot.oop.OopDesc;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -23,8 +23,8 @@ public class JavaThread extends Thread {
     public static final long WAITING_MONITOR_OFFSET=TYPE.offset("_current_waiting_monitor");
     public static final long STATE_OFFSET=TYPE.offset("_thread_state");
     private static final HashMap<Long, JavaThread> CACHE = new HashMap<>();
-    private Oop vmResultCache;
-    private Oop threadObjCache;
+    private OopDesc vmResultCache;
+    private OopDesc threadObjCache;
 
     public static JavaThread getOrCreate(long addr) {
         if (addr == 0L) {
@@ -75,17 +75,17 @@ public class JavaThread extends Thread {
 
     @Nullable
     public Thread getThreadObj() {
-        long addr = Oop.fromOopHandle(this.address + THREAD_OBJ_OFFSET);
+        long addr = OopDesc.fromOopHandle(this.address + THREAD_OBJ_OFFSET);
         if (!isEqual(this.threadObjCache, addr)) {
-            this.threadObjCache = new Oop(addr);
+            this.threadObjCache = new OopDesc(addr);
         }
         return this.threadObjCache.getObject();
     }
 
-    public Oop getVMResult(){
+    public OopDesc getVMResult(){
         long addr=unsafe.getAddress(this.address+VM_RESULT_OFFSET);
         if (!isEqual(this.vmResultCache,addr)){
-            this.vmResultCache=new Oop(addr);
+            this.vmResultCache=new OopDesc(addr);
         }
         return this.vmResultCache;
     }

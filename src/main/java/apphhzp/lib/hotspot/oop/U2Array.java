@@ -10,7 +10,7 @@ import java.util.NoSuchElementException;
 
 import static apphhzp.lib.ClassHelper.unsafe;
 
-public class U2Array extends JVMObject implements Iterable<Short>{
+public class U2Array extends JVMObject implements Iterable<Integer>{
     public static final Type TYPE= JVM.type("Array<u2>");
     public static final long DATA_OFFSET=TYPE.offset("_data");
     public U2Array(long addr) {
@@ -21,7 +21,6 @@ public class U2Array extends JVMObject implements Iterable<Short>{
         checkBound(index);
         return unsafe.getShort(this.address+DATA_OFFSET+ 2L *index);
     }
-
 
     public void set(int index, short val) {
         checkBound(index);
@@ -73,7 +72,7 @@ public class U2Array extends JVMObject implements Iterable<Short>{
 
     @Nonnull
     @Override
-    public Iterator<Short> iterator() {
+    public Iterator<Integer> iterator() {
         return new Iterator<>() {
             private int index=0;
             private final int size=U2Array.this.length();
@@ -83,10 +82,10 @@ public class U2Array extends JVMObject implements Iterable<Short>{
             }
 
             @Override
-            public Short next() {
+            public Integer next() {
                 if (index >= size)
                     throw new NoSuchElementException();
-                return unsafe.getShort(U2Array.this.address+DATA_OFFSET+(index++)*2L);
+                return unsafe.getShort(U2Array.this.address+DATA_OFFSET+(index++)*2L)&0xffff;
             }
         };
     }

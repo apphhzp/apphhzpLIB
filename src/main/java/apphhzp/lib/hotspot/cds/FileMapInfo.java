@@ -9,7 +9,7 @@ import javax.annotation.Nullable;
 import static apphhzp.lib.ClassHelper.unsafe;
 
 public class FileMapInfo extends JVMObject {
-    public static final Type TYPE= JVM.type("FileMapInfo");
+    public static final Type TYPE=JVM.usingSharedSpaces?JVM.type("FileMapInfo"):Type.EMPTY;
     public static final int SIZE=TYPE.size;
     public static final long CURRENT_INFO_ADDRESS=TYPE.global("_current_info");
     public static final long HEADER_OFFSET=TYPE.offset("_header");
@@ -23,6 +23,7 @@ public class FileMapInfo extends JVMObject {
         if (!isEqual(this.headerCache,addr)){
             this.headerCache=new FileMapHeader(addr);
         }
+
         return this.headerCache;
     }
 

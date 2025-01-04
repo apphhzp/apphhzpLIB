@@ -104,4 +104,21 @@ public class Type {
             return "<EmptyType>";
         }
     }
+
+    public static class UnknownType extends Type{
+
+        public UnknownType(String name, Set<Field> fields) {
+            super(name,null,0,false,false,false, fields);
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder(name);
+            sb.append(" @ unknown\n");
+            for (Field field:fields) {
+                sb.append("  ").append(field).append('\n');
+            }
+            return sb.toString();
+        }
+    }
 }

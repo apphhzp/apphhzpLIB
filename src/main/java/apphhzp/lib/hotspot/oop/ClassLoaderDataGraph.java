@@ -1,9 +1,9 @@
 package apphhzp.lib.hotspot.oop;
 
-import apphhzp.lib.ClassHelper;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.JVMObject;
+import apphhzp.lib.hotspot.classfile.JavaClasses;
 
 import static apphhzp.lib.ClassHelper.unsafe;
 
@@ -46,29 +46,43 @@ public final class ClassLoaderDataGraph {
         JVM.putSizeT(NUM_ARRAY_CLASSES_ADDRESS, num);
     }
 
-//    public static ClassLoaderData add_to_graph(Oop loader, boolean has_class_mirror_holder) {
-//        ClassLoaderData cld;
-//        // First check if another thread beat us to creating the CLD and installing
-//        // it into the loader while we were waiting for the lock.
-//        if (!has_class_mirror_holder && loader.address!=0L) {
-//            cld = java_lang_ClassLoader::loader_data_acquire(loader());
-//            if (cld != null) {
-//                return cld;
-//            }
-//        }
-//
+    public static ClassLoaderData add_to_graph(OopDesc loader, boolean has_class_mirror_holder) {
+        //throw new UnsupportedOperationException("Not supported yet.");
+        ClassLoaderData cld;
+        // First check if another thread beat us to creating the CLD and installing
+        // it into the loader while we were waiting for the lock.
+        if (!has_class_mirror_holder && loader.address!=0L) {
+            cld = JavaClasses.ClassLoader.loader_data_acquire(loader);
+            if (cld != null) {
+                return cld;
+            }
+        }
+        throw new UnsupportedOperationException("Not supported yet.");
 //        cld = new ClassLoaderData(loader, has_class_mirror_holder);
 //        // First install the new CLD to the Graph.
 //        cld->set_next(_head);
 //        cld.setNextCLD();
 //        Atomic::release_store(&_head, cld);
 //        if (!has_class_mirror_holder) {
-//            java_lang_ClassLoader::release_set_loader_data(loader(), cld);
+//            java_lang_ClassLoader::release_set_loader_data(loader, cld);
 //        }
 //        return cld;
-//    }
-//
-//    public static ClassLoaderData add(Oop loader, boolean has_class_mirror_holder) {
-//        return add_to_graph(loader, has_class_mirror_holder);
-//    }
+    }
+
+    public static ClassLoaderData find_or_create(OopDesc loader) {
+        if (loader.address == 0){
+            throw new IllegalArgumentException("Loader is null");
+        }
+        ClassLoaderData loader_data = JavaClasses.ClassLoader.loader_data_acquire(loader);
+        if (loader_data!=null) {
+            return loader_data;
+        }
+        return add(loader, false);
+    }
+
+    public static ClassLoaderData add(OopDesc loader, boolean has_class_mirror_holder) {
+        return add_to_graph(loader, has_class_mirror_holder);
+    }
+
+
 }

@@ -25,6 +25,7 @@ public class ConstantPool extends Metadata {
     public static final long MINOR_VER_OFFSET = TYPE.offset("_minor_version");
     public static final long GENERIC_SIGNATURE_OFFSET = TYPE.offset("_generic_signature_index");
     public static final long SOURCE_FILE_NAME_OFFSET = TYPE.offset("_source_file_name_index");
+    public static final long FLAGS_OFFSET=JVM.includeJVMCI?TYPE.offset("_flags"):SOURCE_FILE_NAME_OFFSET+2;
     public static final long LENGTH_OFFSET = TYPE.offset("_length");
     private static final HashMap<Long,ConstantPool> CACHE=new HashMap<>();
     private U1Array tagsCache;
@@ -130,7 +131,7 @@ public class ConstantPool extends Metadata {
         for (int i = 1, len = tags.length; i < len; i++) {
             byte tag = tags[i];
             if (tag == Utf8) {
-                Symbol tmp = new Symbol(unsafe.getAddress(this.address + SIZE + (long) i * JVM.oopSize));
+                Symbol tmp = Symbol.of(unsafe.getAddress(this.address + SIZE + (long) i * JVM.oopSize));
                 if (s.equals(tmp.toString())) {
                     return tmp;
                 }

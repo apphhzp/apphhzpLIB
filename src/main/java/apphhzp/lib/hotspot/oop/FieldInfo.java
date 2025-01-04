@@ -42,7 +42,7 @@ public class FieldInfo extends JVMObject {
     }
 
     public Symbol getName(ConstantPool pool) {
-        if (this.is_internal()){
+        if (this.isInternal()){
             return Symbol.getVMSymbol(this.getNameIndex());
         }
         return ((Utf8Constant) pool.getConstant(this.getNameIndex())).str;
@@ -57,7 +57,7 @@ public class FieldInfo extends JVMObject {
     }
 
     public Symbol getSignature(ConstantPool pool) {
-        if (this.is_internal()){
+        if (this.isInternal()){
             return Symbol.getVMSymbol(this.getSignatureIndex());
         }
         return ((Utf8Constant) pool.getConstant(this.getSignatureIndex())).str;
@@ -79,11 +79,11 @@ public class FieldInfo extends JVMObject {
         unsafe.putShort(this.address + initval_index_offset * 2L, (short) (index & 0xffff));
     }
 
-    public boolean is_contended() {
+    public boolean isContended() {
         return (unsafe.getShort(this.address+low_packed_offset*2L)&FIELDINFO_TAG_CONTENDED) != 0;
     }
 
-    public int contended_group() {
+    public int contendedGroup() {
         if ((unsafe.getShort(this.address+low_packed_offset*2L)&FIELDINFO_TAG_OFFSET)!=0){
             throw new IllegalStateException("Offset must not have been set");
         }
@@ -130,20 +130,20 @@ public class FieldInfo extends JVMObject {
         this.setAccessFlags(flags);
     }
 
-    public boolean is_internal() {
+    public boolean isInternal() {
         return (unsafe.getShort(this.address + access_flags_offset * 2L) & 0xffff & JVM_ACC_FIELD_INTERNAL) != 0;
     }
 
-    public boolean is_stable()  {
+    public boolean isStable()  {
         return (unsafe.getShort(this.address + access_flags_offset * 2L) & 0xffff & JVM_ACC_FIELD_STABLE) != 0;
     }
-    public void set_stable(boolean z) {
+    public void setStable(boolean z) {
         if (z) unsafe.putShort(this.address+access_flags_offset*2L, (short) (unsafe.getShort(this.address+access_flags_offset*2L)|JVM_ACC_FIELD_STABLE));
         else unsafe.putShort(this.address+access_flags_offset*2L, (short) (unsafe.getShort(this.address+access_flags_offset*2L)& ~JVM_ACC_FIELD_STABLE));//_shorts[access_flags_offset] &= ~JVM_ACC_FIELD_STABLE;
     }
 
     public Symbol lookup_symbol(int symbol_index){
-        if (!is_internal()){
+        if (!isInternal()){
             throw new IllegalStateException("only internal fields");
         }
         return Symbol.getVMSymbol(symbol_index);

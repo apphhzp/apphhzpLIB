@@ -2,7 +2,7 @@ package apphhzp.lib.hotspot.code;
 
 import apphhzp.lib.hotspot.code.blob.CodeBlob;
 import apphhzp.lib.hotspot.code.blob.CompiledMethod;
-import apphhzp.lib.hotspot.oop.Oop;
+import apphhzp.lib.hotspot.oop.OopDesc;
 
 import java.util.NoSuchElementException;
 
@@ -94,7 +94,7 @@ public class RelocIterator {
         } else {
             _databuf = (short) _current.immediate();
             try {
-                _data = Oop.getAddress(this)+ unsafe.objectFieldOffset(RelocIterator.class.getDeclaredField("_databuf"));
+                _data = OopDesc.getAddress(this)+ unsafe.objectFieldOffset(RelocIterator.class.getDeclaredField("_databuf"));
             }catch (Throwable t){
                 throw new RuntimeException(t);
             }

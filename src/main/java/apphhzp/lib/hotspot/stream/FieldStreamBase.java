@@ -66,7 +66,7 @@ public class FieldStreamBase {
         _limit = initGenericSignatureStartSlot();
     }
 
-    protected FieldStreamBase(InstanceKlass klass) {
+    public FieldStreamBase(InstanceKlass klass) {
         _fields = klass.getFields();
         _constants = klass.getConstantPool();
         _index = 0;
@@ -146,10 +146,10 @@ public class FieldStreamBase {
     }
 
     public boolean isContended() {
-        return field().is_contended();
+        return field().isContended();
     }
 
     public int contendedGroup() {
-        return field().contended_group();
+        return field().contendedGroup();
     }
 }

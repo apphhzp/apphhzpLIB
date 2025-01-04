@@ -16,6 +16,13 @@ public class VMTypeArray<T extends JVMObject> extends JVMObject implements Itera
     public final Class<T> type;
     public final LongFunction<T> constructor;
 
+    public static <T extends JVMObject> VMTypeArray<T> create(int length,Class<T> type,LongFunction<T> constructor) {
+        long addr=unsafe.allocateMemory(DATA_OFFSET+(length+1L)*JVM.oopSize);
+        unsafe.setMemory(addr,DATA_OFFSET+(length+1L)*JVM.oopSize, (byte) 0);
+        unsafe.putInt(addr,length);
+        return new VMTypeArray<>(addr, type, constructor);
+    }
+
     public VMTypeArray(long addr,Class<T> type, LongFunction<T> constructor) {
         super(addr);
         try {

@@ -10,6 +10,9 @@ import java.util.StringJoiner;
 public class AccessFlags {
     public static final int JVM_ACC_FIELD_STABLE= JVM.intConstant("JVM_ACC_FIELD_STABLE");
     public static final int JVM_ACC_FIELD_INTERNAL=JVM.intConstant("JVM_ACC_FIELD_INTERNAL");
+    public static final int JVM_ACC_IS_HIDDEN_CLASS=JVM.includeJVMCI?JVM.intConstant("JVM_ACC_IS_HIDDEN_CLASS"):0x04000000;
+    public static final int JVM_ACC_IS_VALUE_BASED_CLASS    = 0x08000000;
+    public static final int JVM_ACC_HAS_FINAL_METHOD=0x01000000;
     private static final Map<Integer,AccessFlags> cache=new HashMap<>();
     public final String klassACCPrefix;
     public final String methodACCPrefix;
@@ -167,5 +170,16 @@ public class AccessFlags {
 
     public boolean fieldHasGenericSignature(){
         return false;
+    }
+
+    public boolean isHiddenClass(){
+        return (this.flags&JVM_ACC_IS_HIDDEN_CLASS)!=0;
+    }
+    public boolean isValueBasedClass(){
+        return (this.flags&JVM_ACC_IS_VALUE_BASED_CLASS)!=0;
+    }
+
+    public boolean hasFinalMethod(){
+        return (this.flags&JVM_ACC_HAS_FINAL_METHOD)!=0;
     }
 }

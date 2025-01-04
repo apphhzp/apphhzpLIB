@@ -1,16 +1,31 @@
 package apphhzp.lib.hotspot;
 
 import apphhzp.lib.ClassHelper;
+import apphhzp.lib.CoremodHelper;
 import apphhzp.lib.helfy.JVM;
-import apphhzp.lib.hotspot.oop.FieldInfo;
-import apphhzp.lib.hotspot.oop.InstanceKlass;
-import apphhzp.lib.hotspot.oop.Klass;
+import apphhzp.lib.hotspot.classfile.JavaClasses;
+import apphhzp.lib.hotspot.oop.*;
 import apphhzp.lib.hotspot.oop.constant.ConstantPool;
 import apphhzp.lib.hotspot.oop.constant.ConstantTag;
 import apphhzp.lib.hotspot.oop.constant.MethodRefConstant;
 import apphhzp.lib.hotspot.oop.constant.Utf8Constant;
+import apphhzp.lib.hotspot.utilities.Dictionary;
+import apphhzp.lib.hotspot.utilities.DictionaryEntry;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.InsnNode;
+import org.objectweb.asm.tree.MethodNode;
 
 import java.io.InputStream;
+import java.lang.instrument.ClassFileTransformer;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
+import java.security.ProtectionDomain;
+import java.util.Random;
+
+import static apphhzp.lib.ClassHelper.ClassOption;
+import static apphhzp.lib.ClassHelper.lookup;
 
 public final class Debugger {
     public static boolean isDebug=false;
@@ -33,6 +48,7 @@ public final class Debugger {
 //                ObjectMemoryMonitor.super.onVMObjectAlloc(thread, obj, objClass, size);
 //            }
 //            @Override
+
 //            public void onObjectFree(long tag) {
 //                ObjectMemoryMonitor.super.onObjectFree(tag);
 //            }
@@ -42,37 +58,67 @@ public final class Debugger {
 //            }
 //        });
 
-//        ClassHelper.instImpl.addTransformer(new ClassFileTransformer() {
-//            @Override
-//            public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer){
-//                System.err.println((loader==null?"null classloader":loader.getName())+":"+className);
-//                return null;
-//            }
-//        }, true);
-        try {
-            InputStream is = Debugger.class.getResourceAsStream("/JVM.class");
-            byte[] dat = new byte[is.available()];
-            is.read(dat);
-            is.close();
-//            Class<?> c= ClassHelper.defineHiddenClass(dat,"看你妈",true, Debugger.class,null,null, ClassHelper.ClassOption.NESTMATE).lookupClass();
-//            InstanceKlass klass=Klass.asKlass(c).asInstanceKlass();
-//
-//            TestSuper s= (TestSuper) c.newInstance();
-//            s.print();
-//            System.err.println(c.getName());
+        ClassHelper.instImpl.addTransformer(new ClassFileTransformer() {
+            @Override
+            public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer){
+                System.err.println((loader==null?"null classloader":loader.getName())+":"+className);
+                if (className.equals("apphhzp/lib/hotspot/Test")){
+                    ClassNode classNode=CoremodHelper.bytes2ClassNote(classfileBuffer,className);
+                    for (MethodNode method: classNode.methods){
+                        if (method.name.equals("print")){
+                            method.instructions.clear();
+                            method.instructions.add(new InsnNode(Opcodes.RETURN));
+                        }
+                    }
+                    System.err.println("changed");
+                    return CoremodHelper.classNote2bytes(classNode,true);
+                }
+                return null;
+            }
+        }, true);
 
-        }catch (Throwable t){
-            throw new RuntimeException(t);
-        }
-
+        ClassHelper.defineClassBypassAgent("apphhzp.lib.hotspot.Test", Debugger.class,true,null);
+        System.err.print("[");
+        Test.print(5);
+        System.err.println("]");
+        Test test=new Test(-114);
+        test.add(514);
+        System.err.println(test.val);
         JVM.printAllTypes();
         JVM.printAllConstants();
         JVM.printAllVTBL();
-        InstanceKlass klass=Klass.getOrCreate(ClassHelper.unsafe.getAddress(JVM.type("vmClasses").global("_klasses[static_cast<int>(vmClassID::ClassLoader_klass_knum)]"))).asInstanceKlass();
-        System.err.println(klass.getName());
-        for (FieldInfo info:klass.getFieldInfos()){
-            System.err.println(info.getName(klass.getConstantPool()));
-        }
+        Klass.asKlass(Object.class).getClassLoaderData().klassesDo((klass)->{
+            System.err.println(klass.getName());
+        });
+//        Klass.asKlass(Object.class).getClassLoaderData().packagesDo((entry)->{
+//            System.err.println(entry.isMustWalkExports());
+//        });
+//        boolean a= ClassHelper.isWindows;
+//        if (a){
+//            case3();
+//        }
+//        case1();
+//        case2();
+//        for (Klass klass2 :cld.getKlasses()){
+//            if (klass2.isInstanceKlass()){
+//                System.err.println(klass2.getName()+":"+dict.contains(klass2.asInstanceKlass()));
+//            }
+//        }
+//        A a=new A();
+//        a.val=2103034;
+//        Oop oop=new Oop(a);
+//        long addr=oop.getNarrow();
+//        try {
+//            System.err.println(unsafe.getInt(addr+unsafe.objectFieldOffset(A.class.getField("val"))));
+//        }catch (Throwable t){
+//
+//        }
+
+//        InstanceKlass klass=Klass.getOrCreate(ClassHelper.unsafe.getAddress(JVM.type("vmClasses").global("_klasses[static_cast<int>(vmClassID::ClassLoader_klass_knum)]"))).asInstanceKlass();
+//        System.err.println(klass.getName());
+//        for (FieldInfo info:klass.getFieldInfos()){
+//            System.err.println(info.getName(klass.getConstantPool()));
+//        }
 
 //        InstanceKlass klass=Klass.asKlass(TestSuper.class).asInstanceKlass();
 //        Method method=klass.getMethod("call1","()V");
@@ -128,6 +174,7 @@ public final class Debugger {
 
     private static class A {
         public int val;
+        public String name=new String("adsed");
 
         public static void say() {
             System.err.println("AAA");
@@ -159,6 +206,76 @@ public final class Debugger {
         if (newCP.getCache() != null) {
             newCP.getCache().setConstantPool(newCP);
             newCP.getCache().clearResolvedCacheEntry();
+        }
+    }
+
+    public static void case1(){
+//        for (ClassLoaderData cld:ClassLoaderData.getAllClassLoaderData()){
+//            for (Klass klass:cld.getKlasses()){
+//                if (klass.getAccessFlags().isHiddenClass()){
+//                    System.err.println(klass.getName());
+//                }
+//            }
+//        }
+    }
+    public static void case2(){
+        System.err.println("st");
+        for (int i=0;i<10000;i++){
+            Symbol.newSymbol("-1");
+        }
+        System.err.println("hot");
+        System.out.println(ClassLoaderData.as(Symbol.class.getClassLoader()).getKlasses().size());
+        long time=System.nanoTime(),end;
+//        for (int i=0;i<100;i++){
+//            String[] arr=new String[1000];
+//            for (int j=0;j<1000;j++){
+//                arr[j]=String.valueOf(j);
+//            }
+//            Symbol[] symbols=Symbol.newSymbols(arr);
+//            System.err.println("tot:"+symbols[new Random().nextInt(1000-1)]);
+//        }
+        System.err.println("klass cnt:"+Klass.getAllKlasses().size());
+        for (int i=0;i<100000;i++){
+            if (i==2355){
+                System.err.println(i);
+            }
+            if (i%10000==0){
+                Symbol symbol=Symbol.newSymbol(Integer.toString(i));
+                System.err.println(symbol+" ref:"+symbol.getRefCount());
+            }else {
+                Symbol.newSymbol(Integer.toString(i));
+            }
+        }
+        end=System.nanoTime();
+        System.out.println(end-time);
+        System.err.println("klass cnt:"+Klass.getAllKlasses().size());
+        //System.gc();
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        System.gc();
+        System.err.println("klass cnt:"+Klass.getAllKlasses().size());
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        System.err.println("klass cnt:"+Klass.getAllKlasses().size());
+    }
+
+    public static void case3(){
+        for (ClassLoaderData cld:ClassLoaderData.getAllClassLoaderData()){
+            Dictionary dict=cld.getDictionary();
+            if (dict!=null) {
+                for (int i = 0, maxi = dict.getTableSize(); i < maxi; i++) {
+                    DictionaryEntry entry = dict.bucket(i);
+                    if (entry != null) {
+                        dict.freeEntry(entry);
+                    }
+                }
+            }
         }
     }
 

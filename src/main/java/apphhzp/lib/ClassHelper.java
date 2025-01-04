@@ -4,6 +4,8 @@ package apphhzp.lib;
 import apphhzp.lib.api.ObjectInstrumentation;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.hotspot.Debugger;
+import apphhzp.lib.hotspot.oop.*;
+import apphhzp.lib.hotspot.utilities.Dictionary;
 import apphhzp.lib.natives.NativeUtil;
 import com.sun.jna.ptr.IntByReference;
 import org.apache.logging.log4j.LogManager;
@@ -46,6 +48,7 @@ public final class ClassHelper {
     public static final MethodHandle JLA_defineClassMethod;
     public static final MethodHandle lookupConstructor;
     public static final MethodHandle compareAndSetByteMethod;
+    //public static final MethodHandle getUncompressedObjectMethod;
     @Nullable
     public static final Instrumentation instImpl;
     @Nullable
@@ -81,6 +84,7 @@ public final class ClassHelper {
             compareAndSetByteMethod = lookup.findVirtual(internalClass, "compareAndSetByte", MethodType.methodType(boolean.class, Object.class, long.class, byte.class, byte.class));
             JLA_defineClassMethod = lookup.findVirtual(Class.forName("jdk.internal.access.JavaLangAccess"), "defineClass", MethodType.methodType(Class.class, ClassLoader.class, Class.class, String.class, byte[].class, ProtectionDomain.class, boolean.class, int.class, Object.class));
             lookupConstructor = lookup.findConstructor(MethodHandles.Lookup.class, MethodType.methodType(void.class, Class.class, Class.class, int.class));
+            //getUncompressedObjectMethod=lookup.findVirtual(internalClass, "getUncompressedObject", MethodType.methodType(Object.class, long.class));
             exportJDKInternalModule();
             if (isWindows && !Debugger.isDebug) {
                 instImpl = NativeUtil.createInstrumentationImpl();
@@ -205,6 +209,32 @@ public final class ClassHelper {
             return (MethodHandles.Lookup) lookupConstructor.invoke(JLA_defineClassMethod.invoke(JLA_INSTANCE, loader, lookupClass, name, bytes, pd, initialize, flags, classData), null, 95);
         } catch (Throwable t) {
             throw new RuntimeException("Could not define a hidden class:" + name, t);
+        }
+    }
+
+    public static boolean defineClassBypassAgent(String name, Class<?> lookupClass, boolean initialize, ProtectionDomain pd){
+        if (!isHotspotJVM){
+            throw new UnsupportedOperationException("Only in Hotspot JVM");
+        }
+        Class<?> clazz;
+        try {
+            clazz=defineHiddenClass(name,lookupClass,initialize,pd).lookupClass();
+        }catch (VerifyError error){
+            return false;
+        }catch (Throwable t){
+            throw new RuntimeException(t);
+        }
+        Dictionary dict=ClassLoaderData.as(lookupClass.getClassLoader()).getDictionary();
+        if (dict != null) {
+            InstanceKlass klass=Klass.asKlass(clazz).asInstanceKlass();
+            Symbol symbol=Symbol.lookupOrCreate(name.replace('.','/'));
+            symbol.incrementRefCount();
+            klass.setName(symbol);
+            klass.setAccessFlags(klass.getAccessFlags().flags&~AccessFlags.JVM_ACC_IS_HIDDEN_CLASS);
+            dict.addKlass(dict.computeHash(klass.getName()),klass.getName(),klass);
+            return true;
+        }else {
+            return false;
         }
     }
 
@@ -483,6 +513,14 @@ public final class ClassHelper {
             throw new RuntimeException(ex);
         }
     }
+
+//    public static Object getUncompressedObject(long address){
+//        try {
+//            return getUncompressedObjectMethod.invoke(internalUnsafe, address);
+//        }catch (Throwable t){
+//            throw new RuntimeException(t);
+//        }
+//    }
 
     @SuppressWarnings("unchecked")
     public static <T> T getOuterInstance(Object obj, Class<T> fa) {

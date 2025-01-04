@@ -25,8 +25,9 @@ public final class JVM {
     public static final boolean ASSERTS_ENABLED=true;
     private static final NativeLibrary JVM;
     public static final String cpu=PlatformInfo.getCPU();
-    public static final Map<String, Type> types = new LinkedHashMap<>();
-    public static final Map<String, Number> constants = new LinkedHashMap<>();
+    private static final Map<String, Type> types = new LinkedHashMap<>();
+    private static final Map<String, Number> constants = new LinkedHashMap<>();
+    private static final Set<String> jvmciOnlyConstants=new LinkedHashSet<>();
     public static final int oopSize;
     public static final int intSize;
     public static final int longSize;
@@ -71,7 +72,15 @@ public final class JVM {
     public static final boolean restrictContended;
     public static final boolean enableContended;
     public static final boolean restrictReservedStack;
-    public static final boolean diagnoseSyncOnValueBasedClasses;
+    public static final int diagnoseSyncOnValueBasedClasses;
+    public static final boolean dumpSharedSpaces;
+    public static final boolean bytecodeVerificationLocal;
+    public static final boolean bytecodeVerificationRemote;
+    public static final int wordSize;
+    public static final boolean includeCDS;
+    public static final boolean includeG1GC;
+    public static final boolean includeCDSJavaHeap;
+    public static final boolean includeJFR;
     private JVM() {
     }
 
@@ -116,7 +125,7 @@ public final class JVM {
             boolean isStatic = unsafe.getInt(entry + isStaticOffset) != 0;
             long offset = unsafe.getLong(entry + (isStatic ? addressOffset : offsetOffset));
             Set<Field> fields = structs.computeIfAbsent(typeName, k -> new TreeSet<>());
-            fields.add(new Field(fieldName, typeString, offset, isStatic));
+            fields.add(new Field(fieldName, typeString, offset, isStatic,true));
         }
         return structs;
     }
@@ -172,11 +181,13 @@ public final class JVM {
         }
     }
 
-    private static Set<Field> updateOrCreateFields(@Nullable Set<Field> newFields,@Nullable Type oldType){
-        if (oldType!=null&&newFields!=null){
-            newFields.addAll(List.of(oldType.fields));
-        }else if (newFields==null){
-            return oldType==null?null:new TreeSet<>(List.of(oldType.fields));
+    private static Set<Field> updateOrCreateFields(@Nullable Set<Field> newFields, @Nullable Type oldType){
+        if (oldType!=null){
+            TreeSet<Field> re = new TreeSet<>(List.of(oldType.fields));
+            if (newFields!=null){
+                re.addAll(newFields);
+            }
+            return re;
         }
         return newFields;
     }
@@ -203,7 +214,10 @@ public final class JVM {
             String name = getStringRef(entry + nameOffset);
             if (name == null) break;
             int value = unsafe.getInt(entry + valueOffset);
-            constants.put(name, value);
+            if (!constants.containsKey(name)) {
+                constants.put(name, value);
+                jvmciOnlyConstants.add(name);
+            }
         }
     }
 
@@ -229,7 +243,10 @@ public final class JVM {
             String name = getStringRef(entry + nameOffset);
             if (name == null) break;
             long value = unsafe.getLong(entry + valueOffset);
-            constants.put(name, value);
+            if (!constants.containsKey(name)) {
+                constants.put(name, value);
+                jvmciOnlyConstants.add(name);
+            }
         }
     }
 
@@ -313,7 +330,7 @@ public final class JVM {
             System.err.println("NO CONSTANTS");
         }
         for (Map.Entry<String, Number> type : constants.entrySet()) {
-            System.err.println(type.getKey() + "=" + type.getValue());
+            System.err.println((jvmciOnlyConstants.contains(type.getKey())?"(JVMCI)":"")+ type.getKey()+(type.getValue() instanceof Long?"(L)":"(I)") + "=" + type.getValue());
         }
     }
 
@@ -481,16 +498,17 @@ public final class JVM {
     public static int nthBit(int n){
         return n >= BitsPerWord ? 0 : 1 << n;
     }
-
-    public static boolean  includeCDS(){
-        return usingSharedSpaces;
-    }
 //    public boolean isCore() {
 //        return !(usingClientCompiler || usingServerCompiler);
 //    }
 
+    public static long computeOffset(long size,long originalOffset){
+        return (originalOffset+size-1)/size*size;
+    }
+
     static {
         try {
+            isLP64= "aarch64".equals(cpu) || "amd64".equals(cpu) || "x86_64".equals(cpu) || "ppc64".equals(cpu);
             if (isHotspotJVM) {
                 JVM = JVMUtil.findJvm();
                 readVmTypes(readVmStructs());
@@ -523,39 +541,40 @@ public final class JVM {
                 JVMFlag[] flags = JVMFlag.getAllFlags();
                 boolean sharedSpaces = false, compressedOops = false, compressedClassPointers = false, TLAB = false,
                         RestrictContended=false, RestrictReservedStack=false,EnableContended =false,
-                        DiagnoseSyncOnValueBasedClasses=false;
+                        DumpSharedSpaces=false,BytecodeVerificationRemote=false,
+                        BytecodeVerificationLocal=false,INCLUDE_JFR=false;
                 long PMRC=0;
-                int OAIB=8;
+                int DiagnoseSyncOnValueBasedClasses=0,OAIB=8;
                 for (JVMFlag flag : flags) {
                     String name = flag.getName();
                     if ("UseSharedSpaces".equals(name)) {
-                        if (flag.getAddress() != 0) {
-                            sharedSpaces = true;
-                        }
+                        sharedSpaces = flag.getBool();
                     } else if ("UseCompressedOops".equals(name)) {
-                        if (flag.getAddress() != 0) {
-                            compressedOops = true;
-                        }
+                        compressedOops=flag.getBool();
                     } else if ("UseCompressedClassPointers".equals(name)) {
-                        if (flag.getAddress() != 0) {
-                            compressedClassPointers = true;
-                        }
+                        compressedClassPointers=flag.getBool();
                     } else if ("UseTLAB".equals(name)) {
-                        if (flag.getAddress() != 0) {
-                            TLAB = true;
-                        }
+                        TLAB= flag.getBool();
                     } else if ("PerMethodRecompilationCutoff".equals(name)) {
-                        PMRC = unsafe.getLong(flag.getAddress());
+                        PMRC=flag.getIntx();
                     }else if ("ObjectAlignmentInBytes".equals(name)){
-                        OAIB=unsafe.getInt(flag.getAddress());
+                        OAIB=(int) flag.getIntx();
                     }else if ("RestrictContended".equals(name)){
-                        RestrictContended=flag.getAddress()!=0;
+                        RestrictContended=flag.getBool();
                     }else if ("RestrictReservedStack".equals(name)){
-                        RestrictReservedStack=flag.getAddress()!=0;
+                        RestrictReservedStack=flag.getBool();
                     }else if ("EnableContended".equals(name)){
-                        EnableContended=flag.getAddress()!=0;
+                        EnableContended=flag.getBool();
                     }else if ("DiagnoseSyncOnValueBasedClasses".equals(name)){
-                        DiagnoseSyncOnValueBasedClasses=flag.getAddress()!=0;
+                        DiagnoseSyncOnValueBasedClasses=(int) flag.getIntx();
+                    }else if ("DumpSharedSpaces".equals(name)){
+                        DumpSharedSpaces=flag.getBool();
+                    }else if ("BytecodeVerificationRemote".equals(name)){
+                        BytecodeVerificationRemote=flag.getBool();
+                    }else if ("BytecodeVerificationLocal".equals(name)){
+                        BytecodeVerificationLocal=flag.getBool();
+                    }else if ("FlightRecorder".equals(name)){
+                        INCLUDE_JFR=true;
                     }
                     System.err.println(name);
                 }
@@ -576,6 +595,14 @@ public final class JVM {
                 restrictReservedStack=RestrictReservedStack;
                 enableContended=EnableContended;
                 diagnoseSyncOnValueBasedClasses=DiagnoseSyncOnValueBasedClasses;
+                dumpSharedSpaces=DumpSharedSpaces;
+                bytecodeVerificationRemote=BytecodeVerificationRemote;
+                bytecodeVerificationLocal=BytecodeVerificationLocal;
+                wordSize=type("char*").size;
+                includeCDS=types.containsKey("FileMapInfo");
+                includeG1GC=types.containsKey("G1CollectedHeap");
+                includeCDSJavaHeap=includeCDS&&includeG1GC&&isLP64&&!PlatformInfo.getOS().equals("win32");
+                includeJFR=INCLUDE_JFR;
 //                String cpu = getCPU();
 //                Class<?> machDescClass = Class.forName("sun.jvm.hotspot.debugger.MachineDescription");
 //                int pid=getPid();
@@ -599,9 +626,10 @@ public final class JVM {
 //                }
             } else {
                 JVM = null;
-                logMinObjAlignmentInBytes=objectAlignmentInBytes=oopSize = intSize = size_tSize = heapWordSize =longSize= 0;
-                diagnoseSyncOnValueBasedClasses=enableContended=restrictReservedStack=restrictContended=isJVMTISupported
-                        = usingClientCompiler = usingServerCompiler = usingSharedSpaces = usingTLAB = includeJVMCI = false;
+                diagnoseSyncOnValueBasedClasses=logMinObjAlignmentInBytes=objectAlignmentInBytes=oopSize = intSize = size_tSize = heapWordSize =longSize= 0;
+                includeJFR=includeCDSJavaHeap=includeCDS=bytecodeVerificationRemote=bytecodeVerificationLocal=dumpSharedSpaces=includeG1GC=
+                    enableContended=restrictReservedStack=restrictContended=isJVMTISupported = usingClientCompiler =
+                    usingServerCompiler = usingSharedSpaces = usingTLAB = includeJVMCI = false;
                 usingCompressedOops = Unsafe.ARRAY_OBJECT_INDEX_SCALE == 4;
                 if (usingCompressedOops) {
                     heapOopSize=4;
@@ -618,8 +646,8 @@ public final class JVM {
                 usingCompressedClassPointers = flag;
                 invocationEntryBci=-1;
                 PerMethodRecompilationCutoff=-1;
+                wordSize=oopSize;
             }
-            isLP64= "aarch64".equals(cpu) || "amd64".equals(cpu) || "x86_64".equals(cpu) || "ppc64".equals(cpu);
 
         } catch (Throwable t) {
             throw new ExceptionInInitializerError(t);

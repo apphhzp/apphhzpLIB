@@ -4,7 +4,6 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
-import apphhzp.lib.hotspot.JVMObject;
 import apphhzp.lib.hotspot.oop.method.Method;
 import org.objectweb.asm.Opcodes;
 
@@ -13,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static apphhzp.lib.ClassHelper.*;
+import static apphhzp.lib.helfy.JVM.includeCDS;
 import static apphhzp.lib.helfy.JVM.oopSize;
 
 public class Klass extends Metadata {
@@ -29,13 +29,18 @@ public class Klass extends Metadata {
     public static final long CLASSLOADER_DATA_OFFSET = TYPE.offset("_class_loader_data");
     public static final long VTABLE_LEN_OFFSET = TYPE.offset("_vtable_len");
     public static final long ACC_FLAGS_OFFSET = TYPE.offset("_access_flags");
+    public static final long PROTOTYPE_HEADER_OFFSET=TYPE.offset("_prototype_header");
+    public static final long BIASED_LOCK_REVOCATION_COUNT_OFFSET=PROTOTYPE_HEADER_OFFSET+JVM.type("markWord").size;
+    public static final long SHARED_CLASS_PATH_INDEX_OFFSET=BIASED_LOCK_REVOCATION_COUNT_OFFSET+4;
+    public static final long SHARED_CLASS_FLAGS_OFFSET= includeCDS?SHARED_CLASS_PATH_INDEX_OFFSET+2:SHARED_CLASS_PATH_INDEX_OFFSET;
+    public static final int _archived_lambda_proxy_is_available = 2, _has_value_based_class_annotation = 4, _verified_at_dump_time = 8;
     private static final Long2ObjectMap<Klass> CACHE = new Long2ObjectOpenHashMap<>();
     private Symbol nameCache;
     private Klass superKlassCache;
     private Klass nextSiblingCache;
     private Klass nextKlassCache;
     private ClassLoaderData CLDCache;
-    private Oop mirrorCache;
+    private OopDesc mirrorCache;
 
     public static Klass asKlass(Class<?> target) {
         long addr = (oopSize == 8 ? unsafe.getLong(target, klassOffset) : unsafe.getInt(target, klassOffset) & 0xffffffffL);
@@ -45,7 +50,7 @@ public class Klass extends Metadata {
     public static Klass getKlass(Object obj) {
         if (obj instanceof Class<?>)
             throw new IllegalArgumentException("getKlass(Object) couldn't accept Class object");
-        long addr = JVM.usingCompressedClassPointers || !is64BitJVM ? Oop.decodeKlass(unsafe.getIntVolatile(obj, Oop.DESC_KLASS_OFFSET)) : unsafe.getLongVolatile(obj, Oop.DESC_KLASS_OFFSET);
+        long addr = JVM.usingCompressedClassPointers || !is64BitJVM ? OopDesc.decodeKlass(unsafe.getIntVolatile(obj, OopDesc.DESC_KLASS_OFFSET)) : unsafe.getLongVolatile(obj, OopDesc.DESC_KLASS_OFFSET);
         return getOrCreate(addr);
     }
 
@@ -116,7 +121,7 @@ public class Klass extends Metadata {
             return null;
         }
         if (!isEqual(this.nameCache,addr)) {
-            this.nameCache = new Symbol(addr);
+            this.nameCache = Symbol.of(addr);
         }
         return this.nameCache;
     }
@@ -173,10 +178,10 @@ public class Klass extends Metadata {
         unsafe.putAddress(this.address + SUPER_OFFSET, superKlass==null?0L:superKlass.address);
     }
 
-    public Oop getMirror() {
-        long addr = Oop.fromOopHandle(this.address + MIRROR_OFFSET);
+    public OopDesc getMirror() {
+        long addr = OopDesc.fromOopHandle(this.address + MIRROR_OFFSET);
         if (!isEqual(this.mirrorCache, addr)) {
-            this.mirrorCache = new Oop(addr);
+            this.mirrorCache = new OopDesc(addr);
         }
         return this.mirrorCache;
     }
@@ -216,6 +221,11 @@ public class Klass extends Metadata {
         return this.CLDCache;
     }
 
+    public void setClassLoaderData(ClassLoaderData cld){
+        this.CLDCache=null;
+        unsafe.putAddress(this.address+CLASSLOADER_DATA_OFFSET,cld.address);
+    }
+
     public boolean isAssignableFrom(Klass klass){
         if (klass.address==this.address){
             return true;
@@ -236,6 +246,48 @@ public class Klass extends Metadata {
             throw new ArrayIndexOutOfBoundsException(index);
         }
         return Method.getOrCreate(unsafe.getAddress(this.address+InstanceKlass.SIZE+ (long) index * oopSize));
+    }
+
+    public MarkWord getPrototypeHeader() {
+        return new MarkWord(unsafe.getAddress(this.address+PROTOTYPE_HEADER_OFFSET));
+    }
+
+    public void setPrototypeHeader(long prototypeHeader) {
+        unsafe.putAddress(this.address+PROTOTYPE_HEADER_OFFSET, prototypeHeader);
+    }
+
+    public int getSharedClassFlags(){
+        return unsafe.getShort(this.address+SHARED_CLASS_FLAGS_OFFSET)&0xffff;
+    }
+
+    public void setSharedClassFlags(int flags){
+        unsafe.putShort(this.address+SHARED_CLASS_FLAGS_OFFSET,(short) (flags&0xffff));
+    }
+
+    public void setHasValueBasedClassAnnotation(){
+        if (includeCDS){
+            this.setSharedClassFlags(this.getSharedClassFlags()|_has_value_based_class_annotation);
+        }
+    }
+
+    public void clearHasValueBasedClassAnnotation(){
+        if (includeCDS){
+            this.setSharedClassFlags(this.getSharedClassFlags()&~_has_value_based_class_annotation);
+        }
+    }
+    public boolean hasValueBasedClassAnnotation(){
+        if (includeCDS){
+            return (this.getSharedClassFlags()&_has_value_based_class_annotation)!=0;
+        }
+        return false;
+    }
+
+    public static int layout_helper_to_size_helper(int lh) {
+        if (lh<=0){
+            throw new IllegalArgumentException("must be instance");
+        }
+        // Note that the following expression discards _lh_instance_slow_path_bit.
+        return lh >> JVM.LogBytesPerWord;
     }
 
     @Override

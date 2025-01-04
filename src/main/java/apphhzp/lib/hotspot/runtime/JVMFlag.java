@@ -41,6 +41,60 @@ public class JVMFlag extends JVMObject {
         unsafe.putAddress(this.address+ADDR_OFFSET,addr);
     }
 
+    public boolean getBool(){
+        if (JVM.ASSERTS_ENABLED){
+            if (this.getType()!=0){
+                throw new AssertionError("This JVMFlag is not a bool flag");
+            }
+        }
+        return unsafe.getByte(this.getAddress())!=0;
+    }
+
+    public void setBool(boolean b){
+        if (JVM.ASSERTS_ENABLED){
+            if (this.getType()!=0){
+                throw new AssertionError("This JVMFlag is not a bool flag");
+            }
+        }
+        unsafe.putByte(this.getAddress(), (byte) (b?1:0));
+    }
+
+    public int getInt(){
+        if (JVM.ASSERTS_ENABLED){
+            if (this.getType()!=1){
+                throw new AssertionError("This JVMFlag is not a int flag");
+            }
+        }
+        return unsafe.getInt(this.getAddress());
+    }
+
+    public void setInt(int i){
+        if (JVM.ASSERTS_ENABLED){
+            if (this.getType()!=1){
+                throw new AssertionError("This JVMFlag is not a int flag");
+            }
+        }
+        unsafe.putInt(this.getAddress(),i);
+    }
+
+    public long getIntx(){
+        if (JVM.ASSERTS_ENABLED){
+            if (this.getType()!=3){
+                throw new AssertionError("This JVMFlag is not a intx flag");
+            }
+        }
+        return unsafe.getAddress(this.getAddress());
+    }
+
+    public void setIntx(long l){
+        if (JVM.ASSERTS_ENABLED){
+            if (this.getType()!=3){
+                throw new AssertionError("This JVMFlag is not a intx flag");
+            }
+        }
+        unsafe.putAddress(this.getAddress(),l);
+    }
+
     public String getName(){
         return JVM.getStringRef(this.address+NAME_OFFSET);
     }

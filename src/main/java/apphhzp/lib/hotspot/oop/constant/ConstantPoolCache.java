@@ -3,7 +3,7 @@ package apphhzp.lib.hotspot.oop.constant;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.JVMObject;
-import apphhzp.lib.hotspot.oop.Oop;
+import apphhzp.lib.hotspot.oop.OopDesc;
 import apphhzp.lib.hotspot.oop.U2Array;
 
 import javax.annotation.Nonnull;
@@ -22,7 +22,7 @@ public class ConstantPoolCache extends JVMObject implements Iterable<ConstantPoo
     public static final long RESOLVED_REFERENCES_OFFSET=TYPE.offset("_resolved_references");
     public static final long REFERENCE_MAP_OFFSET=TYPE.offset("_reference_map");
     private ConstantPool holderCache;
-    private Oop resolvedReferencesCache;
+    private OopDesc resolvedReferencesCache;
     private U2Array referenceMapCache;
     private ConstantPoolCacheEntry[] entries;
     public ConstantPoolCache(long addr) {
@@ -52,17 +52,17 @@ public class ConstantPoolCache extends JVMObject implements Iterable<ConstantPoo
 
     @Nullable
     public Object[] getResolvedReferences(){
-        long addr= Oop.fromOopHandle(this.address+RESOLVED_REFERENCES_OFFSET);
+        long addr= OopDesc.fromOopHandle(this.address+RESOLVED_REFERENCES_OFFSET);
         if (addr==0L){
             return null;
         }
         if (!isEqual(this.resolvedReferencesCache,addr)){
-            this.resolvedReferencesCache=new Oop(addr);
+            this.resolvedReferencesCache=new OopDesc(addr);
         }
         return this.resolvedReferencesCache.getObject();
     }
 
-    public void setResolvedReferences(Oop val){
+    public void setResolvedReferences(OopDesc val){
         unsafe.putAddress(unsafe.getAddress(this.address+RESOLVED_REFERENCES_OFFSET),val.address);
     }
 

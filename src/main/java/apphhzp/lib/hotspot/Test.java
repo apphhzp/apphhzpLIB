@@ -1,48 +1,22 @@
 package apphhzp.lib.hotspot;
 
-import java.io.PrintStream;
 
-public class Test extends  apphhzp.lib.hotspot.TestSuper{
-    public void print(){
-        System.err.println("Fuck You!");
-        int i=2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        i+=i*2;
-        PrintStream stream=System.err;
-        stream.println("print".toString().toString().toString().toString().toString().toString().toString().toString().toString().toString().toString().toString().toString().toString().toString().toString().toString().toString().toString()+i);
+import java.util.function.Function;
+
+public class Test {
+    public int val;
+    public Test(int val) {
+        this.val = val;
+    }
+    public static void print(int a){
+        System.err.println(c(a));
+    }
+
+    public static double c(int a){
+        return a*a*(1+Math.random());
+    }
+
+    public void add(int x){
+        val += x;
     }
 }

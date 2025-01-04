@@ -7,7 +7,7 @@ public class StringConstant extends Constant{
     public final Symbol str;
     public StringConstant(ConstantPool pool, int which) {
         super(pool, which, ConstantTag.String);
-        str=new Symbol(ClassHelper.unsafe.getAddress(this.address));
+        str=Symbol.of(ClassHelper.unsafe.getAddress(this.address));
     }
 
     @Override

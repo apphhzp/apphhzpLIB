@@ -20,4 +20,9 @@ public class JVMObject {
         }
         return object.address==addr;
     }
+
+    @Override
+    public String toString() {
+        return this.getClass().getName()+"@0x"+Long.toHexString(this.address);
+    }
 }

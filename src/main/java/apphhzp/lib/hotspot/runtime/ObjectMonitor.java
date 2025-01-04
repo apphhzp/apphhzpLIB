@@ -3,7 +3,7 @@ package apphhzp.lib.hotspot.runtime;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.JVMObject;
-import apphhzp.lib.hotspot.oop.Oop;
+import apphhzp.lib.hotspot.oop.OopDesc;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -20,7 +20,7 @@ public class ObjectMonitor extends JVMObject {
     public static final long NEXT_OFFSET=TYPE.offset("_next_om");
     public static final long WAITERS_OFFSET=TYPE.offset("_waiters");
     private static final HashMap<Long,ObjectMonitor> CACHE=new HashMap<>();
-    private Oop objCache;
+    private OopDesc objCache;
     private ObjectMonitor nextCache;
     public static ObjectMonitor getOrCreate(long addr){
         if (addr==0L){
@@ -45,9 +45,9 @@ public class ObjectMonitor extends JVMObject {
     }
 
     public Object getObject(){
-        long addr=Oop.fromOopHandle(this.address+OBJECT_OFFSET);
+        long addr= OopDesc.fromOopHandle(this.address+OBJECT_OFFSET);
         if (!isEqual(this.objCache,addr)){
-            this.objCache=new Oop(addr);
+            this.objCache=new OopDesc(addr);
         }
         return this.objCache.getObject();
     }

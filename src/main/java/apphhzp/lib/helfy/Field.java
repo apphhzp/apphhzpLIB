@@ -6,12 +6,18 @@ public class Field implements Comparable<Field> {
     public final String typeName;
     public final long offset;
     public final boolean isStatic;
+    public final boolean isFromJVMCI;
 
     Field(String name, String typeName, long offset, boolean isStatic) {
+        this(name, typeName, offset, isStatic, false);
+    }
+
+    Field(String name, String typeName, long offset, boolean isStatic,boolean isFromJVMCI) {
         this.name = name;
         this.typeName = typeName;
         this.offset = offset;
         this.isStatic = isStatic;
+        this.isFromJVMCI = isFromJVMCI;
     }
 
     @Override
@@ -25,8 +31,14 @@ public class Field implements Comparable<Field> {
     @Override
     public String toString() {
         if (isStatic) {
+            if (isFromJVMCI){
+                return "static " + typeName + ' ' + name +" (JVMCI)"+ " @ 0x" + Long.toHexString(offset);
+            }
             return "static " + typeName + ' ' + name + " @ 0x" + Long.toHexString(offset);
         } else {
+            if (isFromJVMCI){
+                return typeName + ' ' + name+" (JVMCI) @ " + offset;
+            }
             return typeName + ' ' + name + " @ " + offset;
         }
     }

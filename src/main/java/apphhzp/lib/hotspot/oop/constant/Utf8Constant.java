@@ -8,7 +8,7 @@ public class Utf8Constant extends Constant{
     public final Symbol str;
     public Utf8Constant(ConstantPool pool, int which) {
         super(pool, which,  ConstantTag.Utf8);
-        str=new Symbol(unsafe.getAddress(this.address));
+        str=Symbol.of(unsafe.getAddress(this.address));
     }
 
     @Override
