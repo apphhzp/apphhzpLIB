@@ -1,6 +1,8 @@
 package apphhzp.lib.hotspot.classfile;
 
-import apphhzp.lib.hotspot.oop.*;
+import apphhzp.lib.hotspot.oops.*;
+import apphhzp.lib.hotspot.oops.klass.Klass;
+import apphhzp.lib.hotspot.oops.oop.OopDesc;
 
 import java.security.ProtectionDomain;
 
@@ -19,8 +21,8 @@ public final class ClassDefiner {
         // Class resolution will get the class name from the .class stream if the name is null.
         Symbol class_name = name == null ? null : SystemDictionary.class_name_symbol(name);
         ClassFileStream st=new ClassFileStream(buf, len, source, ClassFileStream.verify);
-        OopDesc class_loader =new OopDesc(loader);
-        OopDesc protection_domain=new OopDesc(pd);
+        OopDesc class_loader =OopDesc.of(loader);
+        OopDesc protection_domain=OopDesc.of(pd);
         ClassLoadInfo cl_info=new ClassLoadInfo(protection_domain);
         Klass k =SystemDictionary.resolve_from_stream(st, class_name, class_loader, cl_info);
         return k.getMirror().getObject();

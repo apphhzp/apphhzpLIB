@@ -1,6 +1,8 @@
 package apphhzp.lib.hotspot.classfile;
 
-import apphhzp.lib.hotspot.oop.*;
+import apphhzp.lib.hotspot.oops.*;
+import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
+import apphhzp.lib.hotspot.oops.oop.OopDesc;
 
 import java.util.Arrays;
 
@@ -140,7 +142,7 @@ public final class SystemDictionary {
             throw new UnsupportedOperationException();
             //return ClassLoaderDataGraph::add(class_loader, true);
         } else {
-            return (class_loader.address == 0L) ? ClassLoaderData.null_class_loader_data :
+            return (class_loader.address == 0L) ? ClassLoaderData.nullClassLoaderData :
             ClassLoaderDataGraph.find_or_create(class_loader);
         }
     }

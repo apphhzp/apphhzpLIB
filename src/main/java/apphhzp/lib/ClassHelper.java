@@ -4,7 +4,9 @@ package apphhzp.lib;
 import apphhzp.lib.api.ObjectInstrumentation;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.hotspot.Debugger;
-import apphhzp.lib.hotspot.oop.*;
+import apphhzp.lib.hotspot.oops.*;
+import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
+import apphhzp.lib.hotspot.oops.klass.Klass;
 import apphhzp.lib.hotspot.utilities.Dictionary;
 import apphhzp.lib.natives.NativeUtil;
 import com.sun.jna.ptr.IntByReference;
@@ -226,7 +228,7 @@ public final class ClassHelper {
         }
         Dictionary dict=ClassLoaderData.as(lookupClass.getClassLoader()).getDictionary();
         if (dict != null) {
-            InstanceKlass klass=Klass.asKlass(clazz).asInstanceKlass();
+            InstanceKlass klass= Klass.asKlass(clazz).asInstanceKlass();
             Symbol symbol=Symbol.lookupOrCreate(name.replace('.','/'));
             symbol.incrementRefCount();
             klass.setName(symbol);

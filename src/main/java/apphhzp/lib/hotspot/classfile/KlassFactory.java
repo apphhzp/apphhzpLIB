@@ -1,8 +1,8 @@
 package apphhzp.lib.hotspot.classfile;
 
-import apphhzp.lib.hotspot.oop.ClassLoaderData;
-import apphhzp.lib.hotspot.oop.InstanceKlass;
-import apphhzp.lib.hotspot.oop.Symbol;
+import apphhzp.lib.hotspot.oops.ClassLoaderData;
+import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
+import apphhzp.lib.hotspot.oops.Symbol;
 import apphhzp.lib.hotspot.prims.JvmtiCachedClassFileData;
 
 public class KlassFactory {

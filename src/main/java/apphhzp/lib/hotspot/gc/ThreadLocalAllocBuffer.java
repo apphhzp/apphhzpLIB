@@ -3,6 +3,8 @@ package apphhzp.lib.hotspot.gc;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.JVMObject;
+import apphhzp.lib.hotspot.oops.oop.ArrayOopDesc;
+import apphhzp.lib.hotspot.utilities.BasicType;
 
 import static apphhzp.lib.ClassHelper.unsafe;
 
@@ -22,16 +24,26 @@ public class ThreadLocalAllocBuffer extends JVMObject {
         return unsafe.getAddress(this.address+START_OFFSET);
     }
 
-    public long getTop(){
+    public long top(){
         return unsafe.getAddress(this.address+TOP_OFFSET);
     }
 
-    public long getPFTop(){
+    public long pfTop(){
         return unsafe.getAddress(this.address+PF_TOP_OFFSET);
     }
 
-    public long getEnd(){
+    public long end(){
         return unsafe.getAddress(this.address+END_OFFSET);
+    }
+
+    public long hardEnd()  { return end()+ JVM.alignObjectSize(this.endReserve()); }
+
+    private long endReserve() {
+        long minFillerArraySize = ArrayOopDesc.baseOffsetInBytes(BasicType.T_INT);
+        long reserveForAllocationPrefetch = getReserveForAllocationPrefetch();
+        long heapWordSize = JVM.oopSize;
+
+        return Math.max(minFillerArraySize, reserveForAllocationPrefetch * heapWordSize);
     }
 
     public static int getReserveForAllocationPrefetch(){

@@ -10,7 +10,7 @@ public class Thread extends ThreadShadow{
     public static final Type TYPE= JVM.type("Thread");
     public static final int SIZE=TYPE.size;
     public static final long TLAB_OFFSET=TYPE.offset("_tlab");
-    private final ThreadLocalAllocBuffer tlabCache;
+    public final ThreadLocalAllocBuffer tlab=new ThreadLocalAllocBuffer(this.address+TLAB_OFFSET);
     private static final HashMap<Long, Thread> CACHE = new HashMap<>();
     public static Thread getOrCreate(long addr) {
         if (addr == 0L) {
@@ -32,11 +32,6 @@ public class Thread extends ThreadShadow{
 
     public Thread(long addr) {
         super(addr);
-        tlabCache=new ThreadLocalAllocBuffer(this.address+TLAB_OFFSET);
-    }
-
-    public ThreadLocalAllocBuffer getTLAB(){
-        return this.tlabCache;
     }
 
     @Override

@@ -4,7 +4,9 @@ import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.classfile.ProtectionDomainCacheEntry;
 import apphhzp.lib.hotspot.classfile.ProtectionDomainEntry;
-import apphhzp.lib.hotspot.oop.*;
+import apphhzp.lib.hotspot.oops.*;
+import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
+import apphhzp.lib.hotspot.oops.oop.OopDesc;
 
 import javax.annotation.Nullable;
 
@@ -59,7 +61,7 @@ public class DictionaryEntry extends HashtableEntry{
     }
 
     public boolean containsPD(OopDesc pd){
-        if (pd.equals(new OopDesc(((Class<?>)(this.getInstanceKlass().getMirror().getObject())).getProtectionDomain()))){
+        if (pd.equals(OopDesc.of(((Class<?>)(this.getInstanceKlass().getMirror().getObject())).getProtectionDomain()))){
             return true;
         }
         for (ProtectionDomainEntry current =this.getPDSet();

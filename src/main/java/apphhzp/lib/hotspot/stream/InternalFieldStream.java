@@ -1,6 +1,6 @@
 package apphhzp.lib.hotspot.stream;
 
-import apphhzp.lib.hotspot.oop.InstanceKlass;
+import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
 
 public class InternalFieldStream extends FieldStreamBase{
     public InternalFieldStream(InstanceKlass klass) {

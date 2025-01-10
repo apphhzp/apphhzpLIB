@@ -5,8 +5,54 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9ca22632-21c7-4fc4-930f-2cd8a2ab25e0" name="更改" comment=".">
-      <change afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/OopDesc.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/klass/Klass.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/ClassHelper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/ClassHelper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/helfy/JVM.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/helfy/JVM.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/ClassModifier.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/ClassModifier.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/Debugger.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/Debugger.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/JVMObject.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/JVMObject.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/cds/FileMapHeader.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/cds/FileMapHeader.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/ClassDefiner.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/ClassDefiner.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/ClassFileParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/ClassFileParser.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/ClassInstanceInfo.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/ClassInstanceInfo.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/ClassLoadInfo.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/ClassLoadInfo.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/JavaClasses.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/JavaClasses.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/KlassFactory.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/KlassFactory.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/ModuleEntry.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/ModuleEntry.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/PackageEntry.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/PackageEntry.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/PackageEntryTable.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/PackageEntryTable.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/ProtectionDomainCacheEntry.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/ProtectionDomainCacheEntry.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/ProtectionDomainEntry.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/ProtectionDomainEntry.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/SystemDictionary.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/SystemDictionary.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/VMClasses.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/VMClasses.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/code/RelocIterator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/code/RelocIterator.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/gc/ThreadLocalAllocBuffer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/gc/ThreadLocalAllocBuffer.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/memory/Universe.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/memory/Universe.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/ClassLoaderData.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/ClassLoaderData.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/ClassLoaderDataGraph.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/ClassLoaderDataGraph.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/InstanceKlass.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/klass/InstanceKlass.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/Klass.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/Metadata.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/Metadata.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/Oop.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/Oop.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/OopDesc.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/oopDesc/OopDesc.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/Symbol.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/Symbol.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/WeakHandle.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/WeakHandle.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/constant/ClassConstant.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/constant/ClassConstant.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/constant/ConstantPool.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/constant/ConstantPool.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/constant/ConstantPoolCache.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/constant/ConstantPoolCache.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/constant/ConstantPoolCacheEntry.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/constant/ConstantPoolCacheEntry.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/method/Method.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oop/method/Method.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/runtime/JavaThread.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/runtime/JavaThread.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/runtime/ObjectMonitor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/runtime/ObjectMonitor.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/runtime/Thread.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/runtime/Thread.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/stream/AllFieldStream.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/stream/AllFieldStream.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/stream/FieldStreamBase.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/stream/FieldStreamBase.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/stream/InternalFieldStream.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/stream/InternalFieldStream.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/stream/JavaFieldStream.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/stream/JavaFieldStream.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/utilities/Dictionary.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/utilities/Dictionary.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/utilities/DictionaryEntry.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/utilities/DictionaryEntry.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/JVM.class" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -54,6 +100,7 @@
       <list>
         <option value="Enum" />
         <option value="Class" />
+        <option value="Interface" />
       </list>
     </option>
   </component>
@@ -86,33 +133,33 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Gradle.apphhzpLIB [:Debugger.main()].executor&quot;: &quot;Run&quot;,
-    &quot;Gradle.apphhzpLIB [build].executor&quot;: &quot;Run&quot;,
-    &quot;Gradle.下载源代码.executor&quot;: &quot;Run&quot;,
-    &quot;JavaClassFindUsagesOptions.isDerivedInterfaces&quot;: &quot;true&quot;,
-    &quot;JavaClassFindUsagesOptions.isImplementingClasses&quot;: &quot;true&quot;,
-    &quot;JavaMethodFindUsagesOptions.isOverridingMethods&quot;: &quot;true&quot;,
-    &quot;JavaVariableFindUsagesOptions.isSearchForAccessors&quot;: &quot;true&quot;,
-    &quot;JavaVariableFindUsagesOptions.isSearchForTextOccurrences&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;D:/apphhzpLIB/src/main/resources&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;模块&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.3264368&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Gradle.apphhzpLIB [:Debugger.main()].executor": "Debug",
+    "Gradle.apphhzpLIB [build].executor": "Run",
+    "Gradle.下载源代码.executor": "Run",
+    "JavaClassFindUsagesOptions.isDerivedInterfaces": "true",
+    "JavaClassFindUsagesOptions.isImplementingClasses": "true",
+    "JavaMethodFindUsagesOptions.isOverridingMethods": "true",
+    "JavaVariableFindUsagesOptions.isSearchForAccessors": "true",
+    "JavaVariableFindUsagesOptions.isSearchForTextOccurrences": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "master",
+    "ignore.virus.scanning.warn.message": "true",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "D:/apphhzpLIB/src/main/resources",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "project.structure.last.edited": "模块",
+    "project.structure.proportion": "0.15",
+    "project.structure.side.proportion": "0.3264368",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="D:\apphhzpLIB\src\main\resources" />
@@ -124,9 +171,9 @@
   </component>
   <component name="RunAnythingCache">
     <option name="myCommands">
-      <command value="jps" />
-      <command value="jhsdb hsdb" />
       <command value="git config --global http.sslVerify &quot;false&quot;" />
+      <command value="jhsdb hsdb" />
+      <command value="jps" />
     </option>
   </component>
   <component name="RunManager" selected="应用程序.Debugger">
@@ -230,6 +277,14 @@
       <workItem from="1735653975500" duration="2385000" />
       <workItem from="1735705300932" duration="12352000" />
       <workItem from="1735968157435" duration="15725000" />
+      <workItem from="1736052345455" duration="10231000" />
+      <workItem from="1736071590699" duration="4226000" />
+      <workItem from="1736421912054" duration="7718000" />
+      <workItem from="1736432513353" duration="497000" />
+      <workItem from="1736433531959" duration="6720000" />
+      <workItem from="1736487363173" duration="42000" />
+      <workItem from="1736492504857" duration="33000" />
+      <workItem from="1736500497161" duration="17936000" />
     </task>
     <task id="LOCAL-00001" summary=".">
       <option name="closed" value="true" />
@@ -311,7 +366,15 @@
       <option name="project" value="LOCAL" />
       <updated>1736008183959</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary=".">
+      <option name="closed" value="true" />
+      <created>1736052608509</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1736052608509</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

@@ -1,8 +1,7 @@
 package apphhzp.lib.hotspot.classfile;
 
-import apphhzp.lib.hotspot.oop.Oop;
-import apphhzp.lib.hotspot.oop.OopDesc;
-import apphhzp.lib.hotspot.oop.WeakHandle;
+import apphhzp.lib.hotspot.oops.oop.Oop;
+import apphhzp.lib.hotspot.oops.oop.WeakHandle;
 import apphhzp.lib.hotspot.utilities.HashtableEntry;
 
 import javax.annotation.Nullable;

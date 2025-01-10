@@ -2,7 +2,7 @@ package apphhzp.lib.hotspot.code;
 
 import apphhzp.lib.hotspot.code.blob.CodeBlob;
 import apphhzp.lib.hotspot.code.blob.CompiledMethod;
-import apphhzp.lib.hotspot.oop.OopDesc;
+import apphhzp.lib.hotspot.oops.oop.OopDesc;
 
 import java.util.NoSuchElementException;
 

@@ -1,7 +1,7 @@
 package apphhzp.lib.hotspot.classfile;
 
-import apphhzp.lib.hotspot.oop.InstanceKlass;
-import apphhzp.lib.hotspot.oop.OopDesc;
+import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
+import apphhzp.lib.hotspot.oops.oop.OopDesc;
 
 public class ClassLoadInfo {
     private final OopDesc _protection_domain;
@@ -13,7 +13,7 @@ public class ClassLoadInfo {
     public ClassLoadInfo(OopDesc protection_domain) {
         _protection_domain = protection_domain;
         _class_hidden_info._dynamic_nest_host = null;
-        _class_hidden_info._class_data =new OopDesc(0L);
+        _class_hidden_info._class_data =OopDesc.NULL;
         _is_hidden = false;
         _is_strong_hidden = false;
         _can_access_vm_annotations = false;

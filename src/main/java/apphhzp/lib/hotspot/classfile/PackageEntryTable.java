@@ -1,7 +1,6 @@
 package apphhzp.lib.hotspot.classfile;
 
-import apphhzp.lib.hotspot.oop.ClassLoaderData;
-import apphhzp.lib.hotspot.oop.Symbol;
+import apphhzp.lib.hotspot.oops.Symbol;
 import apphhzp.lib.hotspot.utilities.Hashtable;
 import apphhzp.lib.hotspot.utilities.HashtableEntry;
 
@@ -40,5 +39,10 @@ public class PackageEntryTable extends Hashtable {
         entry.getName().incrementRefCount();
         entry.setModule(module);
         return entry;
+    }
+
+    @Override
+    public String toString() {
+        return "PackageEntryTable@0x"+Long.toHexString(this.address);
     }
 }

@@ -1,9 +1,8 @@
 package apphhzp.lib.hotspot.classfile;
 
-import apphhzp.lib.ClassHelper;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
-import apphhzp.lib.hotspot.oop.InstanceKlass;
+import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
 
 import static apphhzp.lib.ClassHelper.unsafe;
 

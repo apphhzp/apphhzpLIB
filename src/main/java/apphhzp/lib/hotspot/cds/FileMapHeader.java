@@ -5,9 +5,9 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.JVMObject;
-import apphhzp.lib.hotspot.oop.InstanceKlass;
-import apphhzp.lib.hotspot.oop.constant.ConstantPool;
-import apphhzp.lib.hotspot.oop.method.Method;
+import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
+import apphhzp.lib.hotspot.oops.constant.ConstantPool;
+import apphhzp.lib.hotspot.oops.method.Method;
 
 import static apphhzp.lib.ClassHelper.unsafe;
 

@@ -2,13 +2,13 @@ package apphhzp.lib.hotspot;
 
 import apphhzp.lib.hotspot.code.blob.CompiledMethod;
 import apphhzp.lib.hotspot.code.blob.NMethod;
-import apphhzp.lib.hotspot.oop.InstanceKlass;
-import apphhzp.lib.hotspot.oop.Klass;
-import apphhzp.lib.hotspot.oop.MethodCounters;
-import apphhzp.lib.hotspot.oop.constant.ConstantPool;
-import apphhzp.lib.hotspot.oop.constant.ConstantPoolCacheEntry;
-import apphhzp.lib.hotspot.oop.method.ConstMethod;
-import apphhzp.lib.hotspot.oop.method.Method;
+import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
+import apphhzp.lib.hotspot.oops.klass.Klass;
+import apphhzp.lib.hotspot.oops.MethodCounters;
+import apphhzp.lib.hotspot.oops.constant.ConstantPool;
+import apphhzp.lib.hotspot.oops.constant.ConstantPoolCacheEntry;
+import apphhzp.lib.hotspot.oops.method.ConstMethod;
+import apphhzp.lib.hotspot.oops.method.Method;
 import org.objectweb.asm.Opcodes;
 
 import java.util.Arrays;

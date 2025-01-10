@@ -3,8 +3,8 @@ package apphhzp.lib.hotspot.utilities;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.classfile.ProtectionDomainEntry;
-import apphhzp.lib.hotspot.oop.InstanceKlass;
-import apphhzp.lib.hotspot.oop.Symbol;
+import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
+import apphhzp.lib.hotspot.oops.Symbol;
 
 import java.util.function.LongFunction;
 

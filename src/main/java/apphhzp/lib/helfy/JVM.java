@@ -5,9 +5,8 @@ import apphhzp.lib.hotspot.JVMUtil;
 import apphhzp.lib.hotspot.NativeLibrary;
 import apphhzp.lib.hotspot.cds.FileMapHeader;
 import apphhzp.lib.hotspot.cds.FileMapInfo;
-import apphhzp.lib.hotspot.oop.Symbol;
-import apphhzp.lib.hotspot.oop.constant.ConstantPool;
-import apphhzp.lib.hotspot.oop.method.Method;
+import apphhzp.lib.hotspot.oops.constant.ConstantPool;
+import apphhzp.lib.hotspot.oops.method.Method;
 import apphhzp.lib.hotspot.runtime.JVMFlag;
 import apphhzp.lib.hotspot.runtime.JavaThread;
 import apphhzp.lib.hotspot.runtime.ObjectMonitor;
@@ -32,7 +31,6 @@ public final class JVM {
     public static final int intSize;
     public static final int longSize;
     public static final int size_tSize;
-    public static final int heapWordSize;
     public static final boolean isJVMTISupported;
     public static final boolean usingClientCompiler;
     public static final boolean usingServerCompiler;
@@ -69,6 +67,9 @@ public final class JVM {
     public static final int BitsPerLong        = 1 << LogBitsPerLong;
     public static final int WordAlignmentMask  = (1 << LogBytesPerWord) - 1;
     public static final int LongAlignmentMask  = (1 << LogBytesPerLong) - 1;
+    public static final int LogHeapWordSize     = "aarch64".equals(cpu) || "amd64".equals(cpu) || "x86_64".equals(cpu) || "ppc64".equals(cpu)?3:2;
+    public static final int HeapWordsPerLong;
+    public static final int LogHeapWordsPerLong = LogBytesPerLong - LogHeapWordSize;
     public static final boolean restrictContended;
     public static final boolean enableContended;
     public static final boolean restrictReservedStack;
@@ -491,12 +492,20 @@ public final class JVM {
         return size + alignment - 1 & -alignment;
     }
 
+    public static long alignObjectSize(long size){
+        return alignUp(size, objectAlignmentInBytes);
+    }
+
     public static long alignDown(long size, long alignment) {
         return size & -alignment;
     }
 
     public static int nthBit(int n){
         return n >= BitsPerWord ? 0 : 1 << n;
+    }
+
+    public static int right_n_bits(int n){
+        return nthBit(n) - 1;
     }
 //    public boolean isCore() {
 //        return !(usingClientCompiler || usingServerCompiler);
@@ -524,7 +533,6 @@ public final class JVM {
                 intSize = type("int").size;
                 longSize=type("long").size;
                 size_tSize = type("size_t").size;
-                heapWordSize = intConstant("HeapWordSize");
                 isJVMTISupported = type("InstanceKlass").contains("_breakpoints");
                 Type type = type("Method");
                 if (type.contains("_from_compiled_entry")) {
@@ -591,6 +599,7 @@ public final class JVM {
                 }else {
                     heapOopSize=oopSize;
                 }
+                HeapWordsPerLong=BytesPerLong / oopSize;
                 restrictContended=RestrictContended;
                 restrictReservedStack=RestrictReservedStack;
                 enableContended=EnableContended;
@@ -626,11 +635,12 @@ public final class JVM {
 //                }
             } else {
                 JVM = null;
-                diagnoseSyncOnValueBasedClasses=logMinObjAlignmentInBytes=objectAlignmentInBytes=oopSize = intSize = size_tSize = heapWordSize =longSize= 0;
+                diagnoseSyncOnValueBasedClasses=logMinObjAlignmentInBytes=objectAlignmentInBytes = intSize = size_tSize = oopSize =longSize= 0;
                 includeJFR=includeCDSJavaHeap=includeCDS=bytecodeVerificationRemote=bytecodeVerificationLocal=dumpSharedSpaces=includeG1GC=
                     enableContended=restrictReservedStack=restrictContended=isJVMTISupported = usingClientCompiler =
                     usingServerCompiler = usingSharedSpaces = usingTLAB = includeJVMCI = false;
                 usingCompressedOops = Unsafe.ARRAY_OBJECT_INDEX_SCALE == 4;
+                HeapWordsPerLong=BytesPerLong / unsafe.addressSize();
                 if (usingCompressedOops) {
                     heapOopSize=4;
                 }else {

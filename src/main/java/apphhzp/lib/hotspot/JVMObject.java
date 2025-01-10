@@ -8,6 +8,9 @@ public class JVMObject {
 
     @Override
     public boolean equals(Object obj) {
+        if (obj==this){
+            return true;
+        }
         if (obj instanceof JVMObject jvmObject){
             return jvmObject.address==this.address;
         }

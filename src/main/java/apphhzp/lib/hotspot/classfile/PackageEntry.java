@@ -1,15 +1,12 @@
 package apphhzp.lib.hotspot.classfile;
 
 import apphhzp.lib.helfy.JVM;
-import apphhzp.lib.hotspot.oop.Symbol;
-import apphhzp.lib.hotspot.utilities.BasicHashtableEntry;
-import apphhzp.lib.hotspot.utilities.Hashtable;
+import apphhzp.lib.hotspot.oops.Symbol;
 import apphhzp.lib.hotspot.utilities.HashtableEntry;
 import apphhzp.lib.hotspot.utilities.VMTypeGrowableArray;
 
 import javax.annotation.Nullable;
 
-import static apphhzp.lib.ClassHelper.lookup;
 import static apphhzp.lib.ClassHelper.unsafe;
 
 public class PackageEntry extends HashtableEntry {
@@ -57,19 +54,19 @@ public class PackageEntry extends HashtableEntry {
         return (PackageEntry) this.nextCache;
     }
 
-    @Nullable
+
     public ModuleEntry getModule(){
         long addr=unsafe.getAddress(this.address+MODULE_OFFSET);
         if (addr==0L){
             return null;
         }
         if (!isEqual(this.moduleCache,addr)){
-            this.moduleCache=new ModuleEntry(addr);
+            this.moduleCache=ModuleEntry.getOrCreate(addr);
         }
         return this.moduleCache;
     }
 
-    public void setModule(@Nullable ModuleEntry module){
+    public void setModule(ModuleEntry module){
         this.moduleCache=null;
         unsafe.putAddress(this.address+MODULE_OFFSET,module==null?0L:module.address);
     }
@@ -105,7 +102,7 @@ public class PackageEntry extends HashtableEntry {
             return null;
         }
         if (!isEqual(this.qualifiedExportsCache,addr)){
-            this.qualifiedExportsCache=new VMTypeGrowableArray<>(addr,ModuleEntry::new);
+            this.qualifiedExportsCache=new VMTypeGrowableArray<>(addr,ModuleEntry::getOrCreate);
         }
         return this.qualifiedExportsCache;
     }

@@ -4,7 +4,7 @@ import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.code.RelocInfo;
 import apphhzp.lib.hotspot.code.RelocIterator;
-import apphhzp.lib.hotspot.oop.method.Method;
+import apphhzp.lib.hotspot.oops.method.Method;
 
 import javax.annotation.Nullable;
 

@@ -1,8 +1,9 @@
 package apphhzp.lib.hotspot.stream;
 
-import apphhzp.lib.hotspot.oop.*;
-import apphhzp.lib.hotspot.oop.constant.ConstantPool;
-import apphhzp.lib.hotspot.oop.constant.Utf8Constant;
+import apphhzp.lib.hotspot.oops.*;
+import apphhzp.lib.hotspot.oops.constant.ConstantPool;
+import apphhzp.lib.hotspot.oops.constant.Utf8Constant;
+import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
 
 public class FieldStreamBase {
     protected final U2Array _fields;

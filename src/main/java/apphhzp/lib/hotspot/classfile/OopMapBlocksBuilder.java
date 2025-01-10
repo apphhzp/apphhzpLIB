@@ -1,11 +1,8 @@
 package apphhzp.lib.hotspot.classfile;
 
-import apphhzp.lib.hotspot.oop.OopMapBlock;
+import apphhzp.lib.hotspot.oops.OopMapBlock;
 
-import java.io.OutputStream;
-import java.io.PrintStream;
 import java.util.Arrays;
-import java.util.Comparator;
 
 public class OopMapBlocksBuilder{
     public OopMapBlock[] _nonstatic_oop_maps;

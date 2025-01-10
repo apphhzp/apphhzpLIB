@@ -2,7 +2,7 @@ package apphhzp.lib.hotspot.runtime;
 
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
-import apphhzp.lib.hotspot.oop.OopDesc;
+import apphhzp.lib.hotspot.oops.oop.OopDesc;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -77,7 +77,7 @@ public class JavaThread extends Thread {
     public Thread getThreadObj() {
         long addr = OopDesc.fromOopHandle(this.address + THREAD_OBJ_OFFSET);
         if (!isEqual(this.threadObjCache, addr)) {
-            this.threadObjCache = new OopDesc(addr);
+            this.threadObjCache = OopDesc.of(addr);
         }
         return this.threadObjCache.getObject();
     }
@@ -85,7 +85,7 @@ public class JavaThread extends Thread {
     public OopDesc getVMResult(){
         long addr=unsafe.getAddress(this.address+VM_RESULT_OFFSET);
         if (!isEqual(this.vmResultCache,addr)){
-            this.vmResultCache=new OopDesc(addr);
+            this.vmResultCache= OopDesc.of(addr);
         }
         return this.vmResultCache;
     }

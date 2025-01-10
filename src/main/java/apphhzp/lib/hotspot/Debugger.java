@@ -1,31 +1,16 @@
 package apphhzp.lib.hotspot;
 
 import apphhzp.lib.ClassHelper;
-import apphhzp.lib.CoremodHelper;
 import apphhzp.lib.helfy.JVM;
-import apphhzp.lib.hotspot.classfile.JavaClasses;
-import apphhzp.lib.hotspot.oop.*;
-import apphhzp.lib.hotspot.oop.constant.ConstantPool;
-import apphhzp.lib.hotspot.oop.constant.ConstantTag;
-import apphhzp.lib.hotspot.oop.constant.MethodRefConstant;
-import apphhzp.lib.hotspot.oop.constant.Utf8Constant;
-import apphhzp.lib.hotspot.utilities.Dictionary;
-import apphhzp.lib.hotspot.utilities.DictionaryEntry;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.InsnNode;
-import org.objectweb.asm.tree.MethodNode;
-
-import java.io.InputStream;
-import java.lang.instrument.ClassFileTransformer;
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
-import java.security.ProtectionDomain;
-import java.util.Random;
-
-import static apphhzp.lib.ClassHelper.ClassOption;
-import static apphhzp.lib.ClassHelper.lookup;
+import apphhzp.lib.hotspot.oops.*;
+import apphhzp.lib.hotspot.oops.constant.ConstantPool;
+import apphhzp.lib.hotspot.oops.constant.ConstantTag;
+import apphhzp.lib.hotspot.oops.constant.MethodRefConstant;
+import apphhzp.lib.hotspot.oops.constant.Utf8Constant;
+import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
+import apphhzp.lib.hotspot.oops.klass.Klass;
+import apphhzp.lib.hotspot.oops.oop.OopDesc;
+import apphhzp.lib.natives.NativeUtil;
 
 public final class Debugger {
     public static boolean isDebug=false;
@@ -58,25 +43,29 @@ public final class Debugger {
 //            }
 //        });
 
-        ClassHelper.instImpl.addTransformer(new ClassFileTransformer() {
-            @Override
-            public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer){
-                System.err.println((loader==null?"null classloader":loader.getName())+":"+className);
-                if (className.equals("apphhzp/lib/hotspot/Test")){
-                    ClassNode classNode=CoremodHelper.bytes2ClassNote(classfileBuffer,className);
-                    for (MethodNode method: classNode.methods){
-                        if (method.name.equals("print")){
-                            method.instructions.clear();
-                            method.instructions.add(new InsnNode(Opcodes.RETURN));
-                        }
-                    }
-                    System.err.println("changed");
-                    return CoremodHelper.classNote2bytes(classNode,true);
-                }
-                return null;
-            }
-        }, true);
-
+//        ClassHelper.instImpl.addTransformer(new ClassFileTransformer() {
+//            @Override
+//            public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer){
+//                System.err.println((loader==null?"null classloader":loader.getName())+":"+className);
+//                if (className.equals("apphhzp/lib/hotspot/Test")){
+//                    ClassNode classNode=CoremodHelper.bytes2ClassNote(classfileBuffer,className);
+//                    for (MethodNode method: classNode.methods){
+//                        if (method.name.equals("print")){
+//                            method.instructions.clear();
+//                            method.instructions.add(new InsnNode(Opcodes.RETURN));
+//                        }
+//                    }
+//                    System.err.println("changed");
+//                    return CoremodHelper.classNote2bytes(classNode,true);
+//                }
+//                return null;
+//            }
+//        }, true);
+        JVM.printAllTypes();
+        JVM.printAllConstants();
+        JVM.printAllVTBL();
+        case3();
+        case3();
         ClassHelper.defineClassBypassAgent("apphhzp.lib.hotspot.Test", Debugger.class,true,null);
         System.err.print("[");
         Test.print(5);
@@ -84,15 +73,7 @@ public final class Debugger {
         Test test=new Test(-114);
         test.add(514);
         System.err.println(test.val);
-        JVM.printAllTypes();
-        JVM.printAllConstants();
-        JVM.printAllVTBL();
-        Klass.asKlass(Object.class).getClassLoaderData().klassesDo((klass)->{
-            System.err.println(klass.getName());
-        });
-//        Klass.asKlass(Object.class).getClassLoaderData().packagesDo((entry)->{
-//            System.err.println(entry.isMustWalkExports());
-//        });
+
 //        boolean a= ClassHelper.isWindows;
 //        if (a){
 //            case3();
@@ -266,17 +247,31 @@ public final class Debugger {
     }
 
     public static void case3(){
-        for (ClassLoaderData cld:ClassLoaderData.getAllClassLoaderData()){
-            Dictionary dict=cld.getDictionary();
-            if (dict!=null) {
-                for (int i = 0, maxi = dict.getTableSize(); i < maxi; i++) {
-                    DictionaryEntry entry = dict.bucket(i);
-                    if (entry != null) {
-                        dict.freeEntry(entry);
-                    }
-                }
+
+        final int[] cnt = {0};
+        int cnt2;
+        System.gc();
+        cnt2= NativeUtil.getInstancesOfClass(Class.class).length;
+        ObjectHeap.iterateSubtypes(new HeapVisitor() {
+            @Override
+            public void prologue(long usedSize) {
             }
-        }
+
+            @Override
+            public boolean doObj(OopDesc obj) {
+                System.err.println(obj.getObject().toString());
+                ++cnt[0];
+                return false;
+            }
+
+            @Override
+            public void epilogue() {
+
+            }
+        },Klass.asKlass(Class.class));
+        System.err.println("------------");
+        System.err.println(cnt[0]+","+cnt2);
+        System.err.println("------------");
     }
 
     public static void test() {

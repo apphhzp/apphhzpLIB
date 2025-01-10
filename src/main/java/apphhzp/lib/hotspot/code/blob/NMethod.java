@@ -4,8 +4,8 @@ import apphhzp.lib.ClassHelper;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.compiler.CompLevel;
-import apphhzp.lib.hotspot.oop.MethodData;
-import apphhzp.lib.hotspot.oop.method.Method;
+import apphhzp.lib.hotspot.oops.MethodData;
+import apphhzp.lib.hotspot.oops.method.Method;
 
 import javax.annotation.Nullable;
 

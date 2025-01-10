@@ -1,9 +1,17 @@
 package apphhzp.lib.hotspot.classfile;
 
 import apphhzp.lib.helfy.JVM;
-import apphhzp.lib.hotspot.oop.OopDesc;
-import apphhzp.lib.hotspot.oop.Symbol;
+import apphhzp.lib.hotspot.oops.ClassLoaderData;
+import apphhzp.lib.hotspot.oops.oop.Oop;
+import apphhzp.lib.hotspot.oops.oop.OopDesc;
+import apphhzp.lib.hotspot.oops.Symbol;
 import apphhzp.lib.hotspot.utilities.HashtableEntry;
+import apphhzp.lib.hotspot.utilities.VMTypeGrowableArray;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+
+import javax.annotation.Nullable;
+import java.security.ProtectionDomain;
 
 import static apphhzp.lib.ClassHelper.unsafe;
 
@@ -21,7 +29,18 @@ public class ModuleEntry extends HashtableEntry {
     public static final long IS_OPEN_OFFSET=MUST_WALK_READS_OFFSET+1;
     public static final long IS_PATCHED_OFFSET=IS_OPEN_OFFSET+1;
     public static final long ARCHIVED_MODULE_INDEX_OFFSET=(IS_PATCHED_OFFSET+JVM.intSize)/JVM.intSize*JVM.intSize;
-    public ModuleEntry(long addr) {
+    private static final Long2ObjectMap<ModuleEntry> CACHE= new Long2ObjectOpenHashMap<>();
+    private VMTypeGrowableArray<ModuleEntry> readsCache;
+    public static ModuleEntry getOrCreate(long addr){
+        if (CACHE.containsKey(addr)){
+            return CACHE.get(addr);
+        }
+        ModuleEntry entry=new ModuleEntry(addr);
+        CACHE.put(addr, entry);
+        return entry;
+    }
+
+    private ModuleEntry(long addr) {
         super(addr);
     }
 
@@ -33,17 +52,73 @@ public class ModuleEntry extends HashtableEntry {
         this.setLiteralPointer(symbol.address);
     }
 
-    public Module getModule(){
-        long addr= OopDesc.fromOopHandle(this.address+MODULE_OFFSET);
-        return addr==0L?null:new OopDesc(addr).getObject();
+    @Nullable
+    @Override
+    public ModuleEntry getNext() {
+        long addr=unsafe.getAddress(this.address+NEXT_OFFSET);
+        if (addr==0L){
+            return null;
+        }
+        if (!isEqual(this.nextCache,addr)){
+            this.nextCache=ModuleEntry.getOrCreate(addr);
+        }
+        return (ModuleEntry) this.nextCache;
     }
 
-    public OopDesc getModuleOop(){
+    public Module getModule(){
         long addr= OopDesc.fromOopHandle(this.address+MODULE_OFFSET);
-        return addr==0L?null:new OopDesc(addr);
+        return addr==0L?null:OopDesc.of(addr).getObject();
     }
-    public void setModule(Module module){
-        unsafe.putAddress(unsafe.getAddress(this.address+MODULE_OFFSET),new OopDesc(module).address);
+
+    public Oop getModuleOop(){
+        long addr=unsafe.getAddress(this.address+MODULE_OFFSET); // OopDesc.fromOopHandle(this.address+MODULE_OFFSET);
+        return addr==0L?null:new Oop(addr);
+    }
+
+    public void setModule(Oop module){
+        unsafe.putAddress(unsafe.getAddress(this.address+MODULE_OFFSET),module.address);
+    }
+
+    public ProtectionDomain getSharedPD(){
+        long addr= OopDesc.fromOopHandle(this.address+SHARED_PD_OFFSET);
+        return addr==0L?null:OopDesc.of(addr).getObject();
+    }
+
+    public Oop getSharedPDOop(){
+        long addr=unsafe.getAddress(this.address+SHARED_PD_OFFSET);
+        return addr==0L?null:new Oop(addr);
+    }
+
+    public void setSharedPD(Oop module){
+        unsafe.putAddress(unsafe.getAddress(this.address+SHARED_PD_OFFSET),module.address);
+    }
+
+    public ClassLoaderData getLoaderData(){
+        long addr=unsafe.getAddress(this.address+LOADER_DATA_OFFSET);
+        if (addr==0L){
+            return null;
+        }
+        return ClassLoaderData.getOrCreate(addr);
+    }
+
+    public void setLoaderData(ClassLoaderData data){
+        unsafe.putAddress(this.address+LOADER_DATA_OFFSET,data==null?0L:data.address);
+    }
+
+    public VMTypeGrowableArray<ModuleEntry> getReads(){
+        long addr=unsafe.getAddress(this.address+READS_OFFSET);
+        if (addr==0L){
+            return null;
+        }
+        if (!isEqual(this.readsCache,addr)){
+            this.readsCache=new VMTypeGrowableArray<>(addr,ModuleEntry::getOrCreate);
+        }
+        return this.readsCache;
+    }
+
+    public void setReads(VMTypeGrowableArray<ModuleEntry> reads){
+        this.readsCache=null;
+        unsafe.putAddress(this.address+READS_OFFSET,reads==null?0L:reads.address);
     }
 
     public int getArchivedModuleIndex(){

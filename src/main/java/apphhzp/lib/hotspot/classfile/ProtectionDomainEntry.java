@@ -2,8 +2,7 @@ package apphhzp.lib.hotspot.classfile;
 
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.hotspot.JVMObject;
-import apphhzp.lib.hotspot.oop.Oop;
-import apphhzp.lib.hotspot.oop.OopDesc;
+import apphhzp.lib.hotspot.oops.oop.Oop;
 
 import javax.annotation.Nullable;
 

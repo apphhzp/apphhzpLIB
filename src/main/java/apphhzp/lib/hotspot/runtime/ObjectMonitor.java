@@ -3,7 +3,7 @@ package apphhzp.lib.hotspot.runtime;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.JVMObject;
-import apphhzp.lib.hotspot.oop.OopDesc;
+import apphhzp.lib.hotspot.oops.oop.OopDesc;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -47,7 +47,7 @@ public class ObjectMonitor extends JVMObject {
     public Object getObject(){
         long addr= OopDesc.fromOopHandle(this.address+OBJECT_OFFSET);
         if (!isEqual(this.objCache,addr)){
-            this.objCache=new OopDesc(addr);
+            this.objCache=OopDesc.of(addr);
         }
         return this.objCache.getObject();
     }

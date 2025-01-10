@@ -2,10 +2,12 @@ package apphhzp.lib.hotspot.classfile;
 
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.hotspot.memory.ReferenceType;
-import apphhzp.lib.hotspot.oop.*;
-import apphhzp.lib.hotspot.oop.constant.ConstantPool;
-import apphhzp.lib.hotspot.oop.constant.ConstantTag;
-import apphhzp.lib.hotspot.oop.method.Method;
+import apphhzp.lib.hotspot.oops.*;
+import apphhzp.lib.hotspot.oops.constant.ConstantPool;
+import apphhzp.lib.hotspot.oops.constant.ConstantTag;
+import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
+import apphhzp.lib.hotspot.oops.method.Method;
+import apphhzp.lib.hotspot.oops.oop.OopDesc;
 import apphhzp.lib.hotspot.utilities.BasicType;
 
 import java.util.ArrayList;
@@ -230,7 +232,7 @@ public class ClassFileParser {
     }
 
     public static boolean relax_format_check_for(ClassLoaderData loader_data) {
-        boolean trusted = loader_data.equals(ClassLoaderData.null_class_loader_data)||loader_data.getClassLoader()==null ||
+        boolean trusted = loader_data.equals(ClassLoaderData.nullClassLoaderData)||loader_data.getClassLoader()==null ||
                 loader_data.getClassLoader()==ClassLoader.getPlatformClassLoader();
         boolean need_verify =
                 // verifyAll
@@ -959,7 +961,7 @@ public class ClassFileParser {
         // If this annotation name has an ID, report it (or _none).
         public int/*ID*/ annotation_index(ClassLoaderData loader_data, Symbol name, boolean can_access_vm_annotations) {
             // Privileged code can use all annotations.  Other code silently drops some.
-            boolean privileged = loader_data.equals(ClassLoaderData.null_class_loader_data) ||
+            boolean privileged = loader_data.equals(ClassLoaderData.nullClassLoaderData) ||
                     loader_data.getClassLoader() == ClassLoader.getPlatformClassLoader() ||
                     can_access_vm_annotations;
             String s = name.toString();
