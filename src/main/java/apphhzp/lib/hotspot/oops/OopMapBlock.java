@@ -47,7 +47,7 @@ public class OopMapBlock {
 
     // sizeof(OopMapBlock) in words.
     public static int size_in_words() {
-        return (int) (JVM.alignUp(SIZE, JVM.oopSize) >>
+        return (int) (JVM.alignUp(SIZE, JVM.oopSize) >>>
                         JVM.LogBytesPerWord);
     }
 

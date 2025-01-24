@@ -2,6 +2,9 @@ package apphhzp.lib.hotspot;
 
 import apphhzp.lib.ClassHelper;
 import apphhzp.lib.helfy.JVM;
+import apphhzp.lib.hotspot.gc.g1.G1BiasedMappedArray;
+import apphhzp.lib.hotspot.gc.g1.G1CollectedHeap;
+import apphhzp.lib.hotspot.gc.g1.HeapRegion;
 import apphhzp.lib.hotspot.oops.*;
 import apphhzp.lib.hotspot.oops.constant.ConstantPool;
 import apphhzp.lib.hotspot.oops.constant.ConstantTag;
@@ -11,6 +14,12 @@ import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
 import apphhzp.lib.hotspot.oops.klass.Klass;
 import apphhzp.lib.hotspot.oops.oop.OopDesc;
 import apphhzp.lib.natives.NativeUtil;
+import apphhzp.lib.service.ApphhzpLibService;
+
+import java.io.InputStream;
+import java.util.Enumeration;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
 public final class Debugger {
     public static boolean isDebug=false;
@@ -64,8 +73,8 @@ public final class Debugger {
         JVM.printAllTypes();
         JVM.printAllConstants();
         JVM.printAllVTBL();
-        case3();
-        case3();
+//        case3();
+//        case3();
         ClassHelper.defineClassBypassAgent("apphhzp.lib.hotspot.Test", Debugger.class,true,null);
         System.err.print("[");
         Test.print(5);
@@ -146,6 +155,7 @@ public final class Debugger {
 //        }
         //InstanceKlass klass = Klass.asKlass(Debugger.class).asInstanceKlass();
         //Method method = klass.getMethod("call1", "()V"), target = klass.getMethod("call33", "()V"), method1 = klass.getMethod("ddd", "()V");
+        System.err.println();
         for(;;);
         //System.err.println(Klass.asKlass(A.class).getName().getString());
 //        for (int i=0;i<100;i++) {
@@ -251,7 +261,7 @@ public final class Debugger {
         final int[] cnt = {0};
         int cnt2;
         System.gc();
-        cnt2= NativeUtil.getInstancesOfClass(Class.class).length;
+        cnt2= NativeUtil.getInstancesOfClass(String.class).length;
         ObjectHeap.iterateSubtypes(new HeapVisitor() {
             @Override
             public void prologue(long usedSize) {
@@ -268,7 +278,7 @@ public final class Debugger {
             public void epilogue() {
 
             }
-        },Klass.asKlass(Class.class));
+        },Klass.asKlass(String.class));
         System.err.println("------------");
         System.err.println(cnt[0]+","+cnt2);
         System.err.println("------------");

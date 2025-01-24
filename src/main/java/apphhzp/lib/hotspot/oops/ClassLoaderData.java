@@ -95,7 +95,7 @@ public class ClassLoaderData extends JVMObject {
         return re;
     }
 
-    public void setKlasses(Klass header) {
+    public void setKlassHead(Klass header) {
         unsafe.putAddress(this.address + KLASSES_OFFSET, header == null ? 0L : header.address);
     }
 
@@ -392,7 +392,7 @@ public class ClassLoaderData extends JVMObject {
         k.setNextKlass(old_value);
         // Link the new item into the list, making sure the linked class is stable
         // since the list can be walked without a lock
-        this.setKlasses(k);
+        this.setKlassHead(k);
         if (k.isArrayKlass()) {
             ClassLoaderDataGraph.incArrayClasses(1);
         } else {

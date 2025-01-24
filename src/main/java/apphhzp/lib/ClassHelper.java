@@ -33,8 +33,11 @@ import java.security.CodeSource;
 import java.security.Permissions;
 import java.security.ProtectionDomain;
 import java.util.*;
+import java.util.function.Predicate;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
-import static apphhzp.lib.ClassHelper.ClassOption.optionsToFlag;
+import static apphhzp.lib.ClassOption.optionsToFlag;
 
 @SuppressWarnings({"unused", "ResultOfMethodCallIgnored"})
 public final class ClassHelper {
@@ -50,7 +53,7 @@ public final class ClassHelper {
     public static final MethodHandle JLA_defineClassMethod;
     public static final MethodHandle lookupConstructor;
     public static final MethodHandle compareAndSetByteMethod;
-    //public static final MethodHandle getUncompressedObjectMethod;
+    public static final MethodHandle findLoadedClassMethod;
     @Nullable
     public static final Instrumentation instImpl;
     @Nullable
@@ -62,7 +65,6 @@ public final class ClassHelper {
     private static final IntByReference oldProtect;
     private static final Map<CodeSource, ProtectionDomain> pdCache;
     public static final Object JLA_INSTANCE;
-
     static {
         try {
             LOGGER = LogManager.getLogger(ClassHelper.class);
@@ -77,7 +79,7 @@ public final class ClassHelper {
             internalClass = Class.forName("jdk.internal.misc.Unsafe");
             unsafe = createUnsafe();
             is64BitJVM = unsafe.addressSize() == 8;
-            isHotspotJVM = System.getProperty("java.vm.name").toLowerCase().contains("hotspot");
+            isHotspotJVM = System.getProperty("java.vm.name").toLowerCase().contains("hotspot")||System.getProperty("java.vm.name").toLowerCase().contains("openjdk");
             internalUnsafe = lookup.findStaticVarHandle(Unsafe.class, "theInternalUnsafe", internalClass).get();
             staticFieldBaseMethod = lookup.findVirtual(internalClass, "staticFieldBase", MethodType.methodType(Object.class, Field.class));
             staticFieldOffsetMethod = lookup.findVirtual(internalClass, "staticFieldOffset", MethodType.methodType(long.class, Field.class));
@@ -86,6 +88,7 @@ public final class ClassHelper {
             compareAndSetByteMethod = lookup.findVirtual(internalClass, "compareAndSetByte", MethodType.methodType(boolean.class, Object.class, long.class, byte.class, byte.class));
             JLA_defineClassMethod = lookup.findVirtual(Class.forName("jdk.internal.access.JavaLangAccess"), "defineClass", MethodType.methodType(Class.class, ClassLoader.class, Class.class, String.class, byte[].class, ProtectionDomain.class, boolean.class, int.class, Object.class));
             lookupConstructor = lookup.findConstructor(MethodHandles.Lookup.class, MethodType.methodType(void.class, Class.class, Class.class, int.class));
+            findLoadedClassMethod=lookup.findVirtual(ClassLoader.class,"findLoadedClass", MethodType.methodType(Class.class, String.class));
             //getUncompressedObjectMethod=lookup.findVirtual(internalClass, "getUncompressedObject", MethodType.methodType(Object.class, long.class));
             exportJDKInternalModule();
             if (isWindows && !Debugger.isDebug) {
@@ -98,11 +101,28 @@ public final class ClassHelper {
             oldProtect = new IntByReference(1);
             pdCache = new HashMap<>();
             JLA_INSTANCE = lookup.unreflectVarHandle(Class.forName("jdk.internal.access.SharedSecrets").getDeclaredField("javaLangAccess")).get();
+            //defineLibClass();
         } catch (Throwable throwable) {
             throw new ExceptionInInitializerError(throwable);
         }
     }
 
+//    private static void defineLibClass(){
+//        try {
+//            InputStream is = ClassHelper.class.getResourceAsStream("/apphhzp/lib/ClassOption.class");
+//            byte[] dat;
+//            if (is==null){
+//                dat=Base64.getDecoder().decode("yv66vgAAAD0AUgcAAgEAF2FwcGhoenAvbGliL0NsYXNzT3B0aW9uCQABAAQMAAUABgEACE5FU1RNQVRFAQAZTGFwcGhoenAvbGliL0NsYXNzT3B0aW9uOwkAAQAIDAAJAAYBAAZTVFJPTkcJAAEACwwADAANAQAHJFZBTFVFUwEAGltMYXBwaGh6cC9saWIvQ2xhc3NPcHRpb247CgAPABAHAA0MABEAEgEABWNsb25lAQAUKClMamF2YS9sYW5nL09iamVjdDsKABQAFQcAFgwAFwAYAQAOamF2YS9sYW5nL0VudW0BAAd2YWx1ZU9mAQA1KExqYXZhL2xhbmcvQ2xhc3M7TGphdmEvbGFuZy9TdHJpbmc7KUxqYXZhL2xhbmcvRW51bTsKABQAGgwAGwAcAQAGPGluaXQ+AQAWKExqYXZhL2xhbmcvU3RyaW5nO0kpVgkAAQAeDAAfACABAARmbGFnAQABSQsAIgAjBwAkDAAlACYBAA1qYXZhL3V0aWwvU2V0AQAIaXRlcmF0b3IBABYoKUxqYXZhL3V0aWwvSXRlcmF0b3I7CwAoACkHACoMACsALAEAEmphdmEvdXRpbC9JdGVyYXRvcgEAB2hhc05leHQBAAMoKVoLACgALgwALwASAQAEbmV4dAgABQoAAQAyDAAbADMBABcoTGphdmEvbGFuZy9TdHJpbmc7SUkpVggACQoAAQA2DAA3ADgBAAckdmFsdWVzAQAcKClbTGFwcGhoenAvbGliL0NsYXNzT3B0aW9uOwEABnZhbHVlcwEABENvZGUBAA9MaW5lTnVtYmVyVGFibGUBAC0oTGphdmEvbGFuZy9TdHJpbmc7KUxhcHBoaHpwL2xpYi9DbGFzc09wdGlvbjsBABJMb2NhbFZhcmlhYmxlVGFibGUBAARuYW1lAQASTGphdmEvbGFuZy9TdHJpbmc7AQAEdGhpcwEACVNpZ25hdHVyZQEABChJKVYBAA1vcHRpb25zVG9GbGFnAQASKExqYXZhL3V0aWwvU2V0OylJAQACY3ABAAdvcHRpb25zAQAPTGphdmEvdXRpbC9TZXQ7AQAFZmxhZ3MBABZMb2NhbFZhcmlhYmxlVHlwZVRhYmxlAQAqTGphdmEvdXRpbC9TZXQ8TGFwcGhoenAvbGliL0NsYXNzT3B0aW9uOz47AQANU3RhY2tNYXBUYWJsZQEALShMamF2YS91dGlsL1NldDxMYXBwaGh6cC9saWIvQ2xhc3NPcHRpb247PjspSQEACDxjbGluaXQ+AQADKClWAQArTGphdmEvbGFuZy9FbnVtPExhcHBoaHpwL2xpYi9DbGFzc09wdGlvbjs+OwEAClNvdXJjZUZpbGUBABBDbGFzc09wdGlvbi5qYXZhQDEAAQAUAAAABEAZAAUABgAAQBkACQAGAAAAEgAfACAAABAaAAwADQAAAAYACQA5ADgAAQA6AAAAIgABAAAAAAAKsgAKtgAOwAAPsAAAAAEAOwAAAAYAAQAAAAUACQAXADwAAQA6AAAANAACAAEAAAAKEgEquAATwAABsAAAAAIAOwAAAAYAAQAAAAUAPQAAAAwAAQAAAAoAPgA/AAAAAgAbADMAAgA6AAAASAADAAQAAAAMKisctwAZKh21AB2xAAAAAgA7AAAADgADAAAACgAGAAsACwAMAD0AAAAWAAIAAAAMAEAABgAAAAAADAAfACAAAwBBAAAAAgBCAAgAQwBEAAIAOgAAAJoAAgAEAAAAKAM8KrkAIQEATSy5ACcBAJkAFyy5AC0BAMAAAU4bLbQAHYA8p//mG6wAAAAEADsAAAAWAAUAAAAPAAIAEAAcABEAIwASACYAEwA9AAAAIAADABwABwBFAAYAAwAAACgARgBHAAAAAgAmAEgAIAABAEkAAAAMAAEAAAAoAEYASgAAAEsAAAAMAAL9AAkBBwAo+gAcAEEAAAACAEwQCgA3ADgAAQA6AAAAKQAEAAAAAAARBb0AAVkDsgADU1kEsgAHU7AAAAABADsAAAAGAAEAAAAFAAgATQBOAAEAOgAAAEMABQAAAAAAI7sAAVkSMAMEtwAxswADuwABWRI0BAe3ADGzAAe4ADWzAAqxAAAAAQA7AAAADgADAAAABgAOAAcAHAAFAAIAQQAAAAIATwBQAAAAAgBR");
+//            }else{
+//                dat = new byte[is.available()];
+//                is.read(dat);
+//                is.close();
+//            }
+//            ClassHelper.defineClass("apphhzp.lib.ClassOption",dat,ClassHelper.class.getClassLoader());
+//        }catch (Throwable t){
+//            throw new RuntimeException(t);
+//        }
+//    }
 
     public static Unsafe createUnsafe() {
         try {
@@ -220,7 +240,7 @@ public final class ClassHelper {
         }
         Class<?> clazz;
         try {
-            clazz=defineHiddenClass(name,lookupClass,initialize,pd).lookupClass();
+            clazz=defineHiddenClass(name,lookupClass,initialize,pd,ClassOption.STRONG, ClassOption.NESTMATE).lookupClass();
         }catch (VerifyError error){
             return false;
         }catch (Throwable t){
@@ -237,24 +257,6 @@ public final class ClassHelper {
             return true;
         }else {
             return false;
-        }
-    }
-
-    public enum ClassOption {
-        NESTMATE(1),
-        STRONG(4);
-        private final int flag;
-
-        ClassOption(int flag) {
-            this.flag = flag;
-        }
-
-        static int optionsToFlag(Set<ClassOption> options) {
-            int flags = 0;
-            for (ClassOption cp : options) {
-                flags |= cp.flag;
-            }
-            return flags;
         }
     }
 
@@ -524,12 +526,26 @@ public final class ClassHelper {
 //        }
 //    }
 
+
     @SuppressWarnings("unchecked")
     public static <T> T getOuterInstance(Object obj, Class<T> fa) {
         try {
             return (T) lookup.findVarHandle(obj.getClass(), "this$0", fa).get(obj);
         } catch (Throwable throwable) {
             throw new RuntimeException("Could not get OuterInstance:", throwable);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> T getOuterInstance(Object obj, Class<T> fa,String srgName) {
+        try {
+            return getOuterInstance(obj,fa);
+        }catch (Throwable t){
+            try {
+                return (T) lookup.findVarHandle(obj.getClass(), srgName, fa).get(obj);
+            }catch (Throwable t2){
+                throw new RuntimeException("Could not get OuterInstance:",t2);
+            }
         }
     }
 
@@ -551,6 +567,37 @@ public final class ClassHelper {
         try {
             return (boolean) compareAndSetByteMethod.invoke(internalUnsafe, o, offset, expected, x);
         } catch (Throwable t) {
+            throw new RuntimeException(t);
+        }
+    }
+
+    public static Class<?> findLoadedClass(ClassLoader loader,String name){
+        try {
+            return (Class<?>)findLoadedClassMethod.invoke(loader,name);
+        }catch (Throwable t){
+            throw new RuntimeException(t);
+        }
+    }
+
+    public static void defineClassesFromJar(Class<?> caller, Predicate<String> predicate){
+        try {
+            JarFile jarFile = new JarFile(ClassHelper.getJarPath(caller));
+            Enumeration<JarEntry> entries = jarFile.entries();
+            while (entries.hasMoreElements()) {
+                JarEntry entry = entries.nextElement();
+                String name = entry.getName();
+                if (name.endsWith(".class")&&predicate.test(name)) {
+                    name = name.replace('/', '.').substring(0, name.length() - 6);
+                    if (findLoadedClass(caller.getClassLoader(), name) == null) {
+                        InputStream in = jarFile.getInputStream(entry);
+                        byte[] dat = new byte[in.available()];
+                        in.read(dat);
+                        in.close();
+                        ClassHelper.defineClass(name,dat,caller.getClassLoader());
+                    }
+                }
+            }
+        }catch (Throwable t) {
             throw new RuntimeException(t);
         }
     }

@@ -1,16 +1,25 @@
 package apphhzp.lib;
 
+import apphhzp.lib.service.ApphhzpLibService;
 import cpw.mods.modlauncher.api.NamedPath;
+import it.unimi.dsi.fastutil.objects.Object2BooleanFunction;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 
+import java.io.InputStream;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodType;
 import java.lang.invoke.VarHandle;
 import java.lang.module.Configuration;
 import java.lang.module.ResolvedModule;
 import java.util.*;
+import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
 import static apphhzp.lib.ClassHelper.lookup;
 
@@ -18,6 +27,7 @@ public class CoremodHelper{
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static void coexist(Class<?> caller){
         try {
+
             Class<?> modDirTransformerDiscoverer = Class.forName("net.minecraftforge.fml.loading.ModDirTransformerDiscoverer");
             List<NamedPath> found = (List<NamedPath>) lookup.findStaticVarHandle(modDirTransformerDiscoverer,"found",List.class).get();
             found.removeIf(namedPath -> ClassHelper.getJarPath(caller).equals(namedPath.paths()[0].toString()));

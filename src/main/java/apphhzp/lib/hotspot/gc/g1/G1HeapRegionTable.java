@@ -11,38 +11,13 @@ import java.util.Iterator;
 import static apphhzp.lib.ClassHelper.unsafe;
 
 //class G1HeapRegionTable : public G1BiasedMappedArray<HeapRegion*>;
-public class G1HeapRegionTable extends JVMObject {
-    public static final Type TYPE= JVM.type("G1HeapRegionTable");
-    public static final int SIZE=TYPE.size;
-    public static final long BASE_OFFSET=TYPE.offset("_base");
-    public static final long ALLOC_BASE_OFFSET=BASE_OFFSET-JVM.oopSize;
-    public static final long LENGTH_OFFSET=TYPE.offset("_length");
-    public static final long BIASED_BASE_OFFSET=TYPE.offset("_biased_base");
-    public static final long BIAS_OFFSET=TYPE.offset("_bias");
-    public static final long SHIFT_BY_OFFSET=TYPE.offset("_shift_by");
+public class G1HeapRegionTable extends G1BiasedMappedArray {
+
     public G1HeapRegionTable(long addr) {
         super(addr);
     }
 
-    public long base(){
-        return unsafe.getAddress(this.address+BASE_OFFSET);
-    }
 
-    public long length() {
-        return JVM.getSizeT(this.address+LENGTH_OFFSET);
-    }
-
-    public long biasedBase(){
-        return unsafe.getAddress(this.address+BIASED_BASE_OFFSET);
-    }
-
-    public long bias() {
-        return JVM.getSizeT(this.address+BIAS_OFFSET);
-    }
-
-    public long shiftBy() {
-        return unsafe.getInt(this.address+SHIFT_BY_OFFSET)&0xffffffffL;
-    }
 
     public HeapRegion getByIndex(long index){
         verifyIndex(index);
@@ -56,7 +31,7 @@ public class G1HeapRegionTable extends JVMObject {
     }
 
     public HeapRegion getByAddress(long /*(HeapWord*)==(address**) */ value) {
-        long biased_index = ((value) >> this.shiftBy());
+        long biased_index = ((value) >>> this.shiftBy());
         this.verifyBiasedIndex(biased_index);
         long addr=unsafe.getAddress(this.biasedBase()+biased_index*JVM.oopSize);
         return addr==0L?null:new HeapRegion(addr);
@@ -70,21 +45,21 @@ public class G1HeapRegionTable extends JVMObject {
     // Return the index of the element of the given array that covers the given
     // word in the heap.
     public long getIndexByAddress(long/*(HeapWord*)==(address**) */ value) {
-        long biased_index = ((value) >> this.shiftBy());
+        long biased_index = ((value) >>> this.shiftBy());
         this.verifyBiasedIndex(biased_index);
         return biased_index - this.bias()*JVM.oopSize;
     }
 
     // Set the value of the array entry that corresponds to the given array.
     public void setByAddress(long/*(HeapWord*)==(address**) */ address,@Nullable HeapRegion value) {
-        long biased_index = ((address) >> this.shiftBy());
+        long biased_index = ((address) >>> this.shiftBy());
         this.verifyBiasedIndex(biased_index);
         unsafe.putAddress(this.biasedBase()+biased_index*JVM.oopSize,value==null?0L:value.address);
     }
 
     public void setByAddress(MemRegion range,@Nullable HeapRegion value) {
-        long biased_start = ((range.start()) >> this.shiftBy());
-        long biased_last = ((range.last()) >> this.shiftBy());
+        long biased_start = ((range.start()) >>> this.shiftBy());
+        long biased_last = ((range.last()) >>> this.shiftBy());
         this.verifyBiasedIndex(biased_start);
         this.verifyBiasedIndex(biased_last);
         for (long i = biased_start; i <= biased_last; i++) {
@@ -94,7 +69,7 @@ public class G1HeapRegionTable extends JVMObject {
 
     // Returns the address of the element the given address maps to
     long/*(HeapRegion**)*/ addressMappedTo(long/*(HeapWord*)==(address**) */ address) {
-        long biased_index = ((address) >> this.shiftBy());
+        long biased_index = ((address) >>> this.shiftBy());
         this.verifyBiasedIndexInclusiveEnd(biased_index);
         return this.biasedBase() + biased_index*JVM.oopSize;
     }

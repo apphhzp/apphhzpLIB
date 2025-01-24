@@ -14,7 +14,7 @@ public class InvocationCounter extends JVMObject {
     }
 
     public int getCount() {
-        return unsafe.getInt(this.address) >> count_shift;
+        return unsafe.getInt(this.address) >>> count_shift;
     }
 
     public void setCount(int count) {

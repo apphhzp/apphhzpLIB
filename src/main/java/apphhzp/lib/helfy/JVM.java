@@ -31,6 +31,9 @@ public final class JVM {
     public static final int intSize;
     public static final int longSize;
     public static final int size_tSize;
+    public static final int floatSize;
+    public static final int doubleSize;
+    public static final int unsignedSize;
     public static final boolean isJVMTISupported;
     public static final boolean usingClientCompiler;
     public static final boolean usingServerCompiler;
@@ -82,6 +85,9 @@ public final class JVM {
     public static final boolean includeG1GC;
     public static final boolean includeCDSJavaHeap;
     public static final boolean includeJFR;
+    public static final boolean classUnloading;
+    public static final boolean product;
+
     private JVM() {
     }
 
@@ -510,9 +516,28 @@ public final class JVM {
 //    public boolean isCore() {
 //        return !(usingClientCompiler || usingServerCompiler);
 //    }
+    /**
+     * @param alignment 对于{@code struct}类型：其成员的对齐要求的最大值。
+     *             对于基本类型：其占据空间大小。
+     * @param originalOffset 不进行内存对齐时的原始偏移量（按{@code byte}计算）
+     */
+    public static long computeOffset(long alignment,long originalOffset){
+        return (originalOffset+alignment-1)/alignment*alignment;
+    }
 
-    public static long computeOffset(long size,long originalOffset){
-        return (originalOffset+size-1)/size*size;
+    public static long[] computeOffsets(boolean has_vtbl_pointer,long[] alignments,long[] sizes){
+        if (alignments.length!=sizes.length) {
+            throw new IllegalArgumentException("alignments.length!=sizes.length");
+        }
+        long[] re=new long[sizes.length+(has_vtbl_pointer?1:0)];
+        int offset=has_vtbl_pointer?1:0;
+        if (has_vtbl_pointer){
+            re[0]=oopSize;
+        }
+        for (int i=0;i<sizes.length;i++) {
+            re[i+offset]=computeOffset(alignments[i],(i+offset>0?re[i+offset-1]:0)+(i>0?sizes[i-1]:0));
+        }
+        return has_vtbl_pointer?Arrays.copyOfRange(re,1,re.length):re;
     }
 
     static {
@@ -533,6 +558,9 @@ public final class JVM {
                 intSize = type("int").size;
                 longSize=type("long").size;
                 size_tSize = type("size_t").size;
+                floatSize=type("jfloat").size;
+                doubleSize=type("jdouble").size;
+                unsignedSize=type("unsigned").size;
                 isJVMTISupported = type("InstanceKlass").contains("_breakpoints");
                 Type type = type("Method");
                 if (type.contains("_from_compiled_entry")) {
@@ -550,7 +578,7 @@ public final class JVM {
                 boolean sharedSpaces = false, compressedOops = false, compressedClassPointers = false, TLAB = false,
                         RestrictContended=false, RestrictReservedStack=false,EnableContended =false,
                         DumpSharedSpaces=false,BytecodeVerificationRemote=false,
-                        BytecodeVerificationLocal=false,INCLUDE_JFR=false;
+                        BytecodeVerificationLocal=false,INCLUDE_JFR=false,ClassUnloading=false,ExtensiveErrorReports=false;
                 long PMRC=0;
                 int DiagnoseSyncOnValueBasedClasses=0,OAIB=8;
                 for (JVMFlag flag : flags) {
@@ -583,8 +611,12 @@ public final class JVM {
                         BytecodeVerificationLocal=flag.getBool();
                     }else if ("FlightRecorder".equals(name)){
                         INCLUDE_JFR=true;
+                    }else if ("ClassUnloading".equals(name)){
+                        ClassUnloading=flag.getBool();
+                    }else if("ExtensiveErrorReports".equals(name)){
+                        ExtensiveErrorReports=flag.getBool();
                     }
-                    System.err.println(name);
+                    //System.err.println(name);
                 }
                 usingSharedSpaces = sharedSpaces;
                 usingCompressedOops = compressedOops;
@@ -612,6 +644,8 @@ public final class JVM {
                 includeG1GC=types.containsKey("G1CollectedHeap");
                 includeCDSJavaHeap=includeCDS&&includeG1GC&&isLP64&&!PlatformInfo.getOS().equals("win32");
                 includeJFR=INCLUDE_JFR;
+                classUnloading=ClassUnloading;
+                product=!ExtensiveErrorReports;
 //                String cpu = getCPU();
 //                Class<?> machDescClass = Class.forName("sun.jvm.hotspot.debugger.MachineDescription");
 //                int pid=getPid();
@@ -635,10 +669,11 @@ public final class JVM {
 //                }
             } else {
                 JVM = null;
-                diagnoseSyncOnValueBasedClasses=logMinObjAlignmentInBytes=objectAlignmentInBytes = intSize = size_tSize = oopSize =longSize= 0;
-                includeJFR=includeCDSJavaHeap=includeCDS=bytecodeVerificationRemote=bytecodeVerificationLocal=dumpSharedSpaces=includeG1GC=
-                    enableContended=restrictReservedStack=restrictContended=isJVMTISupported = usingClientCompiler =
-                    usingServerCompiler = usingSharedSpaces = usingTLAB = includeJVMCI = false;
+                unsignedSize=floatSize=doubleSize=diagnoseSyncOnValueBasedClasses=logMinObjAlignmentInBytes=objectAlignmentInBytes = intSize = size_tSize = oopSize =longSize= 0;
+                product=classUnloading=includeJFR=includeCDSJavaHeap=includeCDS=bytecodeVerificationRemote=
+                        bytecodeVerificationLocal=dumpSharedSpaces=includeG1GC= enableContended=restrictReservedStack=
+                        restrictContended=isJVMTISupported = usingClientCompiler = usingServerCompiler =
+                        usingSharedSpaces = usingTLAB = includeJVMCI = false;
                 usingCompressedOops = Unsafe.ARRAY_OBJECT_INDEX_SCALE == 4;
                 HeapWordsPerLong=BytesPerLong / unsafe.addressSize();
                 if (usingCompressedOops) {
@@ -657,10 +692,28 @@ public final class JVM {
                 invocationEntryBci=-1;
                 PerMethodRecompilationCutoff=-1;
                 wordSize=oopSize;
+
             }
 
         } catch (Throwable t) {
             throw new ExceptionInInitializerError(t);
         }
+    }
+
+    public static long pointerDelta(long left,
+                                     long right,
+                                     long element_size) {
+        if (left<right){
+            throw new IllegalArgumentException("avoid underflow - left: 0x"+Long.toHexString(left)+" right: 0x"+Long.toHexString(right));
+        }
+        return ((left) - (right)) / element_size;
+    }
+
+    public static long pointerDeltaHeapWord(long left, long right) {
+        return pointerDelta(left,right,oopSize);
+    }
+
+    public static long pointerDeltaMetaWord(long left,long right) {
+        return pointerDelta(left, right, oopSize);
     }
 }

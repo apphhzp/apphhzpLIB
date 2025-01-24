@@ -78,7 +78,7 @@ public class RelocInfo {
     }
 
     public Type type() {
-        return Type.of(this.value() >> nontype_width);
+        return Type.of(this.value() >>> nontype_width);
     }
 
     public boolean is_none() {

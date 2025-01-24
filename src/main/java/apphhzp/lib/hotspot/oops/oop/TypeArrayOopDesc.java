@@ -6,8 +6,8 @@ import apphhzp.lib.hotspot.oops.klass.Klass;
 import apphhzp.lib.hotspot.oops.klass.TypeArrayKlass;
 
 public class TypeArrayOopDesc extends ArrayOopDesc{
-    public static final Type TYPE= JVM.type("typeArrayOop");
-    public static final int SIZE= TYPE.size;
+//    public static final Type TYPE= JVM.type("typeArrayOop");
+//    public static final int SIZE= TYPE.size;
     protected TypeArrayOopDesc(long addr) {
         super(addr);
     }

@@ -10,8 +10,6 @@ public class Oop extends JVMObject {
         super(addr);
     }
 
-
-
     public OopDesc get(){
         if (this.address==0L){
             return OopDesc.NULL;
@@ -21,6 +19,10 @@ public class Oop extends JVMObject {
             this.descCache=OopDesc.of(addr);
         }
         return descCache;
+    }
+
+    public long getAddress(){
+        return unsafe.getAddress(this.address);
     }
 
     public <T> T getJavaObject(){

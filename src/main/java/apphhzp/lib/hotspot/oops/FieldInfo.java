@@ -110,7 +110,7 @@ public class FieldInfo extends JVMObject {
         if (!isOffsetSet()) {
             throw new IllegalStateException("Offset must have been set");
         }
-        return (unsafe.getShort(this.address + low_packed_offset * 2L) | unsafe.getShort(this.address + high_packed_offset * 2L) << 16) >> FIELDINFO_TAG_SIZE;
+        return (unsafe.getShort(this.address + low_packed_offset * 2L) | unsafe.getShort(this.address + high_packed_offset * 2L) << 16) >>> FIELDINFO_TAG_SIZE;
     }
 
     public boolean isOffsetSet() {

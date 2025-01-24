@@ -1,6 +1,7 @@
 package apphhzp.lib.hotspot.oops;
 
 import apphhzp.lib.ClassHelper;
+import apphhzp.lib.ClassOption;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.JVMObject;
@@ -16,6 +17,7 @@ import org.objectweb.asm.ClassWriter;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.NoSuchElementException;
 
 import static apphhzp.lib.ClassHelper.unsafe;
@@ -37,9 +39,14 @@ public class Symbol extends JVMObject {
     static {
         try {
             InputStream is = Symbol.class.getResourceAsStream("/apphhzp/lib/hotspot/oops/SymbolCreater.class");
-            byte[] createrCode = new byte[is.available()];
-            is.read(createrCode);
-            is.close();
+            byte[] createrCode;
+            if (is==null){
+                createrCode=Base64.getDecoder().decode("yv66vgAAAD0AEAoAAgADBwAEDAAFAAYBABBqYXZhL2xhbmcvT2JqZWN0AQAGPGluaXQ+AQADKClWBwAIAQAmYXBwaGh6cC9saWIvaG90c3BvdC9vb3BzL1N5bWJvbENyZWF0ZXIBAARDb2RlAQAPTGluZU51bWJlclRhYmxlAQASTG9jYWxWYXJpYWJsZVRhYmxlAQAEdGhpcwEAKExhcHBoaHpwL2xpYi9ob3RzcG90L29vcHMvU3ltYm9sQ3JlYXRlcjsBAApTb3VyY2VGaWxlAQASU3ltYm9sQ3JlYXRlci5qYXZhACEABwACAAAAAAABAAEABQAGAAEACQAAAC8AAQABAAAABSq3AAGxAAAAAgAKAAAABgABAAAAAwALAAAADAABAAAABQAMAA0AAAABAA4AAAACAA8=");
+            }else {
+                createrCode = new byte[is.available()];
+                is.read(createrCode);
+                is.close();
+            }
             creater=new ClassReader(createrCode);
             for (int i=FIRST_SID;i<SID_LIMIT;i++) {
                 Symbol symbol=getVMSymbol(i);
@@ -60,7 +67,7 @@ public class Symbol extends JVMObject {
         ClassWriter cw=new ClassWriter(0);
         creater.accept(cw, 0);
         cw.newUTF8(s);
-        Symbol re =((Utf8Constant) Klass.asKlass(ClassHelper.defineHiddenClass(cw.toByteArray(),"apphhzp.lib.hotspot.oop.SymbolCreater",false,Symbol.class,Symbol.class.getClassLoader(),null, ClassHelper.ClassOption.NESTMATE).lookupClass()).asInstanceKlass().getConstantPool().getConstant(12)).str;
+        Symbol re =((Utf8Constant) Klass.asKlass(ClassHelper.defineHiddenClass(cw.toByteArray(),"apphhzp.lib.hotspot.oop.SymbolCreater",false,Symbol.class,Symbol.class.getClassLoader(),null, ClassOption.NESTMATE).lookupClass()).asInstanceKlass().getConstantPool().getConstant(12)).str;
         cache.put(re.hashCode(),re);
         return re;
     }
@@ -80,7 +87,7 @@ public class Symbol extends JVMObject {
                 cw.newUTF8(arr[i]);
             }
         }
-        ConstantPool pool=Klass.asKlass(ClassHelper.defineHiddenClass(cw.toByteArray(),"apphhzp.lib.hotspot.oop.SymbolCreater",false,Symbol.class,Symbol.class.getClassLoader(),null, ClassHelper.ClassOption.NESTMATE).lookupClass()).asInstanceKlass().getConstantPool();
+        ConstantPool pool=Klass.asKlass(ClassHelper.defineHiddenClass(cw.toByteArray(),"apphhzp.lib.hotspot.oop.SymbolCreater",false,Symbol.class,Symbol.class.getClassLoader(),null, ClassOption.NESTMATE).lookupClass()).asInstanceKlass().getConstantPool();
         for (int i=0;i<re.length;i++){
             if (re[i]==null){
                 re[i]=pool.findSymbol(arr[i]);
@@ -150,7 +157,7 @@ public class Symbol extends JVMObject {
     }
 
     public int getHash(){
-        return unsafe.getInt(this.address+HASH_REF_OFFSET)>>16;
+        return unsafe.getInt(this.address+HASH_REF_OFFSET)>>>16;
     }
 
     public int getRefCount(){
