@@ -15,6 +15,7 @@ import org.apache.logging.log4j.Logger;
 import sun.misc.Unsafe;
 
 import javax.annotation.Nullable;
+import java.io.File;
 import java.io.InputStream;
 import java.lang.instrument.Instrumentation;
 import java.lang.invoke.MethodHandle;
@@ -183,6 +184,7 @@ public final class ClassHelper {
             byte[] dat = new byte[is.available()];
             is.read(dat);
             is.close();
+            dat=OnlyInDefineClassHelper.handle(dat,name);
             return defineHiddenClass(dat, name, initialize, lookupClass, lookupClass.getClassLoader(), pd, options);
         } catch (NullPointerException e) {
             throw new RuntimeException("Could not find class in jar: " + name, e);
@@ -237,6 +239,9 @@ public final class ClassHelper {
     public static boolean defineClassBypassAgent(String name, Class<?> lookupClass, boolean initialize, ProtectionDomain pd){
         if (!isHotspotJVM){
             throw new UnsupportedOperationException("Only in Hotspot JVM");
+        }
+        if(findLoadedClass(lookupClass.getClassLoader(), name)!=null) {
+            return false;
         }
         Class<?> clazz;
         try {
@@ -539,10 +544,10 @@ public final class ClassHelper {
     @SuppressWarnings("unchecked")
     public static <T> T getOuterInstance(Object obj, Class<T> fa,String srgName) {
         try {
-            return getOuterInstance(obj,fa);
+            return (T) lookup.findVarHandle(obj.getClass(), srgName, fa).get(obj);
         }catch (Throwable t){
             try {
-                return (T) lookup.findVarHandle(obj.getClass(), srgName, fa).get(obj);
+                return getOuterInstance(obj,fa);
             }catch (Throwable t2){
                 throw new RuntimeException("Could not get OuterInstance:",t2);
             }
@@ -581,12 +586,15 @@ public final class ClassHelper {
 
     public static void defineClassesFromJar(Class<?> caller, Predicate<String> predicate){
         try {
-            JarFile jarFile = new JarFile(ClassHelper.getJarPath(caller));
+            LOGGER.error("DO NOT USE THIS METHOD! Do not support character '!' or '+'");
+            StringBuilder builder=new StringBuilder();
+            JarFile jarFile = new JarFile(getJarPath(caller));
             Enumeration<JarEntry> entries = jarFile.entries();
             while (entries.hasMoreElements()) {
                 JarEntry entry = entries.nextElement();
                 String name = entry.getName();
                 if (name.endsWith(".class")&&predicate.test(name)) {
+                    builder.append(",\"/").append(name).append("\"");
                     name = name.replace('/', '.').substring(0, name.length() - 6);
                     if (findLoadedClass(caller.getClassLoader(), name) == null) {
                         InputStream in = jarFile.getInputStream(entry);
@@ -597,6 +605,7 @@ public final class ClassHelper {
                     }
                 }
             }
+            System.err.println(builder);
         }catch (Throwable t) {
             throw new RuntimeException(t);
         }

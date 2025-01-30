@@ -5,41 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9ca22632-21c7-4fc4-930f-2cd8a2ab25e0" name="更改" comment=".">
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules/apphhzpLIB.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/ClassOption.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/gc/AdaptiveWeightedAverage.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/gc/MarkBitMap.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/gc/ObjectClosure.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/gc/PLABStats.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/gc/PreservedMarksSet.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/gc/g1/G1BiasedMappedArray.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/gc/g1/G1CMBitMap.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/gc/g1/G1CollectionSet.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/gc/g1/G1ConcurrentMark.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/gc/g1/G1EdenRegions.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/gc/g1/G1EvacStats.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/gc/g1/G1RegionsOnNodes.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/gc/g1/G1SurvivorRegions.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/gc/g1/HumongousReclaimCandidates.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/utilities/BitMap.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/utilities/BitMapView.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build.gradle" beforeDir="false" afterPath="$PROJECT_DIR$/build.gradle" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/ClassHelper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/ClassHelper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/CoremodHelper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/CoremodHelper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/helfy/JVM.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/helfy/JVM.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/Debugger.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/Debugger.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/code/RelocInfo.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/code/RelocInfo.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/gc/g1/G1CollectedHeap.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/gc/g1/G1CollectedHeap.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/gc/g1/G1HeapRegionTable.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/gc/g1/G1HeapRegionTable.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/gc/g1/HeapRegion.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/gc/g1/HeapRegion.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/interpreter/InvocationCounter.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/interpreter/InvocationCounter.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oops/ClassLoaderData.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oops/ClassLoaderData.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oops/FieldInfo.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oops/FieldInfo.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oops/OopMapBlock.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oops/OopMapBlock.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oops/Symbol.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oops/Symbol.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oops/oop/Oop.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oops/oop/Oop.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oops/oop/TypeArrayOopDesc.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oops/oop/TypeArrayOopDesc.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/service/ApphhzpLibService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/service/ApphhzpLibService.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -86,8 +55,8 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="Enum" />
         <option value="Interface" />
+        <option value="Enum" />
         <option value="Class" />
       </list>
     </option>
@@ -110,9 +79,6 @@
   <component name="HighlightingSettingsPerFile">
     <setting file="jar://$USER_HOME$/.jdks/corretto-17.0.10/lib/src.zip!/java.base/java/util/HashMap.java" root0="FORCE_HIGHLIGHTING" />
   </component>
-  <component name="PerforceDirect.Settings">
-    <option name="CHARSET" value="无" />
-  </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 1
 }</component>
@@ -126,7 +92,7 @@
   </component>
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
-    &quot;Gradle.apphhzpLIB [:Debugger.main()].executor&quot;: &quot;Debug&quot;,
+    &quot;Gradle.apphhzpLIB [:Debugger.main()].executor&quot;: &quot;Run&quot;,
     &quot;Gradle.apphhzpLIB [build].executor&quot;: &quot;Run&quot;,
     &quot;Gradle.下载源代码.executor&quot;: &quot;Run&quot;,
     &quot;JAR 应用程序.apphhzpLIB-1.0.4.jar.executor&quot;: &quot;Run&quot;,
@@ -161,6 +127,9 @@
       <recent name="D:\apphhzpLIB\src\main\resources" />
     </key>
     <key name="MoveInnerDialog.RECENTS_KEY">
+      <recent name="apphhzp.lib" />
+    </key>
+    <key name="CopyClassDialog.RECENTS_KEY">
       <recent name="apphhzp.lib" />
     </key>
   </component>
@@ -292,6 +261,13 @@
       <workItem from="1737723792017" duration="838000" />
       <workItem from="1737727539635" duration="1262000" />
       <workItem from="1737729393599" duration="2684000" />
+      <workItem from="1737772654107" duration="594000" />
+      <workItem from="1737789238906" duration="789000" />
+      <workItem from="1737791226449" duration="3090000" />
+      <workItem from="1737795588828" duration="259000" />
+      <workItem from="1737799038361" duration="6000" />
+      <workItem from="1737885491126" duration="2528000" />
+      <workItem from="1738235658882" duration="1479000" />
     </task>
     <task id="LOCAL-00001" summary=".">
       <option name="closed" value="true" />

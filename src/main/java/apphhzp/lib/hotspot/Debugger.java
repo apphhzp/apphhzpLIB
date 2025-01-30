@@ -15,8 +15,12 @@ import apphhzp.lib.hotspot.oops.klass.Klass;
 import apphhzp.lib.hotspot.oops.oop.OopDesc;
 import apphhzp.lib.natives.NativeUtil;
 import apphhzp.lib.service.ApphhzpLibService;
+import org.objectweb.asm.Opcodes;
 
+import java.io.File;
 import java.io.InputStream;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Enumeration;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -73,6 +77,15 @@ public final class Debugger {
         JVM.printAllTypes();
         JVM.printAllConstants();
         JVM.printAllVTBL();
+        try {
+            String name="/"+ Opcodes.class.getName().replace('.','/')+".class";
+            String file =  Opcodes.class.getResource(name).getFile();
+            file=file.substring(0,file.length()-name.length()-1);
+           System.err.println(file);
+        }catch (Throwable t){
+            throw new RuntimeException(t);
+        }
+
 //        case3();
 //        case3();
         ClassHelper.defineClassBypassAgent("apphhzp.lib.hotspot.Test", Debugger.class,true,null);

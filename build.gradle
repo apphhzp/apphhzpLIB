@@ -3,7 +3,7 @@ plugins {
 }
 
 group = 'apphhzp.lib'
-version = '1.0.4'
+version = '1.0.4fix'
 repositories {
     mavenCentral()
 }
