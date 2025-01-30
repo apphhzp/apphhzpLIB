@@ -5,14 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9ca22632-21c7-4fc4-930f-2cd8a2ab25e0" name="更改" comment=".">
-      <change afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/OnlyInDefineClassHelper.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/net/minecraftforge/api/distmarker/Dist.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/net/minecraftforge/fml/loading/FMLLoader.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/build.gradle" beforeDir="false" afterPath="$PROJECT_DIR$/build.gradle" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/ClassHelper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/ClassHelper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/Debugger.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/Debugger.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/service/ApphhzpLibService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/service/ApphhzpLibService.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -270,7 +264,7 @@
       <workItem from="1737795588828" duration="259000" />
       <workItem from="1737799038361" duration="6000" />
       <workItem from="1737885491126" duration="2528000" />
-      <workItem from="1738235658882" duration="1785000" />
+      <workItem from="1738235658882" duration="2212000" />
     </task>
     <task id="LOCAL-00001" summary=".">
       <option name="closed" value="true" />
@@ -384,7 +378,15 @@
       <option name="project" value="LOCAL" />
       <updated>1738237449698</updated>
     </task>
-    <option name="localTasksCounter" value="15" />
+    <task id="LOCAL-00015" summary=".">
+      <option name="closed" value="true" />
+      <created>1738237493800</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1738237493800</updated>
+    </task>
+    <option name="localTasksCounter" value="16" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
