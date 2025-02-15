@@ -1,7 +1,10 @@
 package apphhzp.lib.hotspot.code;
 
+import apphhzp.lib.ClassHelper;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
+import apphhzp.lib.hotspot.Debugger;
+import apphhzp.lib.hotspot.interpreter.Bytecodes;
 
 import static apphhzp.lib.ClassHelper.unsafe;
 
@@ -16,6 +19,14 @@ public class InterpreterCodelet extends Stub{
     }
 
     @Override
+    public void c_finalize() {
+        if (Debugger.isDebug){
+            return;
+        }
+        throw new UnsupportedOperationException("ShouldNotCallThis();");
+    }
+
+    @Override
     public int getSize() {
         return unsafe.getInt(this.address+SIZE_OFFSET);
     }
@@ -23,7 +34,18 @@ public class InterpreterCodelet extends Stub{
     public String getDesc(){
         return JVM.getStringRef(this.address+DESC_OFFSET);
     }
+    public int codeSizeToSize(int code_size){
+        return code_size_to_size(code_size);
+    }
 
+    public static int code_size_to_size(int code_size){ return (int) (JVM.alignUp(SIZE, JVM.codeEntryAlignment) + code_size); }
+
+    // Code info
+    public long codeBegin(){ return this.address + JVM.alignUp(SIZE,JVM.codeEntryAlignment); }
+    public long codeEnd(){ return this.address + this.getSize(); }
+    public int getBytecode(){
+        return (unsafe.getInt(this.address+BYTECODE_OFFSET));
+    }
     @Override
     public String toString() {
         return "InterpreterCodelet0x"+Long.toHexString(this.address);

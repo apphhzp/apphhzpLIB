@@ -87,7 +87,7 @@ public final class JVM {
     public static final boolean includeJFR;
     public static final boolean classUnloading;
     public static final boolean product;
-
+    public static final long codeEntryAlignment;
     private JVM() {
     }
 
@@ -513,6 +513,13 @@ public final class JVM {
     public static int right_n_bits(int n){
         return nthBit(n) - 1;
     }
+
+    public static char charAt(String s,int i){
+        if (i==s.length()){
+            return '\0';
+        }
+        return s.charAt(i);
+    }
 //    public boolean isCore() {
 //        return !(usingClientCompiler || usingServerCompiler);
 //    }
@@ -579,7 +586,7 @@ public final class JVM {
                         RestrictContended=false, RestrictReservedStack=false,EnableContended =false,
                         DumpSharedSpaces=false,BytecodeVerificationRemote=false,
                         BytecodeVerificationLocal=false,INCLUDE_JFR=false,ClassUnloading=false,ExtensiveErrorReports=false;
-                long PMRC=0;
+                long PMRC=0,CodeEntryAlignment=0;
                 int DiagnoseSyncOnValueBasedClasses=0,OAIB=8;
                 for (JVMFlag flag : flags) {
                     String name = flag.getName();
@@ -615,8 +622,10 @@ public final class JVM {
                         ClassUnloading=flag.getBool();
                     }else if("ExtensiveErrorReports".equals(name)){
                         ExtensiveErrorReports=flag.getBool();
+                    }else if ("CodeEntryAlignment".equals(name)){
+                        CodeEntryAlignment=flag.getIntx();
                     }
-                    //System.err.println(name);
+                    System.err.println(name);
                 }
                 usingSharedSpaces = sharedSpaces;
                 usingCompressedOops = compressedOops;
@@ -646,6 +655,7 @@ public final class JVM {
                 includeJFR=INCLUDE_JFR;
                 classUnloading=ClassUnloading;
                 product=!ExtensiveErrorReports;
+                codeEntryAlignment=CodeEntryAlignment;
 //                String cpu = getCPU();
 //                Class<?> machDescClass = Class.forName("sun.jvm.hotspot.debugger.MachineDescription");
 //                int pid=getPid();
@@ -669,7 +679,7 @@ public final class JVM {
 //                }
             } else {
                 JVM = null;
-                unsignedSize=floatSize=doubleSize=diagnoseSyncOnValueBasedClasses=logMinObjAlignmentInBytes=objectAlignmentInBytes = intSize = size_tSize = oopSize =longSize= 0;
+                codeEntryAlignment=unsignedSize=floatSize=doubleSize=diagnoseSyncOnValueBasedClasses=logMinObjAlignmentInBytes=objectAlignmentInBytes = intSize = size_tSize = oopSize =longSize= 0;
                 product=classUnloading=includeJFR=includeCDSJavaHeap=includeCDS=bytecodeVerificationRemote=
                         bytecodeVerificationLocal=dumpSharedSpaces=includeG1GC= enableContended=restrictReservedStack=
                         restrictContended=isJVMTISupported = usingClientCompiler = usingServerCompiler =

@@ -13,9 +13,9 @@ import com.sun.jna.ptr.IntByReference;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import sun.misc.Unsafe;
+import sun.reflect.ReflectionFactory;
 
 import javax.annotation.Nullable;
-import java.io.File;
 import java.io.InputStream;
 import java.lang.instrument.Instrumentation;
 import java.lang.invoke.MethodHandle;
@@ -23,10 +23,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.invoke.VarHandle;
 import java.lang.management.ManagementFactory;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
+import java.lang.reflect.*;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.security.AllPermission;
@@ -42,7 +39,7 @@ import static apphhzp.lib.ClassOption.optionsToFlag;
 
 @SuppressWarnings({"unused", "ResultOfMethodCallIgnored"})
 public final class ClassHelper {
-    private static final Logger LOGGER;
+    //private static final Logger LOGGER;
     public static final MethodHandles.Lookup lookup;
     public static final Unsafe unsafe;
     public static final Object internalUnsafe;
@@ -68,10 +65,11 @@ public final class ClassHelper {
     public static final Object JLA_INSTANCE;
     static {
         try {
-            LOGGER = LogManager.getLogger(ClassHelper.class);
+            //LOGGER = LogManager.getLogger(ClassHelper.class);
             String osName = System.getProperty("os.name").toLowerCase(Locale.ROOT);
             isWindows = osName.contains("win");
             isLinux = osName.contains("nux") || osName.contains("nix");//||osName.contains("unix")
+            fuckJava23();
             Unsafe tmp;
             Constructor<Unsafe> c = Unsafe.class.getDeclaredConstructor();
             c.setAccessible(true);
@@ -92,7 +90,7 @@ public final class ClassHelper {
             findLoadedClassMethod=lookup.findVirtual(ClassLoader.class,"findLoadedClass", MethodType.methodType(Class.class, String.class));
             //getUncompressedObjectMethod=lookup.findVirtual(internalClass, "getUncompressedObject", MethodType.methodType(Object.class, long.class));
             exportJDKInternalModule();
-            if (isWindows && !Debugger.isDebug) {
+            if (isWindows) {
                 instImpl = NativeUtil.createInstrumentationImpl();
                 objectInstImpl = NativeUtil.createObjectInstrumentationImpl();
             } else {
@@ -124,6 +122,27 @@ public final class ClassHelper {
 //            throw new RuntimeException(t);
 //        }
 //    }
+
+    private static void fuckJava23()throws Throwable{
+        try {
+            Class.forName("sun.misc.Unsafe$MemoryAccessOption");
+
+            MethodHandles.Lookup lookup= (MethodHandles.Lookup) ReflectionFactory.getReflectionFactory()
+                    .newConstructorForSerialization(MethodHandles.Lookup.class, MethodHandles.Lookup.class.getDeclaredConstructor(Class.class,Class.class,int.class))
+                    .newInstance(Object.class,null,-1);
+            Class<?> internalUnsafeClass=Class.forName("jdk.internal.misc.Unsafe"),
+                    accessOptions=Class.forName("sun.misc.Unsafe$MemoryAccessOption");
+            MethodHandle fieldOffset=lookup.findVirtual(internalUnsafeClass,"staticFieldOffset0",MethodType.methodType(long.class, Field.class))
+                    ,fieldBase=lookup.findVirtual(internalUnsafeClass,"staticFieldBase0",MethodType.methodType(Object.class, Field.class))
+                    ,putReference=lookup.findVirtual(internalUnsafeClass,"putReference",MethodType.methodType(void.class,Object.class,long.class,Object.class))
+                    ,ensure=lookup.findVirtual(internalUnsafeClass,"ensureClassInitialized0",MethodType.methodType(void.class,Class.class));
+            Object internalUnsafe=lookup.findConstructor(internalUnsafeClass,MethodType.methodType(void.class)).invoke();
+            ensure.invoke(internalUnsafe,Class.forName("sun.misc.Unsafe",false,ClassHelper.class.getClassLoader()));
+            Field field=Unsafe.class.getDeclaredField("MEMORY_ACCESS_OPTION");
+            putReference.invoke(internalUnsafe,fieldBase.invoke(internalUnsafe,field),(long)fieldOffset.invoke(internalUnsafe,field),
+                    lookup.findStaticVarHandle(accessOptions,"ALLOW",accessOptions).get());
+        }catch (ClassNotFoundException ignored){}
+    }
 
     public static Unsafe createUnsafe() {
         try {
@@ -586,7 +605,7 @@ public final class ClassHelper {
 
     public static void defineClassesFromJar(Class<?> caller, Predicate<String> predicate){
         try {
-            LOGGER.error("DO NOT USE THIS METHOD! Do not support character '!' or '+'");
+            //LOGGER.error("DO NOT USE THIS METHOD! Do not support character '!' or '+'");
             StringBuilder builder=new StringBuilder();
             JarFile jarFile = new JarFile(getJarPath(caller));
             Enumeration<JarEntry> entries = jarFile.entries();

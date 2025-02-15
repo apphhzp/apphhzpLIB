@@ -5,7 +5,9 @@ import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.code.blob.CompiledMethod;
 import apphhzp.lib.hotspot.code.blob.NMethod;
 import apphhzp.lib.hotspot.compiler.CompLevel;
+import apphhzp.lib.hotspot.interpreter.Bytecodes;
 import apphhzp.lib.hotspot.oops.AccessFlags;
+import apphhzp.lib.hotspot.oops.BreakpointInfo;
 import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
 import apphhzp.lib.hotspot.oops.MethodCounters;
 import apphhzp.lib.hotspot.oops.MethodData;
@@ -174,7 +176,7 @@ public class Method extends MethodData {
     }
 
     @Nullable
-    public CompiledMethod getCode() {
+    public CompiledMethod getCompiledMethod() {
         long addr = unsafe.getAddress(this.address + CODE_OFFSET);
         if (addr == 0L) {
             return null;
@@ -192,7 +194,7 @@ public class Method extends MethodData {
         return this.codeCache;
     }
 
-    public void setCode(@Nullable CompiledMethod method) {
+    public void setCompiledMethod(@Nullable CompiledMethod method) {
         unsafe.putAddress(this.address + CODE_OFFSET, method == null ? 0L : method.address);
     }
 
@@ -215,7 +217,7 @@ public class Method extends MethodData {
             this.setFromCompiledEntry(adapter.getC2IEntry());
         }
         this.setFromInterpretedEntry(this.getI2IEntry());
-        this.setCode(null);
+        this.setCompiledMethod(null);
     }
 
     public long getFromInterpretedEntry(){
@@ -252,5 +254,38 @@ public class Method extends MethodData {
         return (flags&HIDDEN)!=0;
     }
 
+    public void    set_code(long code)      {this.getConstMethod().set_code(code); }
+    public long code_base()            { return this.getConstMethod().code_base(); }
+    public boolean   contains(long bcp){ return this.getConstMethod().contains(bcp); }
+    public int bci_from(long bcp){
+        boolean isNative=this.getAccessFlags().isNative();
+        if (isNative && bcp == 0) {
+            return 0;
+        }
+        // Do not have a ResourceMark here because AsyncGetCallTrace stack walking code
+        // may call this after interrupting a nested ResourceMark.
+        if (!(isNative && bcp == code_base() || contains(bcp))){
+            throw new IllegalArgumentException("bcp doesn't belong to this method. bcp: 0x"+Long.toHexString(bcp));
+        }
+        return (int) (bcp - code_base());
+    }
+
+
+    public int orig_bytecode_at(int bci){
+        if (!JVM.isJVMTISupported){
+            throw new UnsupportedOperationException();
+        }
+        BreakpointInfo bp =this.getHolder().getBreakpointInfo();
+        for (; bp != null; bp = bp.getNext()) {
+            if (bp.match(this, bci)) {
+                return bp.getOriginBytecode();
+            }
+        }
+//        {
+//            ResourceMark rm;
+//            fatal("no original bytecode found in %s at bci %d", name_and_sig_as_C_string(), bci);
+//        }
+        return Bytecodes.Code._shouldnotreachhere;
+    }
 
 }

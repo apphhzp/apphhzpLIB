@@ -26,7 +26,7 @@ public final class ClassModifier {
                 if (entry.isResolved() && ConstantPoolCacheEntry.is_method_entry(entry.getFlags())) {
                     Method method = entry.f1AsMethod();
                     if (src.equals(method)) {
-                        CompiledMethod compiledMethod = method.getCode();
+                        CompiledMethod compiledMethod = method.getCompiledMethod();
 //                        if (counters!=null){
 //                            method.setCounters(null);
 //                        }
@@ -54,7 +54,7 @@ public final class ClassModifier {
                         method = entry.f2AsMethod();
                         if (src.equals(method)) {
                             entry.setF2(target.address);
-                            CompiledMethod compiledMethod = method.getCode();
+                            CompiledMethod compiledMethod = method.getCompiledMethod();
                             if (compiledMethod != null) {
                                 System.err.println("f2:"+compiledMethod.getMethod().getConstMethod().getName());
                                 compiledMethod.setMethod(target);
@@ -66,7 +66,7 @@ public final class ClassModifier {
                                 if (src.equals(method)) {
                                     System.err.println("addsdsas");
 //                                    entry.setF2(target.address);
-                                    CompiledMethod compiledMethod = method.getCode();
+                                    CompiledMethod compiledMethod = method.getCompiledMethod();
                                     if (compiledMethod != null) {
                                         compiledMethod.setMethod(target);
                                     }
@@ -111,7 +111,7 @@ public final class ClassModifier {
             }
             System.err.println(constMethod.getMethodParametersLength());
             method.setConstMethod(newConstMethod);
-            method.setCode(null);
+            method.setCompiledMethod(null);
         }
     }
 

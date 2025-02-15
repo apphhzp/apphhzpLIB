@@ -142,6 +142,16 @@ public class ConstMethod extends JVMObject {
         unsafe.putByte(this.address + SIZE + index, bytecode);
     }
 
+    public void set_code(long code) {
+        if (this.getCodeSize() > 0) {
+            unsafe.copyMemory(this.code_base(),code,this.getCodeSize());
+        }
+    }
+    public long code_base(){ return (this.address+SIZE); }
+    public long code_end(){ return code_base() + this.getCodeSize(); }
+    public boolean contains(long bcp){ return code_base() <= bcp
+            && bcp < code_end(); }
+
     /**Get the size in bytes.*/
     public long getSize(){
         return (long) this.getConstMethodSize() * oopSize;
@@ -171,6 +181,9 @@ public class ConstMethod extends JVMObject {
 //    }
 
     public ConstMethod copy(int expand, byte[] newCodes) {
+        if (true){
+            throw new UnsupportedOperationException();
+        }
         int oldLen = this.getCodeSize(), len = oldLen + expand;
         if (len < 0) {
             throw new IllegalArgumentException("The new _code_size is less than 0.");
@@ -212,6 +225,9 @@ public class ConstMethod extends JVMObject {
     }
 
     public ConstMethod copy(int expand, byte[] newCodes, int maxLocals, int maxStacks) {
+        if (true){
+            throw new UnsupportedOperationException();
+        }
         ConstMethod re = this.copy(expand, newCodes);
         re.setMaxLocals(maxLocals);
         re.setMaxStack(maxStacks);

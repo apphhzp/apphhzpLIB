@@ -2,9 +2,8 @@ package apphhzp.lib.hotspot;
 
 import apphhzp.lib.ClassHelper;
 import apphhzp.lib.helfy.JVM;
-import apphhzp.lib.hotspot.gc.g1.G1BiasedMappedArray;
-import apphhzp.lib.hotspot.gc.g1.G1CollectedHeap;
-import apphhzp.lib.hotspot.gc.g1.HeapRegion;
+import apphhzp.lib.hotspot.interpreter.AbstractInterpreter;
+import apphhzp.lib.hotspot.interpreter.Bytecodes;
 import apphhzp.lib.hotspot.oops.*;
 import apphhzp.lib.hotspot.oops.constant.ConstantPool;
 import apphhzp.lib.hotspot.oops.constant.ConstantTag;
@@ -14,19 +13,9 @@ import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
 import apphhzp.lib.hotspot.oops.klass.Klass;
 import apphhzp.lib.hotspot.oops.oop.OopDesc;
 import apphhzp.lib.natives.NativeUtil;
-import apphhzp.lib.service.ApphhzpLibService;
-import org.objectweb.asm.Opcodes;
-
-import java.io.File;
-import java.io.InputStream;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-import java.util.Enumeration;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
 
 public final class Debugger {
-    public static boolean isDebug=false;
+    public static boolean isDebug=true;
     private static int x1;
 
     public static void main(String[] args) {//-XX:-UseCompressedOops  -XX:-UseCompressedClassPointers -XX:+UnlockDiagnosticVMOptions -XX:+PrintInlining
@@ -77,18 +66,16 @@ public final class Debugger {
         JVM.printAllTypes();
         JVM.printAllConstants();
         JVM.printAllVTBL();
-        try {
-            String name="/"+ Opcodes.class.getName().replace('.','/')+".class";
-            String file =  Opcodes.class.getResource(name).getFile();
-            file=file.substring(0,file.length()-name.length()-1);
-           System.err.println(file);
-        }catch (Throwable t){
-            throw new RuntimeException(t);
-        }
-
+        ///System.err.println(JVM.getSymbol("??_7BootstrapInfo@@6B@"));
+        AbstractInterpreter.getCode().iterator().forEachRemaining(x -> {
+            System.err.println(x.getDesc());
+            if (x.getDesc().equals("iload")){
+                System.err.println(Bytecodes.length_for(x.getBytecode()));
+            }
+        });
 //        case3();
 //        case3();
-        ClassHelper.defineClassBypassAgent("apphhzp.lib.hotspot.Test", Debugger.class,true,null);
+        ClassHelper.defineClassBypassAgent("apphhzp.lib.hotspot.Test", Debugger.class,false,null);
         System.err.print("[");
         Test.print(5);
         System.err.println("]");
