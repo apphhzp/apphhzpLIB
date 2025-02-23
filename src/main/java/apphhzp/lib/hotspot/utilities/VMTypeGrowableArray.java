@@ -16,7 +16,7 @@ public class VMTypeGrowableArray<T extends JVMObject> extends JVMObject implemen
     public static final Type BASE = JVM.type("GrowableArrayBase");
     public static final long LEN_OFFSET = BASE.offset("_len");
     public static final long MAX_OFFSET = BASE.offset("_max");
-    public static final long DATA_OFFSET = JVM.type("GrowableArrayBase").offset("_data");//Math.max(BASE.size, JVM.oopSize);
+    public static final long DATA_OFFSET = JVM.type("GrowableArray<int>").offset("_data");//Math.max(BASE.size, JVM.oopSize);
     private final LongFunction<T> constructor;
 
     public VMTypeGrowableArray(long addr, LongFunction<T> constructor) {
