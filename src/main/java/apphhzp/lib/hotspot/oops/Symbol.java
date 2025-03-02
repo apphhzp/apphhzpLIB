@@ -10,6 +10,8 @@ import apphhzp.lib.hotspot.oops.constant.Utf8Constant;
 import apphhzp.lib.hotspot.oops.klass.Klass;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2BooleanMap;
+import it.unimi.dsi.fastutil.longs.Long2BooleanOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.objectweb.asm.ClassReader;
@@ -33,6 +35,7 @@ public class Symbol extends JVMObject {
     public static final int SID_LIMIT=JVM.intConstant("vmSymbols::SID_LIMIT");
     public static final int MAX_LENGTH=JVM.intConstant("Symbol::max_symbol_length");
     private static final Int2ObjectMap<Symbol> cache=new Int2ObjectOpenHashMap<>();
+    private static final Long2BooleanMap cached=new Long2BooleanOpenHashMap();
     private static final Object2ObjectMap<String,Symbol> vmSymbols=new Object2ObjectOpenHashMap<>();
     private static final Symbol[] vmSymbolsArray=new Symbol[SID_LIMIT+1];
     private static final  ClassReader creater;
@@ -147,6 +150,9 @@ public class Symbol extends JVMObject {
     }
 
     public static Symbol of(long addr){
+        if (addr==0L){
+            throw new NullPointerException();
+        }
         Symbol re=new Symbol(addr);
         cache.put(re.toString().hashCode(),re);
         return re;

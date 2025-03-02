@@ -13,10 +13,12 @@ import static apphhzp.lib.ClassHelper.unsafe;
 public class JavaThread extends Thread {
     public static final Type TYPE = JVM.type("JavaThread");
     public static final int SIZE = TYPE.size;
-    public static final long JAVA_THREAD_LIST = JVM.type("ThreadsSMRSupport").global("_java_thread_list");
+    //public static final long JAVA_THREAD_LIST = JVM.type("ThreadsSMRSupport").global("_java_thread_list");
     public static final long STACK_BASE_OFFSET = TYPE.offset("_stack_base");
     public static final long STACK_SIZE_OFFSET = TYPE.offset("_stack_size");
     public static final long THREAD_OBJ_OFFSET = TYPE.offset("_threadObj");
+    public static final long ANCHOR_OFFSET = TYPE.offset("_anchor");
+    public static final long JNI_ENVIRONMENT_OFFSET=JVM.includeJVMCI?TYPE.offset("_jni_environment"):ANCHOR_OFFSET+ 4L *JVM.oopSize;
     public static final long VM_RESULT_OFFSET = TYPE.offset("_vm_result");
     public static final long VM_RESULT2_OFFSET = TYPE.offset("_vm_result_2");
     public static final long PENDING_MONITOR_OFFSET=TYPE.offset("_current_pending_monitor");
@@ -74,12 +76,16 @@ public class JavaThread extends Thread {
     }
 
     @Nullable
-    public Thread getThreadObj() {
+    public java.lang.Thread getThreadObj() {
         long addr = OopDesc.fromOopHandle(this.address + THREAD_OBJ_OFFSET);
         if (!isEqual(this.threadObjCache, addr)) {
             this.threadObjCache = OopDesc.of(addr);
         }
         return this.threadObjCache.getObject();
+    }
+
+    public long getJNIEnv(){
+        return this.address+JNI_ENVIRONMENT_OFFSET;
     }
 
     public OopDesc getVMResult(){
@@ -89,6 +95,7 @@ public class JavaThread extends Thread {
         }
         return this.vmResultCache;
     }
+
     @Nullable
     public ObjectMonitor getPendingMonitor(){
         long addr=unsafe.getAddress(this.address+PENDING_MONITOR_OFFSET);
@@ -122,13 +129,13 @@ public class JavaThread extends Thread {
     public void setState(JavaThreadState state){
         unsafe.putInt(this.address+STATE_OFFSET,state.val);
     }
-    private static ThreadsList list;
+
     public static ArrayList<JavaThread> getAllJavaThreads() {
-        long addr = unsafe.getAddress(JAVA_THREAD_LIST);
-        if (!isEqual(list, addr)) {
-            list = new ThreadsList(addr);
-        }
-        return list.getAllThreads();
+        return ThreadsSMRSupport.javaThreadList().getAllThreads();
+    }
+
+    public static JavaThread first() {
+        return ThreadsSMRSupport.javaThreadList().first();
     }
 
     @Override

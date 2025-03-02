@@ -1,9 +1,7 @@
 package apphhzp.lib.hotspot.interpreter;
 
-import apphhzp.lib.ClassHelper;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.hotspot.oops.method.Method;
-import apphhzp.lib.hotspot.utilities.BasicType;
 
 import static apphhzp.lib.ClassHelper.unsafe;
 import static apphhzp.lib.hotspot.interpreter.Bytecodes.Code.*;
@@ -630,7 +628,7 @@ public class Bytecodes {
     }
 
     public static boolean check_method(Method method, long bcp) {
-        if (JVM.ASSERTS_ENABLED) {
+        if (JVM.ENABLE_EXTRA_CHECK) {
             return method.contains(bcp);
         }
         return true;

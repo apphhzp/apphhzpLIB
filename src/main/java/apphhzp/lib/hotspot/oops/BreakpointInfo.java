@@ -9,10 +9,10 @@ import apphhzp.lib.hotspot.oops.method.Method;
 import javax.annotation.Nullable;
 
 import static apphhzp.lib.ClassHelper.unsafe;
-import static apphhzp.lib.helfy.JVM.isJVMTISupported;
+import static apphhzp.lib.helfy.JVM.includeJVMTI;
 
 public class BreakpointInfo extends JVMObject {
-    public static final Type TYPE = isJVMTISupported ? JVM.type("BreakpointInfo") : null;
+    public static final Type TYPE = includeJVMTI ? JVM.type("BreakpointInfo") : null;
     public static final int SIZE = TYPE == null ? 0 : TYPE.size;
     public static final long ORG_BYTECODE_OFFSET = TYPE == null ? -1 : TYPE.offset("_orig_bytecode");
     public static final long BCI_OFFSET = TYPE == null ? -1 : TYPE.offset("_bci");
@@ -22,7 +22,7 @@ public class BreakpointInfo extends JVMObject {
     private BreakpointInfo nextCache;
 
     public static BreakpointInfo of(long addr) {
-        if (!isJVMTISupported) {
+        if (!includeJVMTI) {
             throw new IllegalStateException("Need JVMTI supported!");
         }
         return new BreakpointInfo(addr);

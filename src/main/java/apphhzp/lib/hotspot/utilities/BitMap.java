@@ -1,6 +1,5 @@
 package apphhzp.lib.hotspot.utilities;
 
-import apphhzp.lib.ClassHelper;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.hotspot.JVMObject;
 
@@ -93,7 +92,7 @@ public class BitMap extends JVMObject {
     public static long max_size_in_bits() { return max_size_in_words() * JVM.BitsPerWord; }
 
     public static void verify_size(long size_in_bits) {
-        if (JVM.ASSERTS_ENABLED){
+        if (JVM.ENABLE_EXTRA_CHECK){
             if (size_in_bits>max_size_in_bits()){
                 throw new AssertionError("out of bounds: "+size_in_bits);
             }
@@ -101,7 +100,7 @@ public class BitMap extends JVMObject {
     }
 
     public void verify_index(long bit) {
-        if (JVM.ASSERTS_ENABLED){
+        if (JVM.ENABLE_EXTRA_CHECK){
             if (bit>=this.size()){
                 throw new AssertionError("BitMap index out of bounds: "+bit+" >= "+this.size());
             }
@@ -110,7 +109,7 @@ public class BitMap extends JVMObject {
 
     public void verify_limit(long bit) {
 
-        if (JVM.ASSERTS_ENABLED){
+        if (JVM.ENABLE_EXTRA_CHECK){
             if (bit>this.size()){
                 throw new AssertionError("BitMap limit out of bounds: "+bit+" > "+this.size());
             }
@@ -118,7 +117,7 @@ public class BitMap extends JVMObject {
     }
 
     public void verify_range(long beg, long end) {
-        if (JVM.ASSERTS_ENABLED){
+        if (JVM.ENABLE_EXTRA_CHECK){
             if (beg>end){
                 throw new AssertionError("BitMap range error: "+beg+" > "+end);
             }

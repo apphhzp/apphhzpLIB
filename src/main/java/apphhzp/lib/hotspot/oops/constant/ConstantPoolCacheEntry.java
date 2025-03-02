@@ -3,6 +3,7 @@ package apphhzp.lib.hotspot.oops.constant;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.JVMObject;
+import apphhzp.lib.hotspot.interpreter.Bytecodes;
 import apphhzp.lib.hotspot.oops.klass.Klass;
 import apphhzp.lib.hotspot.oops.method.Method;
 import org.objectweb.asm.Opcodes;
@@ -22,12 +23,15 @@ public class ConstantPoolCacheEntry extends JVMObject {
     public static final long F1_OFFSET = TYPE.offset("_f1");
     public static final long F2_OFFSET = TYPE.offset("_f2");
     public static final long FLAGS_OFFSET = TYPE.offset("_flags");
-    public static final int is_volatile_shift = JVM.intConstant("ConstantPoolCacheEntry::is_volatile_shift");
-    public static final int is_final_shift = JVM.intConstant("ConstantPoolCacheEntry::is_final_shift");
-    public static final int is_forced_virtual_shift = JVM.intConstant("ConstantPoolCacheEntry::is_forced_virtual_shift");
-    public static final int is_vfinal_shift = JVM.intConstant("ConstantPoolCacheEntry::is_vfinal_shift");
-    public static final int is_field_entry_shift = JVM.intConstant("ConstantPoolCacheEntry::is_field_entry_shift");
-    public static final int tos_state_shift = JVM.intConstant("ConstantPoolCacheEntry::tos_state_shift");
+    public static final int
+            tos_state_shift = JVM.intConstant("ConstantPoolCacheEntry::tos_state_shift"),
+            is_field_entry_shift = JVM.intConstant("ConstantPoolCacheEntry::is_field_entry_shift"),
+            has_local_signature_shift  =25,
+            has_appendix_shift         = 24,
+            is_forced_virtual_shift = JVM.intConstant("ConstantPoolCacheEntry::is_forced_virtual_shift"),
+            is_final_shift = JVM.intConstant("ConstantPoolCacheEntry::is_final_shift"),
+            is_volatile_shift = JVM.intConstant("ConstantPoolCacheEntry::is_volatile_shift"),
+            is_vfinal_shift = JVM.intConstant("ConstantPoolCacheEntry::is_vfinal_shift");
     public final ConstantPoolCache holder;
 
     public ConstantPoolCacheEntry(long addr,ConstantPoolCache cache) {
@@ -85,7 +89,7 @@ public class ConstantPoolCacheEntry extends JVMObject {
         if (is_method_entry(this.getFlags())){
             int code=getB1();
             if (code==Opcodes.INVOKEINTERFACE){
-                //https://github.com/openjdk/jdk17u/blob/c9d83d392f3809bf536afdcb52142ee6916acff0/src/hotspot/share/oops/cpCache.cpp#L518
+                //https://github.com/openjdk/jdk17u/blob/master/src/hotspot/share/oops/cpCache.cpp#L518
                 return Klass.getOrCreate(unsafe.getAddress(this.address+F1_OFFSET));
             }
         }
@@ -157,6 +161,64 @@ public class ConstantPoolCacheEntry extends JVMObject {
             return (int) (flags & 0xFFL);
         }
         return -1;
+    }
+
+    public boolean has_appendix() {
+        return (this.getF1()!=0) && (this.getFlags() & (1 << has_appendix_shift)) != 0;
+    }
+
+    public boolean has_local_signature() {
+        return (this.getF1()!=0) && (this.getFlags() & (1 << has_local_signature_shift)) != 0;
+    }
+
+    public Method method_if_resolved(ConstantPool cpool) {
+        // Decode the action of set_method and set_interface_call
+        int invoke_code = this.getB1();
+        if (invoke_code != 0) {
+            long f1 = this.getF1();
+            if (f1 != 0L) {
+                switch (invoke_code) {
+                    case Bytecodes.Code._invokeinterface:
+                        if (getF2()!=Bytecodes.Code._invokeinterface) {
+                            throw new RuntimeException();
+                        }
+                        return Method.getOrCreate(getF2());
+                    case Bytecodes.Code._invokestatic:
+                    case Bytecodes.Code._invokespecial:
+                        if (has_appendix()){
+                            throw new RuntimeException();
+                        }
+                    case Bytecodes.Code._invokehandle:
+                    case Bytecodes.Code._invokedynamic:
+                        return Method.getOrCreate(f1);
+                    default:
+                        break;
+                }
+            }
+        }
+        invoke_code = this.getB2();
+        if (invoke_code != 0) {
+            switch (invoke_code) {
+                case Bytecodes.Code._invokevirtual:
+                    if (isVFinal(this.getFlags())) {
+                        // invokevirtual
+                        if (!isVFinal(this.getFlags())){
+                            throw new RuntimeException();
+                        }
+                        return Method.getOrCreate(getF2());
+                    } else {
+                        int holder_index = cpool.uncached_klass_ref_index_at(this.getConstantPoolIndex());
+                        if (cpool.getTags().get(holder_index)==ConstantTag.Class) {
+                            Klass klass = cpool.getResolvedKlass(holder_index);
+                            return klass.getMethodAtVTable(this.f2AsIndex());
+                        }
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+        return null;
     }
 
     public boolean isResolved(){

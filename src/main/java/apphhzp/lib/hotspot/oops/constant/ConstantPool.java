@@ -329,8 +329,29 @@ public class ConstantPool extends Metadata {
         return re;
     }
 
+    public int impl_klass_ref_index_at(int which, boolean uncached) {
+        if (this.getTags().get(which)== InvokeDynamic){
+            throw new IllegalArgumentException("an invokedynamic instruction does not have a klass");
+        }
+        int i = which;
+        if (!uncached && this.getCache() != null) {
+            // change byte-ordering and go via cache
+            i = remap_instruction_operand_from_cache(which);
+        }
+//        assert(tag_at(i).is_field_or_method(), "Corrupted constant pool");
+        int ref_index = unsafe.getInt(this.address+SIZE+ (long) i *JVM.oopSize);
+        return ref_index & 0xFFFF;
+    }
+
+
+    public int remap_instruction_operand_from_cache(int operand) {
+        return this.getCache().getEntry(operand).getConstantPoolIndex();
+    }
+
+    public int       uncached_klass_ref_index_at(int which)          { return impl_klass_ref_index_at(which, true); }
+
     private void checkBound(int val) {
-        if (JVM.ASSERTS_ENABLED && (val < 1 || val >= this.getTags().length())) {
+        if (JVM.ENABLE_EXTRA_CHECK && (val < 1 || val >= this.getTags().length())) {
             throw new NoSuchElementException("ConstantPool index out of range: "+val);
         }
     }

@@ -129,7 +129,7 @@ public class ObjectHeap {
                 ThreadLocalAllocBuffer tlab = thread.tlab;
                 if (tlab.start() != 0L) {
                     if ((tlab.top() == 0L) || (tlab.end() == 0L)) {
-                        if (JVM.ASSERTS_ENABLED) {
+                        if (JVM.ENABLE_EXTRA_CHECK) {
                             throw new RuntimeException("Skipping invalid TLAB for thread");
                         }
                     } else {

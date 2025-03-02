@@ -237,6 +237,15 @@ public class ConstMethod extends JVMObject {
         return re;
     }
 
+    // Since the size of the compressed line number table is unknown, the
+    // offsets of the other variable sized sections are computed backwards
+    // from the end of the ConstMethod*.
+
+    // First byte after ConstMethod*
+    public long constMethodEnd()
+    { return (this.address + (long) this.getConstMethodSize() * oopSize); }
+
+
     //!=========WARNING=========!
     //   获取偏移量部分没有防呆设计
     //!=========WARNING=========!

@@ -43,7 +43,7 @@ public class OopDesc extends JVMObject {
     }
 
     public static OopDesc of(Object o){
-        return of(decodeOop(getAddress(o)));
+        return of(decodeOop(getEncodedAddress(o)));
     }
 
     public static Klass getKlassForOopHandle(long handle) {
@@ -69,7 +69,7 @@ public class OopDesc extends JVMObject {
     }
 
     protected OopDesc(Object obj) {
-        this(decodeOop(getAddress(obj)));
+        this(decodeOop(getEncodedAddress(obj)));
     }
 
     @Nullable
@@ -79,7 +79,7 @@ public class OopDesc extends JVMObject {
     }
 
     public void setObject(Object object){
-        this.narrowOop=getAddress(object);
+        this.narrowOop= getEncodedAddress(object);
         this.object=object;
     }
 
@@ -149,10 +149,20 @@ public class OopDesc extends JVMObject {
         return helper.content;
     }
 
-    public static long getAddress(Object obj) {
+    public static long getAddress(Object obj){
+        if (obj==null){
+            return 0L;
+        }
+        return decodeOop(getEncodedAddress(obj));
+    }
+
+    public static long getEncodedAddress(Object obj) {
+        if (obj==null){
+            return 0L;
+        }
         helper.changeContent(obj);
         if (!is64BitJVM|| JVM.usingCompressedOops) {
-            return unsafe.getIntVolatile(helper, TransformHelper.OFFSET);
+            return unsafe.getIntVolatile(helper, TransformHelper.OFFSET)&0xffffffffL;
         }
         return unsafe.getLongVolatile(helper,TransformHelper.OFFSET);
     }

@@ -2,9 +2,11 @@ package apphhzp.lib.hotspot;
 
 import apphhzp.lib.ClassHelper;
 import apphhzp.lib.helfy.JVM;
-import apphhzp.lib.hotspot.interpreter.AbstractInterpreter;
-import apphhzp.lib.hotspot.interpreter.Bytecodes;
-import apphhzp.lib.hotspot.oops.*;
+import apphhzp.lib.hotspot.c1.Runtime1;
+import apphhzp.lib.hotspot.oops.ClassLoaderData;
+import apphhzp.lib.hotspot.oops.HeapVisitor;
+import apphhzp.lib.hotspot.oops.ObjectHeap;
+import apphhzp.lib.hotspot.oops.Symbol;
 import apphhzp.lib.hotspot.oops.constant.ConstantPool;
 import apphhzp.lib.hotspot.oops.constant.ConstantTag;
 import apphhzp.lib.hotspot.oops.constant.MethodRefConstant;
@@ -65,14 +67,22 @@ public final class Debugger {
 //        }, true);
         JVM.printAllTypes();
         JVM.printAllConstants();
-        JVM.printAllVTBL();
-        ///System.err.println(JVM.getSymbol("??_7BootstrapInfo@@6B@"));
-        AbstractInterpreter.getCode().iterator().forEachRemaining(x -> {
-            System.err.println(x.getDesc());
-            if (x.getDesc().equals("iload")){
-                System.err.println(Bytecodes.length_for(x.getBytecode()));
-            }
-        });
+//        JVM.printAllVTBL();
+        JVM.printAllFunctions();
+
+//        int id=0;
+//        for (VTableEntry entry:klass.getVTableEntries()){
+//            if (entry.method()!=null){
+//                System.err.println(id+":"+entry.method().getConstMethod().getName());
+//            }
+//            ++id;
+//        }
+//        AbstractInterpreter.getCode().iterator().forEachRemaining(x -> {
+//            System.err.println(x.getDesc());
+//            if (x.getDesc().equals("iload")){
+//                System.err.println(Bytecodes.length_for(x.getBytecode()));
+//            }
+//        });
 //        case3();
 //        case3();
         ClassHelper.defineClassBypassAgent("apphhzp.lib.hotspot.Test", Debugger.class,false,null);
@@ -81,8 +91,38 @@ public final class Debugger {
         System.err.println("]");
         Test test=new Test(-114);
         test.add(514);
-        System.err.println(test.val);
 
+        System.err.println(test.val);
+        System.err.println(Runtime1.blobFor(32).getName());
+
+
+//        long addr= Pointer.nativeValue(JVM.Functions.throw_and_post_jvmti_exception_function),end=Pointer.nativeValue(JVM.Functions.throw_klass_external_name_exception_function);
+//        //addr=unsafe.getAddress(addr);
+//        for (int i=0;addr+i<end;i++){
+//            System.err.println(Long.toHexString(unsafe.getByte(addr+i)&0xffL));
+//            if (i%8==0){
+//                System.err.println("0x"+Long.toHexString(unsafe.getLong(addr+i)));
+//            }
+//        }
+//        Function function=Function.getFunction(new Pointer(JVM.lookupSymbol("psd")));
+//        for (CodeHeap heap:CodeCache.getHeaps()){
+//            for (CodeBlob blob:heap){
+//                System.err.println(
+//                        CodeCache.findNMethod(blob.address));
+//            }
+//        }
+//        for (Klass klass:Klass.getAllKlasses()){
+//            if (klass.isInstanceKlass()){
+//                if (klass.asInstanceKlass().getInnerClasses().length()!=0){
+//                    System.err.println(klass);
+//                }
+//            }
+//        }
+//        for (Klass klass:Klass.getAllKlasses()){
+//            if (klass instanceof InstanceKlass instanceKlass){
+//                System.err.println(instanceKlass.module());
+//            }
+//        }
 //        boolean a= ClassHelper.isWindows;
 //        if (a){
 //            case3();
@@ -242,7 +282,7 @@ public final class Debugger {
         System.err.println("klass cnt:"+Klass.getAllKlasses().size());
         //System.gc();
         try {
-            Thread.sleep(1000);
+            java.lang.Thread.sleep(1000);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }

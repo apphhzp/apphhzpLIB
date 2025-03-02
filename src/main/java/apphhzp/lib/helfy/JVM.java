@@ -6,11 +6,13 @@ import apphhzp.lib.hotspot.NativeLibrary;
 import apphhzp.lib.hotspot.cds.FileMapHeader;
 import apphhzp.lib.hotspot.cds.FileMapInfo;
 import apphhzp.lib.hotspot.oops.constant.ConstantPool;
+import apphhzp.lib.hotspot.oops.klass.Klass;
 import apphhzp.lib.hotspot.oops.method.Method;
-import apphhzp.lib.hotspot.runtime.JVMFlag;
-import apphhzp.lib.hotspot.runtime.JavaThread;
-import apphhzp.lib.hotspot.runtime.ObjectMonitor;
+import apphhzp.lib.hotspot.oops.oop.OopDesc;
+import apphhzp.lib.hotspot.runtime.*;
 import apphhzp.lib.hotspot.runtime.Thread;
+import com.sun.jna.*;
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import sun.misc.Unsafe;
 
@@ -21,11 +23,12 @@ import java.util.*;
 import static apphhzp.lib.ClassHelper.*;
 
 public final class JVM {
-    public static final boolean ASSERTS_ENABLED=true;
+    public static final boolean ENABLE_EXTRA_CHECK =true;
     private static final NativeLibrary JVM;
     public static final String cpu=PlatformInfo.getCPU();
     private static final Map<String, Type> types = new LinkedHashMap<>();
     private static final Map<String, Number> constants = new LinkedHashMap<>();
+    private static final Object2LongMap<String> functions = new Object2LongOpenHashMap<>();
     private static final Set<String> jvmciOnlyConstants=new LinkedHashSet<>();
     public static final int oopSize;
     public static final int intSize;
@@ -34,7 +37,7 @@ public final class JVM {
     public static final int floatSize;
     public static final int doubleSize;
     public static final int unsignedSize;
-    public static final boolean isJVMTISupported;
+    public static final boolean includeJVMTI;
     public static final boolean usingClientCompiler;
     public static final boolean usingServerCompiler;
     public static final boolean usingSharedSpaces;
@@ -52,27 +55,27 @@ public final class JVM {
     public static final boolean isLP64;
     public static final int LogBytesPerShort   = 1;
     public static final int LogBytesPerInt     = 2;
-    public static final int LogBytesPerWord="aarch64".equals(cpu) || "amd64".equals(cpu) || "x86_64".equals(cpu) || "ppc64".equals(cpu)?3:2;
+    public static final int LogBytesPerWord;
     public static final int LogBytesPerLong    = 3;
     public static final int BytesPerShort      = 1 << LogBytesPerShort;
     public static final int BytesPerInt        = 1 << LogBytesPerInt;
-    public static final int BytesPerWord       = 1 << LogBytesPerWord;
+    public static final int BytesPerWord;
     public static final int BytesPerLong       = 1 << LogBytesPerLong;
     public static final int LogBitsPerByte     = 3;
     public static final int LogBitsPerShort    = LogBitsPerByte + LogBytesPerShort;
     public static final int LogBitsPerInt      = LogBitsPerByte + LogBytesPerInt;
-    public static final int LogBitsPerWord     = LogBitsPerByte + LogBytesPerWord;
+    public static final int LogBitsPerWord;
     public static final int LogBitsPerLong     = LogBitsPerByte + LogBytesPerLong;
     public static final int BitsPerByte        = 1 << LogBitsPerByte;
     public static final int BitsPerShort       = 1 << LogBitsPerShort;
     public static final int BitsPerInt         = 1 << LogBitsPerInt;
-    public static final int BitsPerWord        = 1 << LogBitsPerWord;
+    public static final int BitsPerWord;
     public static final int BitsPerLong        = 1 << LogBitsPerLong;
-    public static final int WordAlignmentMask  = (1 << LogBytesPerWord) - 1;
+    public static final int WordAlignmentMask;
     public static final int LongAlignmentMask  = (1 << LogBytesPerLong) - 1;
-    public static final int LogHeapWordSize     = "aarch64".equals(cpu) || "amd64".equals(cpu) || "x86_64".equals(cpu) || "ppc64".equals(cpu)?3:2;
+    public static final int LogHeapWordSize;
     public static final int HeapWordsPerLong;
-    public static final int LogHeapWordsPerLong = LogBytesPerLong - LogHeapWordSize;
+    public static final int LogHeapWordsPerLong;
     public static final boolean restrictContended;
     public static final boolean enableContended;
     public static final boolean restrictReservedStack;
@@ -88,6 +91,8 @@ public final class JVM {
     public static final boolean classUnloading;
     public static final boolean product;
     public static final long codeEntryAlignment;
+    public static final boolean includeAssert;
+    public static final boolean usePerfData;
     private JVM() {
     }
 
@@ -257,6 +262,21 @@ public final class JVM {
         }
     }
 
+    private static void readVmCIAddresses(){
+        long entry = getSymbol("jvmciHotSpotVMAddresses");
+        long nameOffset = 0;
+        long valueOffset = oopSize;
+        long arrayStride = 2L *oopSize;
+        for (; ; entry += arrayStride) {
+            String name = getStringRef(entry + nameOffset);
+            if (name == null) break;
+            if (!functions.containsKey(name)) {
+                long value = unsafe.getAddress(entry + valueOffset);
+                functions.put(name, value);
+            }
+        }
+    }
+
     public static String getString(long addr) {
         if (addr == 0) {
             return null;
@@ -293,6 +313,10 @@ public final class JVM {
         return unsafe.getLong(address);
     }
 
+    public static long lookupSymbol(String name) {
+        return JVM.findEntry(name);
+    }
+
     public static Type type(String name) {
         if (!isHotspotJVM) {
             return Type.EMPTY;
@@ -323,6 +347,10 @@ public final class JVM {
         return constant(name).longValue();
     }
 
+    public static long function(String name){
+        return includeJVMCI?functions.getLong(name):0;
+    }
+
     public static void printAllTypes() {
         if (!isHotspotJVM) {
             System.err.println("NO TYPES");
@@ -351,6 +379,15 @@ public final class JVM {
             if (vtbl != 0L) {
                 System.err.println("vtbl(" + type.name + "):0x" + Long.toHexString(vtbl));
             }
+        }
+    }
+
+    public static void printAllFunctions(){
+        if (!isHotspotJVM){
+            System.err.println("NO FUNCTIONS");
+        }
+        for (Object2LongMap.Entry<String> entry : functions.object2LongEntrySet()) {
+            System.err.println("&"+entry.getKey()+" = 0x"+Long.toHexString(entry.getLongValue()));
         }
     }
 
@@ -547,28 +584,209 @@ public final class JVM {
         return has_vtbl_pointer?Arrays.copyOfRange(re,1,re.length):re;
     }
 
+    public static final class Functions{
+        private static final Object unused=new Object();
+        private static final long unused_space=OopDesc.getAddress(unused);
+        public static final Function identity_hash_code_function;
+        public static final Function log_object_function;
+        public static final Function validate_object_function;
+        public static final Function object_notify_function;
+        public static final Function object_notifyAll_function;
+        public static final Function invoke_static_method_one_arg_function;
+        public static final Function test_deoptimize_call_int_function;
+        //public static final Function dynamic_new_instance_function=Function.getFunction(new Pointer(function("JVMCIRuntime::dynamic_new_instance")));
+        //public static final Function dynamic_new_array_function=Function.getFunction(new Pointer(function("JVMCIRuntime::dynamic_new_array")));
+        public static final Function uncommon_trap_function;
+        public static final Function dll_lookup_function;
+        public static final Function dll_load_function;
+        public static final Function javaTimeNanos_function;
+        public static final Function javaTimeMillis_function;
+        public static final Function throw_class_cast_exception_function;
+        public static final Function throw_and_post_jvmti_exception_function;
+        public static final Function throw_klass_external_name_exception_function;
+        public static final Function vm_error_function;
+        public static final Function log_primitive_function;
+
+        static {
+            if (includeJVMCI){
+                identity_hash_code_function = Function.getFunction(new Pointer(function("JVMCIRuntime::identity_hash_code")));
+                log_object_function = Function.getFunction(new Pointer(function("JVMCIRuntime::log_object")));
+                validate_object_function = Function.getFunction(new Pointer(function("JVMCIRuntime::validate_object")));
+                object_notify_function=Function.getFunction(new Pointer(function("JVMCIRuntime::object_notify")));
+                object_notifyAll_function=Function.getFunction(new Pointer(function("JVMCIRuntime::object_notifyAll")));
+                invoke_static_method_one_arg_function=Function.getFunction(new Pointer(function("JVMCIRuntime::invoke_static_method_one_arg")));
+                test_deoptimize_call_int_function=Function.getFunction(new Pointer(function("JVMCIRuntime::test_deoptimize_call_int")));
+                uncommon_trap_function=Function.getFunction(new Pointer(function("Deoptimization::uncommon_trap")));
+                dll_lookup_function=Function.getFunction(new Pointer(function("os::dll_lookup")));
+                dll_load_function=Function.getFunction(new Pointer(function("os::dll_load")));
+                javaTimeNanos_function=Function.getFunction(new Pointer(function("os::javaTimeNanos")));
+                javaTimeMillis_function=Function.getFunction(new Pointer(function("os::javaTimeMillis")));
+                throw_class_cast_exception_function=Function.getFunction(new Pointer(function("JVMCIRuntime::throw_class_cast_exception")));
+                throw_and_post_jvmti_exception_function=Function.getFunction(new Pointer(function("JVMCIRuntime::throw_and_post_jvmti_exception")));
+                throw_klass_external_name_exception_function=Function.getFunction(new Pointer(function("JVMCIRuntime::throw_klass_external_name_exception")));
+                vm_error_function=Function.getFunction(new Pointer(function("JVMCIRuntime::vm_error")));
+                log_primitive_function=Function.getFunction(new Pointer(function("JVMCIRuntime::log_primitive")));
+            }else {
+                identity_hash_code_function=log_object_function=validate_object_function=object_notify_function
+                        = object_notifyAll_function=invoke_static_method_one_arg_function=test_deoptimize_call_int_function
+                        =uncommon_trap_function=dll_lookup_function=dll_load_function=javaTimeNanos_function
+                        =javaTimeMillis_function=throw_class_cast_exception_function=throw_and_post_jvmti_exception_function
+                        =throw_klass_external_name_exception_function=vm_error_function=log_primitive_function=null;
+            }
+        }
+
+        private Functions(){throw new UnsupportedOperationException();}
+
+        public static long identity_hash_code(Object oop){
+            if (identity_hash_code_function==null){
+                throw new UnsupportedOperationException("includeJVMCI==false");
+            }
+
+            return identity_hash_code_function.invokeLong(new Object[]{unused_space,OopDesc.getAddress(oop)});
+        }
+
+        public static void log_object(Object oop,boolean as_string,boolean newline){
+            if (log_object_function==null){
+                throw new UnsupportedOperationException("includeJVMCI==false");
+            }
+            log_object_function.invokeVoid(new Object[]{unused_space, OopDesc.getAddress(oop),as_string,newline});
+        }
+        public static boolean validate_object(Object parent,Object child){
+            if (validate_object_function==null){
+                throw new UnsupportedOperationException("includeJVMCI==false");
+            }
+            return (boolean) validate_object_function.invoke(boolean.class,new Object[]{unused_space,OopDesc.getAddress(parent),OopDesc.getAddress(child)});
+        }
+
+        //Object.notify() fast path, caller does slow path
+        public static boolean object_notify(JavaThread javaThread,Object oop){
+            if (object_notify_function==null){
+                throw new UnsupportedOperationException("includeJVMCI==false");
+            }
+            return (boolean) object_notify_function.invoke(boolean.class,new Object[]{javaThread.address,OopDesc.getAddress(oop)});
+        }
+
+        public static boolean object_notifyAll(JavaThread javaThread,Object oop){
+            if (object_notifyAll_function==null){
+                throw new UnsupportedOperationException("includeJVMCI==false");
+            }
+            return (boolean) object_notifyAll_function.invoke(boolean.class,new Object[]{javaThread.address,OopDesc.getAddress(oop)});
+        }
+
+        //Object返回值存储在javaThread->_vm_result里
+        public static long invoke_static_method_one_arg(JavaThread javaThread,Method method,long arg){
+            if (invoke_static_method_one_arg_function==null){
+                throw new UnsupportedOperationException("includeJVMCI==false");
+            }
+            return invoke_static_method_one_arg_function.invokeLong(new Object[]{javaThread.address,method.address,arg});
+        }
+
+        public static int test_deoptimize_call_int(int value){
+            if (test_deoptimize_call_int_function==null){
+                throw new UnsupportedOperationException("includeJVMCI==false");
+            }
+            return test_deoptimize_call_int_function.invokeInt(new Object[]{JavaThread.first().address,value});
+        }
+
+//        public static Object dynamic_new_instance(JavaThread javaThread,Object type_mirror){
+//            dynamic_new_instance_function.invokeVoid(new Object[]{javaThread.address,OopDesc.getAddress(type_mirror)});
+//            return javaThread.getVMResult().getObject();
+//        }
+//
+//        public static Object dynamic_new_array(JavaThread javaThread,Object type_mirror,int length){
+//            dynamic_new_array_function.invokeVoid(new Object[]{javaThread.address,OopDesc.getAddress(type_mirror),length});
+//            return javaThread.getVMResult().getObject();
+//        }
+
+        public static Deoptimization.UnrollBlock uncommon_trap(JavaThread current, int trap_request, int exec_mode){
+            if (uncommon_trap_function==null){
+                throw new UnsupportedOperationException("includeJVMCI==false");
+            }
+            return new Deoptimization.UnrollBlock(Pointer.nativeValue(uncommon_trap_function.invokePointer(new Object[]{current.address,trap_request,exec_mode})));
+        }
+
+
+        public static long dll_lookup(long handle, String name){
+            if (dll_lookup_function==null){
+                throw new UnsupportedOperationException("includeJVMCI==false");
+            }
+            return Pointer.nativeValue(dll_lookup_function.invokePointer(new Object[]{handle,name}));
+        }
+
+        public static long dll_load(String name,long ebuf, int ebuflen){
+            if (dll_load_function==null){
+                throw new UnsupportedOperationException("includeJVMCI==false");
+            }
+            return Pointer.nativeValue(dll_load_function.invokePointer(new Object[]{name,ebuf,ebuflen}));
+        }
+
+        public static long javaTimeNanos(){
+            if (javaTimeNanos_function==null){
+                throw new UnsupportedOperationException("includeJVMCI==false");
+            }
+            return javaTimeNanos_function.invokeLong(new Object[]{});
+        }
+
+        public static long javaTimeMillis(){
+            if (javaTimeMillis_function==null){
+                throw new UnsupportedOperationException("includeJVMCI==false");
+            }
+            return javaTimeMillis_function.invokeLong(new Object[]{});
+        }
+
+        public static int throw_class_cast_exception(JavaThread current, String exception, Klass caster_klass, Klass target_klass){
+            if (throw_class_cast_exception_function==null){
+                throw new UnsupportedOperationException("includeJVMCI==false");
+            }
+            return throw_class_cast_exception_function.invokeInt(new Object[]{current.address,exception,caster_klass.address,target_klass.address});
+        }
+
+        public static int throw_and_post_jvmti_exception(JavaThread current,String exception,String message){
+            if (throw_and_post_jvmti_exception_function==null){
+                throw new UnsupportedOperationException("includeJVMCI==false");
+            }
+            return throw_and_post_jvmti_exception_function.invokeInt(new Object[]{current.address,exception,message});
+        }
+
+        public static void vm_error(JavaThread current, long where, long format, long value){
+            if (vm_error_function==null){
+                throw new UnsupportedOperationException("includeJVMCI==false");
+            }
+            vm_error_function.invokeVoid(new Object[]{current.address,where,format,value});
+        }
+
+        public static void log_primitive(char typeChar, long value, boolean newline){
+            if (log_primitive_function==null){
+                throw new UnsupportedOperationException("includeJVMCI==false");
+            }
+            log_primitive_function.invokeVoid(new Object[]{unused_space,typeChar,value,newline});
+        }
+    }
+
     static {
         try {
-            isLP64= "aarch64".equals(cpu) || "amd64".equals(cpu) || "x86_64".equals(cpu) || "ppc64".equals(cpu);
+
             if (isHotspotJVM) {
                 JVM = JVMUtil.findJvm();
                 readVmTypes(readVmStructs());
                 readVmIntConstants();
                 readVmLongConstants();
                 includeJVMCI = intConstant("INCLUDE_JVMCI") != 0;
+                oopSize = intConstant("oopSize");
                 if (includeJVMCI){
                     readVmCITypes(readVmCIStructs());
                     readVmCIIntConstants();
                     readVmCILongConstants();
+                    readVmCIAddresses();
                 }
-                oopSize = intConstant("oopSize");
+
                 intSize = type("int").size;
                 longSize=type("long").size;
                 size_tSize = type("size_t").size;
                 floatSize=type("jfloat").size;
                 doubleSize=type("jdouble").size;
                 unsignedSize=type("unsigned").size;
-                isJVMTISupported = type("InstanceKlass").contains("_breakpoints");
+                includeJVMTI = type("InstanceKlass").contains("_breakpoints");
                 Type type = type("Method");
                 if (type.contains("_from_compiled_entry")) {
                     if (types.containsKey("Matcher")) {
@@ -585,7 +803,8 @@ public final class JVM {
                 boolean sharedSpaces = false, compressedOops = false, compressedClassPointers = false, TLAB = false,
                         RestrictContended=false, RestrictReservedStack=false,EnableContended =false,
                         DumpSharedSpaces=false,BytecodeVerificationRemote=false,
-                        BytecodeVerificationLocal=false,INCLUDE_JFR=false,ClassUnloading=false,ExtensiveErrorReports=false;
+                        BytecodeVerificationLocal=false,INCLUDE_JFR=false,ClassUnloading=false,ExtensiveErrorReports=false,
+                        UsePerfData=false;
                 long PMRC=0,CodeEntryAlignment=0;
                 int DiagnoseSyncOnValueBasedClasses=0,OAIB=8;
                 for (JVMFlag flag : flags) {
@@ -624,6 +843,8 @@ public final class JVM {
                         ExtensiveErrorReports=flag.getBool();
                     }else if ("CodeEntryAlignment".equals(name)){
                         CodeEntryAlignment=flag.getIntx();
+                    }else if ("UsePerfData".equals(name)){
+                        UsePerfData=flag.getBool();
                     }
                     System.err.println(name);
                 }
@@ -640,6 +861,14 @@ public final class JVM {
                 }else {
                     heapOopSize=oopSize;
                 }
+                LogBytesPerWord=intConstant("LogBytesPerWord");
+                isLP64= LogBytesPerWord==3;
+                BytesPerWord       = intConstant("BytesPerWord");
+                LogBitsPerWord     = LogBitsPerByte + LogBytesPerWord;
+                BitsPerWord        = 1 << LogBitsPerWord;
+                WordAlignmentMask  = (1 << LogBytesPerWord) - 1;
+                LogHeapWordSize=intConstant("LogHeapWordSize");
+                LogHeapWordsPerLong = LogBytesPerLong - LogHeapWordSize;
                 HeapWordsPerLong=BytesPerLong / oopSize;
                 restrictContended=RestrictContended;
                 restrictReservedStack=RestrictReservedStack;
@@ -656,6 +885,8 @@ public final class JVM {
                 classUnloading=ClassUnloading;
                 product=!ExtensiveErrorReports;
                 codeEntryAlignment=CodeEntryAlignment;
+                includeAssert=intConstant("ConstantPool::CPCACHE_INDEX_TAG")!=0;
+                usePerfData=UsePerfData;
 //                String cpu = getCPU();
 //                Class<?> machDescClass = Class.forName("sun.jvm.hotspot.debugger.MachineDescription");
 //                int pid=getPid();
@@ -678,11 +909,13 @@ public final class JVM {
 //                    tmp=debugger;
 //                }
             } else {
+                isLP64= "aarch64".equals(cpu) || "amd64".equals(cpu) || "x86_64".equals(cpu) || "ppc64".equals(cpu);
                 JVM = null;
-                codeEntryAlignment=unsignedSize=floatSize=doubleSize=diagnoseSyncOnValueBasedClasses=logMinObjAlignmentInBytes=objectAlignmentInBytes = intSize = size_tSize = oopSize =longSize= 0;
-                product=classUnloading=includeJFR=includeCDSJavaHeap=includeCDS=bytecodeVerificationRemote=
+                codeEntryAlignment=0;
+                LogHeapWordsPerLong=LogHeapWordSize=WordAlignmentMask=BitsPerWord=LogBitsPerWord=BytesPerWord=LogBytesPerWord=unsignedSize=floatSize=doubleSize=diagnoseSyncOnValueBasedClasses=logMinObjAlignmentInBytes=objectAlignmentInBytes = intSize = size_tSize = oopSize =longSize= 0;
+                usePerfData=includeAssert=product=classUnloading=includeJFR=includeCDSJavaHeap=includeCDS=bytecodeVerificationRemote=
                         bytecodeVerificationLocal=dumpSharedSpaces=includeG1GC= enableContended=restrictReservedStack=
-                        restrictContended=isJVMTISupported = usingClientCompiler = usingServerCompiler =
+                        restrictContended= includeJVMTI = usingClientCompiler = usingServerCompiler =
                         usingSharedSpaces = usingTLAB = includeJVMCI = false;
                 usingCompressedOops = Unsafe.ARRAY_OBJECT_INDEX_SCALE == 4;
                 HeapWordsPerLong=BytesPerLong / unsafe.addressSize();

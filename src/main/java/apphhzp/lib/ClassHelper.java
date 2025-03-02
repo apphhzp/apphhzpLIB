@@ -10,6 +10,7 @@ import apphhzp.lib.hotspot.oops.klass.Klass;
 import apphhzp.lib.hotspot.utilities.Dictionary;
 import apphhzp.lib.natives.NativeUtil;
 import com.sun.jna.ptr.IntByReference;
+import com.sun.tools.attach.VirtualMachine;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import sun.misc.Unsafe;
@@ -44,14 +45,14 @@ public final class ClassHelper {
     public static final Unsafe unsafe;
     public static final Object internalUnsafe;
     private static final Class<?> internalClass;
-    public static final MethodHandle staticFieldBaseMethod;
-    public static final MethodHandle staticFieldOffsetMethod;
-    public static final MethodHandle objectFieldOffsetMethod;
-    public static final MethodHandle defineClassMethod;
-    public static final MethodHandle JLA_defineClassMethod;
-    public static final MethodHandle lookupConstructor;
-    public static final MethodHandle compareAndSetByteMethod;
-    public static final MethodHandle findLoadedClassMethod;
+    private static final MethodHandle staticFieldBaseMethod;
+    private static final MethodHandle staticFieldOffsetMethod;
+    private static final MethodHandle objectFieldOffsetMethod;
+    private static final MethodHandle defineClassMethod;
+    private static final MethodHandle JLA_defineClassMethod;
+    private static final MethodHandle lookupConstructor;
+    private static final MethodHandle compareAndSetByteMethod;
+    private static final MethodHandle findLoadedClassMethod;
     @Nullable
     public static final Instrumentation instImpl;
     @Nullable
@@ -125,6 +126,7 @@ public final class ClassHelper {
 
     private static void fuckJava23()throws Throwable{
         try {
+
             Class.forName("sun.misc.Unsafe$MemoryAccessOption");
 
             MethodHandles.Lookup lookup= (MethodHandles.Lookup) ReflectionFactory.getReflectionFactory()

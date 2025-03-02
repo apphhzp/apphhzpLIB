@@ -272,7 +272,7 @@ public class Method extends MethodData {
 
 
     public int orig_bytecode_at(int bci){
-        if (!JVM.isJVMTISupported){
+        if (!JVM.includeJVMTI){
             throw new UnsupportedOperationException();
         }
         BreakpointInfo bp =this.getHolder().getBreakpointInfo();

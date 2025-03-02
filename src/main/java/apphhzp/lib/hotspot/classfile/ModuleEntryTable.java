@@ -1,6 +1,7 @@
 package apphhzp.lib.hotspot.classfile;
 
 import apphhzp.lib.hotspot.oops.Symbol;
+import apphhzp.lib.hotspot.oops.klass.Klass;
 import apphhzp.lib.hotspot.utilities.Hashtable;
 import apphhzp.lib.hotspot.utilities.HashtableEntry;
 
@@ -8,6 +9,8 @@ import javax.annotation.Nullable;
 import java.util.function.LongFunction;
 
 public class ModuleEntryTable extends Hashtable {
+
+    public static final ModuleEntry javabase_module= Klass.asKlass(Object.class).asInstanceKlass().module();
     public ModuleEntryTable(long addr) {
         super(addr);
     }
@@ -19,7 +22,7 @@ public class ModuleEntryTable extends Hashtable {
 
     @Override
     public long computeHash(@Nullable Symbol name) {
-        return name==null||name.address==0L?0L:name.identityHash();
+        return name==null?0L:name.identityHash();
     }
 
     @Nullable

@@ -11,7 +11,9 @@ import org.objectweb.asm.Opcodes;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import static apphhzp.lib.ClassHelper.*;
 import static apphhzp.lib.helfy.JVM.includeCDS;
@@ -22,26 +24,38 @@ public class Klass extends Metadata {
     public static final Type TYPE = JVM.type("Klass");
     public static final int SIZE = TYPE.size;
     public static final long LAYOUT_HELPER_OFFSET = TYPE.offset("_layout_helper");
+    public static final long ID_OFFSET=JVM.computeOffset(JVM.intSize,LAYOUT_HELPER_OFFSET+4);
     public static final long MODIFIER_FLAGS_OFFSET = TYPE.offset("_modifier_flags");
+    public static final long SUPER_CHECK_OFFSET_OFFSET= TYPE.offset("_super_check_offset");
     public static final long NAME_OFFSET = TYPE.offset("_name");
+    public static final long SECONDARY_SUPER_CACHE_OFFSET= TYPE.offset("_secondary_super_cache");
+    public static final long SECONDARY_SUPERS_OFFSET= TYPE.offset("_secondary_supers");
+    public static final long PRIMARY_SUPERS_OFFSET= TYPE.offset("_primary_supers[0]");
     public static final long MIRROR_OFFSET = TYPE.offset("_java_mirror");
     public static final long SUPER_OFFSET = TYPE.offset("_super");
+    public static final long SUBKLASS_OFFSET= TYPE.offset("_subklass");
     public static final long NEXT_SIBLING_OFFSET = TYPE.offset("_next_sibling");
     public static final long NEXT_LINK_OFFSET = TYPE.offset("_next_link");
     public static final long CLASSLOADER_DATA_OFFSET = TYPE.offset("_class_loader_data");
     public static final long VTABLE_LEN_OFFSET = TYPE.offset("_vtable_len");
     public static final long ACC_FLAGS_OFFSET = TYPE.offset("_access_flags");
+    public static final long LAST_BIASED_LOCK_BULK_REVOCATION_TIME_OFFSET=
+            JVM.includeJFR?JVM.computeOffset(8,JVM.computeOffset(8,ACC_FLAGS_OFFSET+AccessFlags.SIZE)+8):JVM.computeOffset(8,ACC_FLAGS_OFFSET+AccessFlags.SIZE);
     public static final long PROTOTYPE_HEADER_OFFSET = TYPE.offset("_prototype_header");
-    public static final long BIASED_LOCK_REVOCATION_COUNT_OFFSET = PROTOTYPE_HEADER_OFFSET + JVM.type("markWord").size;
+    public static final long BIASED_LOCK_REVOCATION_COUNT_OFFSET = PROTOTYPE_HEADER_OFFSET + MarkWord.SIZE;
     public static final long SHARED_CLASS_PATH_INDEX_OFFSET = BIASED_LOCK_REVOCATION_COUNT_OFFSET + 4;
     public static final long SHARED_CLASS_FLAGS_OFFSET = includeCDS ? SHARED_CLASS_PATH_INDEX_OFFSET + 2 : SHARED_CLASS_PATH_INDEX_OFFSET;
+
     public static final int _archived_lambda_proxy_is_available = 2, _has_value_based_class_annotation = 4, _verified_at_dump_time = 8;
+    public static final int _primary_super_limit=JVM.intConstant("Klass::_primary_super_limit");
+
     private static final Long2ObjectMap<Klass> CACHE = new Long2ObjectOpenHashMap<>();
     private Symbol nameCache;
     private Klass superKlassCache;
     private Klass nextSiblingCache;
     private Klass nextKlassCache;
     private ClassLoaderData CLDCache;
+    private VMTypeArray<Klass> secondarySupersCache;
     private OopDesc mirrorCache;
 
     public static Klass asKlass(Class<?> target) {
@@ -65,24 +79,40 @@ public class Klass extends Metadata {
             return re;
         }
         int layout = unsafe.getInt(addr + LAYOUT_HELPER_OFFSET);
-        if (LayoutHelper.isInstance(layout)) {
-            if (JVM.findDynamicTypeForAddress(addr,InstanceKlass.TYPE)==InstanceMirrorKlass.TYPE){
-                re=new InstanceMirrorKlass(addr);
-            }else {
-                re = new InstanceKlass(addr);
-            }
-            CACHE.put(addr, re);
-            return re;
-        }else if (LayoutHelper.isArray(layout)){
-            if (LayoutHelper.isTypeArray(layout)){
-                re = new TypeArrayKlass(addr);
-            }else{
-                re = new ObjArrayKlass(addr);
-            }
-            CACHE.put(addr, re);
-            return re;
+        int id=unsafe.getInt(addr+ID_OFFSET);
+        if (id==KlassID.InstanceKlassID){
+            re=new InstanceKlass(addr);
+        }else if (id==KlassID.InstanceMirrorKlassID){
+            re=new InstanceMirrorKlass(addr);
+        }else if (id==KlassID.ObjArrayKlassID){
+            re=new ObjArrayKlass(addr);
+        }else if (id==KlassID.TypeArrayKlassID){
+            re=new TypeArrayKlass(addr);
+        }else if(id==KlassID.InstanceClassLoaderKlassID){
+            re=new InstanceClassLoaderKlass(addr);
+        }else if (id==KlassID.InstanceRefKlassID){
+            re=new InstanceRefKlass(addr);
+        } else {
+            re = new Klass(addr);
         }
-        re = new Klass(addr);
+//        if (LayoutHelper.isInstance(layout)) {
+//            if (id==KlassID.InstanceMirrorKlassID){
+//                re=new InstanceMirrorKlass(addr);
+//            }else {
+//                re = new InstanceKlass(addr);
+//            }
+//            CACHE.put(addr, re);
+//            return re;
+//        }else if (LayoutHelper.isArray(layout)){
+//            if (LayoutHelper.isTypeArray(layout)){
+//                re = new TypeArrayKlass(addr);
+//            }else{
+//                re = new ObjArrayKlass(addr);
+//            }
+//            CACHE.put(addr, re);
+//            return re;
+//        }
+
         CACHE.put(addr, re);
         return re;
     }
@@ -202,6 +232,44 @@ public class Klass extends Metadata {
         unsafe.putAddress(this.address + SUPER_OFFSET, superKlass == null ? 0L : superKlass.address);
     }
 
+    public VMTypeArray<Klass> getSecondarySupers(){
+        long addr = unsafe.getAddress(this.address + SECONDARY_SUPERS_OFFSET);
+        if (addr==0L){
+            throw new RuntimeException();
+        }
+        if (!isEqual(this.secondarySupersCache, addr)) {
+            this.secondarySupersCache=new VMTypeArray<>(addr,Klass.class,Klass::getOrCreate);
+        }
+        return this.secondarySupersCache;
+    }
+
+    public void setSecondarySupers(VMTypeArray<Klass> secondarySupers) {
+        unsafe.putAddress(this.address+SECONDARY_SUPERS_OFFSET, secondarySupers.address);
+    }
+
+    public int superCheckOffset(){
+        return unsafe.getInt(this.address+SUPER_CHECK_OFFSET_OFFSET);
+    }
+
+    public boolean canBePrimarySuper() {
+        int secondary_offset = (int) SECONDARY_SUPER_CACHE_OFFSET;
+        return superCheckOffset() != secondary_offset;
+    }
+
+    @Nullable
+    public Klass primarySuperOfDepth(int i){
+        if (i<0||i>=_primary_super_limit){
+            throw new IndexOutOfBoundsException();
+        }
+        long addr=unsafe.getAddress(this.address+PRIMARY_SUPERS_OFFSET+ (long) i * oopSize);
+        if (addr==0L){
+            return null;
+        }
+        //assert(re == NULL || re->super_depth() == i, "correct display");
+        //if (!(re==null||re.))
+        return Klass.getOrCreate(addr);
+    }
+
     public OopDesc getMirror() {
         long addr = OopDesc.fromOopHandle(this.address + MIRROR_OFFSET);
         if (!isEqual(this.mirrorCache, addr)) {
@@ -261,15 +329,49 @@ public class Klass extends Metadata {
         return false;
     }
 
-    public int getVTableLen() {
+    public int getVTableLength() {
         return unsafe.getInt(this.address + VTABLE_LEN_OFFSET);
     }
 
-    public Method getMethodAtVTable(int index) {
-        if (index < 0 || index >= this.getVTableLen()) {
-            throw new ArrayIndexOutOfBoundsException(index);
+    public long startOfVTable(){
+        return this.address+InstanceKlass.SIZE;
+    }
+
+    public VTableEntry getVTableEntry(int index) {
+        int limit=this.getVTableLength()/(VTableEntry.SIZE/ oopSize);
+        if (index < 0 || index >= limit){
+            throw new ArrayIndexOutOfBoundsException(String.format("index %d out of bounds %d", index, limit));
         }
-        return Method.getOrCreate(unsafe.getAddress(this.address + InstanceKlass.SIZE + (long) index * oopSize));
+        return new VTableEntry((this.startOfVTable() + (long) index * VTableEntry.SIZE));
+    }
+
+    public Method getMethodAtVTable(int index) {
+        return this.getVTableEntry(index).method();
+    }
+
+    public Iterable<VTableEntry> getVTableEntries() {
+        return new Iterable<>() {
+            @Override
+            public Iterator<VTableEntry> iterator() {
+                return  new Iterator<>(){
+                    private final long begin = Klass.this.startOfVTable();
+                    private final int length = Klass.this.getVTableLength();
+                    private int now=0;
+                    @Override
+                    public boolean hasNext() {
+                        return now*(VTableEntry.SIZE/ oopSize)<length;
+                    }
+
+                    @Override
+                    public VTableEntry next() {
+                        if(!hasNext()){
+                            throw new NoSuchElementException();
+                        }
+                        return new VTableEntry((this.begin + (long)(now++) * VTableEntry.SIZE));
+                    }
+                };
+            }
+        };
     }
 
     public MarkWord getPrototypeHeader() {
@@ -311,25 +413,48 @@ public class Klass extends Metadata {
         return 0L;
     }
 
+
+    public boolean isPublic()                { return this.getAccessFlags().isPublic(); }
+    public boolean isFinal()                 { return this.getAccessFlags().isFinal(); }
+    public boolean isInterface()             { return this.getAccessFlags().isInterface(); }
+    public boolean isAbstract()              { return this.getAccessFlags().isAbstract(); }
+    public boolean isSuper()                 { return this.getAccessFlags().isSuper(); }
+    public boolean isSynthetic()             { return this.getAccessFlags().isSynthetic(); }
+    //public void set_is_synthetic()               { this.getAccessFlags().set_is_synthetic(); }
+    public boolean hasFinalizer()             { return this.getAccessFlags().hasFinalizer(); }
+    public boolean hasFinalMethod()         { return this.getAccessFlags().hasFinalMethod(); }
+    //public void set_has_finalizer()              { this.getAccessFlags().setHas_finalizer(); }
+    //public void set_has_final_method()           { this.getAccessFlags().set_has_final_method(); }
+    public boolean hasVanillaConstructor()  { return this.getAccessFlags().hasVanillaConstructor(); }
+    //public void set_has_vanilla_constructor()    { this.getAccessFlags().set_has_vanilla_constructor(); }
+    public boolean hasMirandaMethods ()     { return this.getAccessFlags().hasMirandaMethods(); }
+    //public void set_has_miranda_methods()        { this.getAccessFlags().set_has_miranda_methods(); }
+    public boolean isShared()                { return this.getAccessFlags().isSharedClass(); } // shadows MetaspaceObj::is_shared)()
+    //public void set_is_shared()                  { this.getAccessFlags().set_is_shared_class(); }
+    public boolean isHidden()                { return this.getAccessFlags().isHiddenClass(); }
+    //public void set_is_hidden()                  { this.getAccessFlags().set_is_hidden_class(); }
+    public boolean isValueBased()                 { return this.getAccessFlags().isValueBasedClass(); }
+    //public void set_is_value_based()             { this.getAccessFlags().set_is_value_based_class(); }
+
     @Override
     public String toString() {
         return "Klass(" + this.getName() + ")@0x" + Long.toHexString(this.address);
     }
 
     public static class LayoutHelper {
-        public static int _lh_neutral_value = 0;  // neutral non-array non-instance value
-        public static int _lh_instance_slow_path_bit = 0x01;
-        public static int _lh_log2_element_size_shift = 0;
-        public static int _lh_log2_element_size_mask = JVM.BitsPerLong - 1;
-        public static int _lh_element_type_shift = JVM.BitsPerByte;
-        public static int _lh_element_type_mask = JVM.right_n_bits(JVM.BitsPerByte);  // shifted mask
-        public static int _lh_header_size_shift = JVM.BitsPerByte * 2;
-        public static int _lh_header_size_mask = JVM.right_n_bits(JVM.BitsPerByte);  // shifted mask
-        public static int _lh_array_tag_bits = 2;
-        public static int _lh_array_tag_shift = JVM.BitsPerInt - _lh_array_tag_bits;
-        public static int _lh_array_tag_obj_value = ~0x01;   // 0x80000000 >> 30
+        public static int _lh_neutral_value = JVM.intConstant("Klass::_lh_neutral_value");  // neutral non-array non-instance value
+        public static int _lh_instance_slow_path_bit = JVM.intConstant("Klass::_lh_instance_slow_path_bit");
+        public static int _lh_log2_element_size_shift = JVM.intConstant("Klass::_lh_log2_element_size_shift");
+        public static int _lh_log2_element_size_mask = JVM.intConstant("Klass::_lh_log2_element_size_mask");
+        public static int _lh_element_type_shift = JVM.intConstant("Klass::_lh_element_type_shift");
+        public static int _lh_element_type_mask = JVM.intConstant("Klass::_lh_element_type_mask");  // shifted mask
+        public static int _lh_header_size_shift = JVM.intConstant("Klass::_lh_header_size_shift");
+        public static int _lh_header_size_mask = JVM.intConstant("Klass::_lh_header_size_mask");  // shifted mask
+//        public static int _lh_array_tag_bits = 2;
+        public static int _lh_array_tag_shift = JVM.intConstant("Klass::_lh_array_tag_shift");
+        public static int _lh_array_tag_obj_value = JVM.intConstant("Klass::_lh_array_tag_obj_value");   // 0x80000000 >> 30
 
-        public static int _lh_array_tag_type_value = 0Xffffffff; // ~0x00,  // 0xC0000000 >> 30
+        public static int _lh_array_tag_type_value = JVM.intConstant("Klass::_lh_array_tag_type_value"); // ~0x00,  // 0xC0000000 >> 30
 
         public static boolean isArray(int lh) {
             return lh < _lh_neutral_value;
@@ -341,7 +466,7 @@ public class Klass extends Metadata {
 
         public static boolean isTypeArray(int lh) {
             // _lh_array_tag_type_value == (lh >> _lh_array_tag_shift);
-            return (long) lh >= ((long) _lh_array_tag_type_value << _lh_array_tag_shift);
+            return (lh&0xffffffffL) >= (((_lh_array_tag_type_value&0xffffffffL) << _lh_array_tag_shift)&0xffffffffL);
         }
 
         public static boolean isObjArray(int lh) {

@@ -17,7 +17,7 @@ public class MethodCounters extends JVMObject {
     public static final long INVOKE_MASK_OFFSET=TYPE.offset("_invoke_mask");
     public static final long BACKEDGE_MASK_OFFSET=TYPE.offset("_backedge_mask");
     public static final long INTERPRETER_THROWOUT_COUNT_OFFSET=JVM.usingServerCompiler?TYPE.offset("_interpreter_throwout_count"):-1;
-    public static final long NUMBER_OF_BREAKPOINTS_OFFSET=JVM.isJVMTISupported?TYPE.offset("_number_of_breakpoints"):-1;
+    public static final long NUMBER_OF_BREAKPOINTS_OFFSET=JVM.includeJVMTI ?TYPE.offset("_number_of_breakpoints"):-1;
     public static final long HIGHEST_COMP_LEVEL_OFFSET=(INTERPRETER_THROWOUT_COUNT_OFFSET==-1?BACKEDGE_MASK_OFFSET+8:(NUMBER_OF_BREAKPOINTS_OFFSET==-1?INTERPRETER_THROWOUT_COUNT_OFFSET+2:NUMBER_OF_BREAKPOINTS_OFFSET+2));
     public static final long HIGHEST_OSR_COMP_LEVEL_OFFSET =HIGHEST_COMP_LEVEL_OFFSET+1;
     public final InvocationCounter invocationCounter;
@@ -66,14 +66,14 @@ public class MethodCounters extends JVMObject {
     }
 
     public int getNumberOfBreakpoints(){
-        if (!JVM.isJVMTISupported){
+        if (!JVM.includeJVMTI){
             return 0;
         }
         return unsafe.getShort(this.address+NUMBER_OF_BREAKPOINTS_OFFSET)&0xffff;
     }
 
     public void setNumberOfBreakpoints(int number){
-        if (JVM.isJVMTISupported){
+        if (JVM.includeJVMTI){
             unsafe.putShort(this.address+NUMBER_OF_BREAKPOINTS_OFFSET, (short) (number&0xffff));
         }
     }

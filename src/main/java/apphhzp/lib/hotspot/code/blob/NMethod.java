@@ -143,7 +143,7 @@ public class NMethod extends CompiledMethod {
         }
         Method method = this.getMethod();
         if (method != null) {
-            method.getHolder().remove_osr_nmethod(this);
+            method.getHolder().removeOsrNMethod(this);
         }
     }
 

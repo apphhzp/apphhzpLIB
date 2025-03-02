@@ -8,4 +8,6 @@ public class KlassID{
         InstanceClassLoaderKlassID=3,
         TypeArrayKlassID=4,
         ObjArrayKlassID=5;
+    private KlassID(){throw new UnsupportedOperationException();}
+
 }

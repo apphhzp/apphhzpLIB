@@ -87,7 +87,7 @@ public class ConstantPoolCache extends JVMObject implements Iterable<ConstantPoo
     }
 
     public ConstantPoolCacheEntry getEntry(int index){
-        if (JVM.ASSERTS_ENABLED&&(index<0||index>=this.getLength())){
+        if (JVM.ENABLE_EXTRA_CHECK &&(index<0||index>=this.getLength())){
             throw new ArrayIndexOutOfBoundsException(index);
         }
         if (index>=entries.length){

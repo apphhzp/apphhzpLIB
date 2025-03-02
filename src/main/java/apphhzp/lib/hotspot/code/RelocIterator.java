@@ -94,7 +94,7 @@ public class RelocIterator {
         } else {
             _databuf = (short) _current.immediate();
             try {
-                _data = OopDesc.getAddress(this)+ unsafe.objectFieldOffset(RelocIterator.class.getDeclaredField("_databuf"));
+                _data = OopDesc.getEncodedAddress(this)+ unsafe.objectFieldOffset(RelocIterator.class.getDeclaredField("_databuf"));
             }catch (Throwable t){
                 throw new RuntimeException(t);
             }

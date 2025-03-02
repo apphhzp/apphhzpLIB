@@ -5,7 +5,10 @@ import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.JVMObject;
 import apphhzp.lib.hotspot.code.blob.CodeBlob;
 import apphhzp.lib.hotspot.code.blob.CompiledMethod;
+import apphhzp.lib.hotspot.code.blob.NMethod;
 import apphhzp.lib.hotspot.utilities.VMTypeGrowableArray;
+import com.sun.jna.Function;
+import com.sun.jna.Pointer;
 
 import javax.annotation.Nullable;
 
@@ -88,8 +91,13 @@ public class CodeCache {
         return CodeBlob.getCodeBlob(start);
     }
 
+//    private static final Function find_nmethod_function=Function.getFunction(new Pointer(JVM.lookupSymbol("findnm")));
+//    public static NMethod findNMethod(long addr){
+//        return new NMethod(Pointer.nativeValue(find_nmethod_function.invokePointer(new Object[]{addr})));
+//    }
+
     public static void markAllNMethodsForEvolDeoptimization() {
-        if (JVM.isJVMTISupported) {
+        if (JVM.includeJVMTI) {
             for (CodeHeap heap:getCompiledHeaps()) {
                 for (CodeBlob blob : heap) {
                     if (blob instanceof CompiledMethod compiledMethod) {

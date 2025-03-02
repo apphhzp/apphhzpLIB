@@ -162,7 +162,7 @@ public class StubQueue<T extends Stub> extends JVMObject implements Iterable<T> 
 
     public void removeAll(){
         removeFirst(this.getNumberOfStubs());
-        if (JVM.ASSERTS_ENABLED&&this.getNumberOfStubs()!=0){
+        if (JVM.ENABLE_EXTRA_CHECK &&this.getNumberOfStubs()!=0){
             throw new RuntimeException("sanity check");
         }
     }

@@ -3,6 +3,8 @@ package apphhzp.lib.hotspot.oops.klass;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.JVMObject;
+import apphhzp.lib.hotspot.classfile.ModuleEntry;
+import apphhzp.lib.hotspot.classfile.PackageEntry;
 import apphhzp.lib.hotspot.code.blob.NMethod;
 import apphhzp.lib.hotspot.compiler.CompLevel;
 import apphhzp.lib.hotspot.memory.ReferenceType;
@@ -23,24 +25,40 @@ import static apphhzp.lib.helfy.JVM.oopSize;
 public class InstanceKlass extends Klass {
     public static final Type TYPE = JVM.type("InstanceKlass");
     public static final int SIZE = TYPE.size;
+    public static final long ANNOTATIONS_OFFSET=TYPE.offset("_annotations");
+    public static final long PACKAGE_ENTRY_OFFSET=JVM.computeOffset(oopSize,ANNOTATIONS_OFFSET+oopSize);
+    public static final long ARRAY_KLASSES_OFFSET=JVM.computeOffset(oopSize,PACKAGE_ENTRY_OFFSET+oopSize);
     public static final long CONSTANTS_OFFSET = TYPE.offset("_constants");
     public static final long INNER_CLASSES_OFFSET=TYPE.offset("_inner_classes");
+    public static final long NEST_MEMBERS_OFFSET=JVM.computeOffset(oopSize,INNER_CLASSES_OFFSET+oopSize);
+    public static final long NEST_HOST_OFFSET=JVM.computeOffset(oopSize,NEST_MEMBERS_OFFSET+oopSize);
+    public static final long PERMITTED_SUBCLASSES_OFFSET=JVM.computeOffset(oopSize,NEST_HOST_OFFSET+oopSize);
+    public static final long RECORD_COMPONENTS_OFFSET=JVM.computeOffset(oopSize,PERMITTED_SUBCLASSES_OFFSET+oopSize);
     public static final long SOURCE_DEBUG_EXTENSION_OFFSET=TYPE.offset("_source_debug_extension");
     public static final long NONSTATIC_FIELD_SIZE_OFFSET=TYPE.offset("_nonstatic_field_size");
     public static final long STATIC_FIELD_SIZE_OFFSET=TYPE.offset("_static_field_size");
     public static final long NONSTATIC_OOP_MAP_SIZE_OFFSET=TYPE.offset("_nonstatic_oop_map_size");
     public static final long ITABLE_LEN_OFFSET=TYPE.offset("_itable_len");
+    public static final long NEST_HOST_INDEX_OFFSET=JVM.computeOffset(2,ITABLE_LEN_OFFSET+JVM.intSize);
+    public static final long THIS_CLASS_INDEX_OFFSET=JVM.computeOffset(2,NEST_HOST_INDEX_OFFSET+2);
     public static final long STATIC_OOP_FIELD_COUNT_OFFSET=TYPE.offset("_static_oop_field_count");
     public static final long FIELDS_COUNT_OFFSET = TYPE.offset("_java_fields_count");
     public static final long IDNUM_ALLOCATED_COUNT_OFFSET=TYPE.offset("_idnum_allocated_count");
     public static final long IS_MARKED_DEPENDENT_OFFSET=TYPE.offset("_is_marked_dependent");
     public static final long INIT_STATE_OFFSET = TYPE.offset("_init_state");
     public static final long REFERENCE_TYPE_OFFSET=TYPE.offset("_reference_type");
+    public static final long KIND_OFFSET=JVM.computeOffset(1,REFERENCE_TYPE_OFFSET+1);
     public static final long MISC_FLAGS_OFFSET = TYPE.offset("_misc_flags");
     public static final long INIT_THREAD_OFFSET = TYPE.offset("_init_thread");
     public static final long OOP_MAP_CACHE_OFFSET=TYPE.offset("_oop_map_cache");
+    public static final long JNI_IDS_OFFSET=TYPE.offset("_jni_ids");
+    public static final long METHODS_JMETHOD_IDS_OFFSET=TYPE.offset("_methods_jmethod_ids");
     public static final long OSR_NMETHOD_HEAD_OFFSET = TYPE.offset("_osr_nmethods_head");
-    public static final long BREAKPOINTS_OFFSET = JVM.isJVMTISupported ? TYPE.offset("_breakpoints") : -1;
+    public static final long BREAKPOINTS_OFFSET = JVM.includeJVMTI ? TYPE.offset("_breakpoints") : -1;
+    public static final long PREVIOUS_VERSIONS_OFFSET=JVM.includeJVMTI ?JVM.computeOffset(oopSize,BREAKPOINTS_OFFSET+oopSize):-1;
+    public static final long CACHED_CLASS_FILE_OFFSET=JVM.includeJVMTI?JVM.computeOffset(oopSize,PREVIOUS_VERSIONS_OFFSET+oopSize):-1;
+    public static final long JVMTI_CACHED_CLASS_FIELD_MAP_OFFSET=JVM.includeJVMTI?JVM.computeOffset(oopSize,CACHED_CLASS_FILE_OFFSET+oopSize):-1;
+    public static final long VERIFY_COUNT_OFFSET=JVM.product?-1:JVM.computeOffset(JVM.intSize,JVM.includeJVMTI?JVMTI_CACHED_CLASS_FIELD_MAP_OFFSET+oopSize:OSR_NMETHOD_HEAD_OFFSET+oopSize);
     public static final long METHODS_OFFSET = TYPE.offset("_methods");
     public static final long DEFAULT_METHODS_OFFSET = TYPE.offset("_default_methods");
     public static final long LOCAL_INTERFACES_OFFSET = TYPE.offset("_local_interfaces");
@@ -48,8 +66,10 @@ public class InstanceKlass extends Klass {
     public static final long METHOD_ORDERING_OFFSET=TYPE.offset("_method_ordering");
     public static final long DEFAULT_VTABLE_INDICES_OFFSET=TYPE.offset("_default_vtable_indices");
     public static final long FIELDS_OFFSET = TYPE.offset("_fields");
+    private PackageEntry packageCache;
     private ConstantPool constantPoolCache;
     private U2Array innerClassesCache;
+    private U2Array nestMembersCache;
     private NMethod headCache;
     private VMTypeArray<Method> methodsCache;
     private VMTypeArray<Method> defaultMethodsCache;
@@ -59,6 +79,26 @@ public class InstanceKlass extends Klass {
     private IntArray methodOrderingCache;
     private IntArray defaultVTableIndicesCache;
     private U2Array fieldsCache;
+    static {
+        if (JVM.computeOffset(oopSize,ARRAY_KLASSES_OFFSET+oopSize)!=CONSTANTS_OFFSET){
+            throw new AssertionError();
+        }
+        if (JVM.computeOffset(oopSize,RECORD_COMPONENTS_OFFSET+oopSize)!=SOURCE_DEBUG_EXTENSION_OFFSET){
+            throw new AssertionError();
+        }
+        if (JVM.computeOffset(2,THIS_CLASS_INDEX_OFFSET+2)!=STATIC_OOP_FIELD_COUNT_OFFSET){
+            throw new AssertionError();
+        }
+        if (VERIFY_COUNT_OFFSET!=-1){
+            if (JVM.computeOffset(oopSize,VERIFY_COUNT_OFFSET+JVM.intSize)!=METHODS_OFFSET){
+                throw new AssertionError();
+            }
+        }else if (JVMTI_CACHED_CLASS_FIELD_MAP_OFFSET!=-1){
+            if (JVM.computeOffset(oopSize,JVMTI_CACHED_CLASS_FIELD_MAP_OFFSET+oopSize)!=METHODS_OFFSET){
+                throw new AssertionError();
+            }
+        }
+    }
 
     public static InstanceKlass getOrCreate(long addr) {
         Klass klass = Klass.getOrCreate(addr);
@@ -166,6 +206,19 @@ public class InstanceKlass extends Klass {
     public InstanceKlass asInstanceKlass() {
         return this;
     }
+    @Nullable
+    public PackageEntry getPackage(){
+        long addr=unsafe.getAddress(this.address+PACKAGE_ENTRY_OFFSET);
+        if (addr==0){
+            return null;
+        }
+        if (!isEqual(this.packageCache,addr)){
+            this.packageCache=new PackageEntry(addr);
+        }
+        return this.packageCache;
+    }
+
+    public boolean in_unnamed_package(){ return (unsafe.getAddress(this.address+PACKAGE_ENTRY_OFFSET) == 0L); }
 
     public ConstantPool getConstantPool() {
         long addr = unsafe.getAddress(this.address + CONSTANTS_OFFSET);
@@ -191,9 +244,6 @@ public class InstanceKlass extends Klass {
 
     public U2Array getInnerClasses() {
         long addr = unsafe.getAddress(this.address + INNER_CLASSES_OFFSET);
-        if (addr==0L){
-            return null;
-        }
         if (!JVMObject.isEqual(this.innerClassesCache,addr)){
             this.innerClassesCache = new U2Array(addr);
         }
@@ -203,6 +253,26 @@ public class InstanceKlass extends Klass {
     public void setInnerClasses(@Nullable U2Array innerClasses) {
         this.innerClassesCache=null;
         unsafe.putAddress(this.address+INNER_CLASSES_OFFSET,innerClasses==null?0L:innerClasses.address);
+    }
+
+    public U2Array getNestMembers(){
+        long addr=unsafe.getAddress(this.address+NEST_MEMBERS_OFFSET);
+        if (!JVMObject.isEqual(this.nestMembersCache,addr)){
+            this.nestMembersCache = new U2Array(addr);
+        }
+        return this.nestMembersCache;
+    }
+
+    public void setNestMembers(U2Array array){
+        unsafe.putAddress(this.address+NEST_MEMBERS_OFFSET,array==null?0L:array.address);
+    }
+
+    public int getNestHostIndex(){
+        return unsafe.getShort(this.address+NEST_HOST_INDEX_OFFSET)&0xffff;
+    }
+
+    public void setNestHostIndex(int index){
+        unsafe.putShort(this.address+NEST_HOST_INDEX_OFFSET,(short)(index&0xffff));
     }
 
     public String getSourceDebugExtension() {
@@ -292,27 +362,27 @@ public class InstanceKlass extends Klass {
     public static final int classState_fully_initialized = JVM.intConstant("InstanceKlass::fully_initialized");
     public static final int classState_initialization_error = JVM.intConstant("InstanceKlass::initialization_error");
 
-    public boolean is_loaded() {
+    public boolean isLoaded() {
         return this.getInitState() >= classState_loaded;
     }
 
-    public boolean is_linked() {
+    public boolean isLinked() {
         return this.getInitState() >= classState_linked;
     }
 
-    public boolean is_initialized() {
+    public boolean isInitialized() {
         return this.getInitState() == classState_fully_initialized;
     }
 
-    public boolean is_not_initialized() {
+    public boolean isNotInitialized() {
         return this.getInitState() < classState_being_initialized;
     }
 
-    public boolean is_being_initialized() {
+    public boolean isBeingInitialized() {
         return this.getInitState() == classState_being_initialized;
     }
 
-    public boolean is_in_error_state() {
+    public boolean isInErrorState() {
         return this.getInitState() == classState_initialization_error;
     }
 
@@ -331,6 +401,82 @@ public class InstanceKlass extends Klass {
     public void setMiscFlags(int flags) {
         unsafe.putShort(this.address + MISC_FLAGS_OFFSET, (short) (flags & 0xffff));
     }
+
+    public boolean isSharedBootClass() {
+        return (this.getMiscFlags() & MiscFlags.IS_SHARED_BOOT_CLASS) != 0;
+    }
+    public boolean isSharedPlatformClass() {
+        return (this.getMiscFlags() & MiscFlags.IS_SHARED_PLATFORM_CLASS) != 0;
+    }
+    public boolean isSharedAppClass() {
+        return (this.getMiscFlags() & MiscFlags.IS_SHARED_APP_CLASS) != 0;
+    }
+    // The UNREGISTERED class loader type
+    public boolean isSharedUnregisteredClass() {
+        return (this.getMiscFlags() & sharedLoaderTypeBits()) == 0;
+    }
+
+    public boolean isShareable()  {
+        if (JVM.includeCDS){
+            ClassLoaderData loader_data = this.getClassLoaderData();
+            if (!((loader_data.getClassLoader() == null ||
+                    loader_data.getClassLoader()==ClassLoader.getSystemClassLoader() ||
+                    loader_data.getClassLoader()==ClassLoader.getPlatformClassLoader()))) {
+                return false;
+            }
+
+            if (this.isHidden()) {
+                return false;
+            }
+
+            if (module().isPatched()) {
+                return false;
+            }
+
+            return true;
+        }else {
+            return false;
+        }
+    }
+
+    public ModuleEntry module() {
+        if (this.isHidden() &&
+                in_unnamed_package() &&
+                this.getClassLoaderData().hasClassMirrorHolder()) {
+            // For a non-strong hidden class defined to an unnamed package,
+            // its (class held) CLD will not have an unnamed module created for it.
+            // Two choices to find the correct ModuleEntry:
+            // 1. If hidden class is within a nest, use nest host's module
+            // 2. Find the unnamed module off from the class loader
+            // For now option #2 is used since a nest host is not set until
+            // after the instance class is created in jvm_lookup_define_class().
+            if (this.getClassLoaderData().isBootClassLoaderData()) {
+                return ClassLoaderData.nullClassLoaderData.getUnnamedModule();
+            } else {
+                throw new RuntimeException();
+//                oop module = java_lang_ClassLoader::unnamedModule(class_loader_data()->class_loader());
+//                assert(java_lang_Module::is_instance(module), "Not an instance of java.lang.Module");
+//                return java_lang_Module::module_entry(module);
+            }
+        }
+
+        // Class is in a named package
+        if (!in_unnamed_package()) {
+            return this.getPackage().getModule();
+        }
+
+        // Class is in an unnamed package, return its loader's unnamed module
+        return this.getClassLoaderData().getUnnamedModule();
+    }
+
+    public void clearSharedClassLoaderType() {
+        this.setMiscFlags(this.getMiscFlags()& ~sharedLoaderTypeBits());
+    }
+
+    public int sharedLoaderTypeBits() {
+        return MiscFlags.IS_SHARED_BOOT_CLASS|MiscFlags.IS_SHARED_PLATFORM_CLASS|MiscFlags.IS_SHARED_APP_CLASS;
+    }
+
 
     @Nullable
     public Thread getInitThread() {
@@ -384,7 +530,7 @@ public class InstanceKlass extends Klass {
 //        }
 //    }
 
-    public boolean remove_osr_nmethod(NMethod n) {
+    public boolean removeOsrNMethod(NMethod n) {
         if (!n.isOsrMethod()) {
             throw new IllegalArgumentException("wrong kind of nmethod");
         }
@@ -484,6 +630,30 @@ public class InstanceKlass extends Klass {
         return null;
     }
 
+    public Method methodWithIdNum(int idnum) {
+        Method m = null;
+        VMTypeArray<Method> methods = this.getMethods();
+        if (idnum < methods.length()) {
+            m = methods.get(idnum);
+        }
+        if (m == null || m.getConstMethod().getMethodID() != idnum) {
+//            for (int index = 0; index < methods()->length(); ++index) {
+//                m = methods()->at(index);
+//                if (m->method_idnum() == idnum) {
+//                    return m;
+//                }
+//            }
+            for (Method method : methods) {
+                if (method.getConstMethod().getMethodID() == idnum) {
+                    return method;
+                }
+            }
+            // None found, return null for the caller to handle.
+            return null;
+        }
+        return m;
+    }
+
     public VMTypeArray<Method> getMethods() {
         long addr = unsafe.getAddress(this.address + METHODS_OFFSET);
         if (!JVMObject.isEqual(this.methodsCache, addr)) {
@@ -544,6 +714,28 @@ public class InstanceKlass extends Klass {
         unsafe.putAddress(this.address+FIELDS_OFFSET,fields.address);
     }
 
+    public IntArray getMethodOrdering(){
+        long addr = unsafe.getAddress(this.address + METHOD_ORDERING_OFFSET);
+        if (!JVMObject.isEqual(this.methodOrderingCache, addr)) {
+            this.methodOrderingCache = new IntArray(addr);
+        }
+        return this.methodOrderingCache;
+    }
+
+    public void setMethodOrdering(IntArray methodOrdering) {
+        unsafe.putAddress(this.address+METHOD_ORDERING_OFFSET,methodOrdering.address);
+    }
+
+    public FieldInfo getField(int index){
+        return FieldInfo.from_field_array(this.getFields(), index);
+    }
+
+    public int     getFieldOffset      (int index) { return getField(index).getOffset(); }
+    public AccessFlags     getFieldAccessFlags(int index) { return getField(index).getAccessFlags(); }
+    public Symbol getFieldName        (int index) { return getField(index).getName(this.getConstantPool()); }
+    public Symbol getFieldSignature   (int index) { return getField(index).getSignature(this.getConstantPool()); }
+
+
     @Override
     public void setAccessible() {
         super.setAccessible();
@@ -563,7 +755,7 @@ public class InstanceKlass extends Klass {
 
     @Nullable
     public BreakpointInfo getBreakpointInfo() {
-        if (!JVM.isJVMTISupported) {
+        if (!JVM.includeJVMTI) {
             return null;
         }
         long addr = unsafe.getAddress(this.address + BREAKPOINTS_OFFSET);
@@ -577,7 +769,7 @@ public class InstanceKlass extends Klass {
     }
 
     public void setBreakpointInfo(@Nullable BreakpointInfo info) {
-        if (JVM.isJVMTISupported) {
+        if (JVM.includeJVMTI) {
             unsafe.putAddress(this.address + BREAKPOINTS_OFFSET, info == null ? 0L : info.address);
         }
     }
@@ -628,9 +820,12 @@ public class InstanceKlass extends Klass {
         public static final int HAS_NONSTATIC_CONCRETE_METHODS = JVM.intConstant("InstanceKlass::_misc_has_nonstatic_concrete_methods");
         public static final int DECLARES_NONSTATIC_CONCRETE_METHODS = JVM.intConstant("InstanceKlass::_misc_declares_nonstatic_concrete_methods");
         public static final int HAS_BEEN_REDEFINED = JVM.intConstant("InstanceKlass::_misc_has_been_redefined");
+        public static final int SHARED_LOADING_FAILED=1 << 8;
         public static final int IS_SCRATCH_CLASS = JVM.intConstant("InstanceKlass::_misc_is_scratch_class");
         public static final int IS_SHARED_BOOT_CLASS = JVM.intConstant("InstanceKlass::_misc_is_shared_boot_class");
         public static final int IS_SHARED_PLATFORM_CLASS = JVM.intConstant("InstanceKlass::_misc_is_shared_platform_class");
         public static final int IS_SHARED_APP_CLASS = JVM.intConstant("InstanceKlass::_misc_is_shared_app_class");
+        public static final int HAS_RESOLVED_METHODS=1 << 13;
+        public static final int HAS_CONTENDED_ANNOTATIONS=1 << 14;
     }
 }

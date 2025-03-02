@@ -42,7 +42,7 @@ public class JVMFlag extends JVMObject {
     }
 
     public boolean getBool(){
-        if (JVM.ASSERTS_ENABLED){
+        if (JVM.ENABLE_EXTRA_CHECK){
             if (this.getType()!=0){
                 throw new AssertionError("This JVMFlag is not a bool flag");
             }
@@ -51,7 +51,7 @@ public class JVMFlag extends JVMObject {
     }
 
     public void setBool(boolean b){
-        if (JVM.ASSERTS_ENABLED){
+        if (JVM.ENABLE_EXTRA_CHECK){
             if (this.getType()!=0){
                 throw new AssertionError("This JVMFlag is not a bool flag");
             }
@@ -60,7 +60,7 @@ public class JVMFlag extends JVMObject {
     }
 
     public int getInt(){
-        if (JVM.ASSERTS_ENABLED){
+        if (JVM.ENABLE_EXTRA_CHECK){
             if (this.getType()!=1){
                 throw new AssertionError("This JVMFlag is not a int flag");
             }
@@ -69,7 +69,7 @@ public class JVMFlag extends JVMObject {
     }
 
     public void setInt(int i){
-        if (JVM.ASSERTS_ENABLED){
+        if (JVM.ENABLE_EXTRA_CHECK){
             if (this.getType()!=1){
                 throw new AssertionError("This JVMFlag is not a int flag");
             }
@@ -78,7 +78,7 @@ public class JVMFlag extends JVMObject {
     }
 
     public long getIntx(){
-        if (JVM.ASSERTS_ENABLED){
+        if (JVM.ENABLE_EXTRA_CHECK){
             if (this.getType()!=3){
                 throw new AssertionError("This JVMFlag is not a intx flag");
             }
@@ -87,7 +87,7 @@ public class JVMFlag extends JVMObject {
     }
 
     public void setIntx(long l){
-        if (JVM.ASSERTS_ENABLED){
+        if (JVM.ENABLE_EXTRA_CHECK){
             if (this.getType()!=3){
                 throw new AssertionError("This JVMFlag is not a intx flag");
             }

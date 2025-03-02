@@ -7,35 +7,35 @@ public class JavaFieldStream extends FieldStreamBase {
         super(k.getFields(), k.getConstantPool(), 0, k.getFieldsCount());
     }
 
-    public int name_index() {
+    public int nameIndex() {
         if (field().isInternal()) {
             throw new IllegalStateException("regular only");
         }
         return field().getNameIndex();
     }
 
-    public void set_name_index(int index) {
+    public void setNameIndex(int index) {
         if (field().isInternal()) {
             throw new IllegalStateException("regular only");
         }
         field().setNameIndex(index);
     }
 
-    public int signature_index() {
+    public int signatureIndex() {
         if (field().isInternal()) {
             throw new IllegalStateException("regular only");
         }
         return field().getSignatureIndex();
     }
 
-    public void set_signature_index(int index) {
+    public void setSignatureIndex(int index) {
         if (field().isInternal()) {
             throw new IllegalStateException("regular only");
         }
         field().setSignatureIndex(index);
     }
 
-    public int generic_signature_index() {
+    public int genericSignatureIndex() {
         if (field().isInternal()) {
             throw new IllegalStateException("regular only");
         }
@@ -49,7 +49,7 @@ public class JavaFieldStream extends FieldStreamBase {
         }
     }
 
-    public void set_generic_signature_index(int index) {
+    public void setGenericSignatureIndex(int index) {
         if (field().isInternal()) {
             throw new IllegalStateException("regular only");
         }
@@ -61,14 +61,14 @@ public class JavaFieldStream extends FieldStreamBase {
         }
     }
 
-    public int initval_index() {
+    public int initvalIndex() {
         if (field().isInternal()) {
             throw new IllegalStateException("regular only");
         }
         return field().getInitialValueIndex();
     }
 
-    public void set_initval_index(int index) {
+    public void setInitvalIndex(int index) {
         if (field().isInternal()) {
             throw new IllegalStateException("regular only");
         }
