@@ -8,6 +8,8 @@ import apphhzp.lib.hotspot.JVMObject;
 import apphhzp.lib.hotspot.oops.constant.ConstantPool;
 import apphhzp.lib.hotspot.oops.constant.Utf8Constant;
 import apphhzp.lib.hotspot.oops.klass.Klass;
+import com.sun.jna.Function;
+import com.sun.jna.Pointer;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2BooleanMap;
@@ -34,6 +36,7 @@ public class Symbol extends JVMObject {
     public static final int FIRST_SID=JVM.intConstant("vmSymbols::FIRST_SID");
     public static final int SID_LIMIT=JVM.intConstant("vmSymbols::SID_LIMIT");
     public static final int MAX_LENGTH=JVM.intConstant("Symbol::max_symbol_length");
+    private static final Function new_symbol;
     private static final Int2ObjectMap<Symbol> cache=new Int2ObjectOpenHashMap<>();
     private static final Long2BooleanMap cached=new Long2BooleanOpenHashMap();
     private static final Object2ObjectMap<String,Symbol> vmSymbols=new Object2ObjectOpenHashMap<>();
@@ -55,6 +58,41 @@ public class Symbol extends JVMObject {
                 Symbol symbol=getVMSymbol(i);
                 vmSymbols.put(symbol.toString(),symbol);
             }
+            if (JVM.Functions.throw_klass_external_name_exception_function!=null){
+                long addr= Pointer.nativeValue(JVM.Functions.throw_klass_external_name_exception_function);
+                long offset=-1;
+                for (int i=0;i<10000;i++){
+                    if ((unsafe.getByte(addr+i)&0xffL)==0xcc){
+                        break;
+                    }
+                    if ((unsafe.getByte(addr+i)&0xff)==0x48&&
+                            (unsafe.getByte(addr+i+1)&0xff)==0x8b&&
+                            (unsafe.getByte(addr+i+2)&0xff)==0xc8&&
+                            (unsafe.getByte(addr+i+3)&0xff)==0xe8){
+                        offset=addr+i+3;
+                        break;
+                    }
+                }
+                if (offset!=-1){
+                    addr=offset+5+unsafe.getInt(offset+1);
+                    Function tmp=Function.getFunction(new Pointer(addr));
+                    boolean ok=false;
+                    try {
+                        String s=new String(Base64.getDecoder().decode("dmVyaWZ5IGl0"));
+                        ok= Symbol.of(Pointer.nativeValue(tmp.invokePointer(new Object[]{s, s.length()}))).toString().equals(s);
+                    }catch (Throwable t){
+                    }
+                    if (ok){
+                        new_symbol=tmp;
+                    }else {
+                        new_symbol=null;
+                    }
+                }else {
+                    new_symbol=null;
+                }
+            }else {
+                new_symbol=null;
+            }
         }catch (Throwable t){
             throw new RuntimeException(t);
         }
@@ -62,6 +100,10 @@ public class Symbol extends JVMObject {
     public static Symbol newSymbol(String s){
         if (s.length()>MAX_LENGTH) {
             throw new IllegalArgumentException("UTF8 string too large");
+        }
+        if (new_symbol!=null){
+            //new_symbol函数自带lookup_common，不需要缓存
+            return new Symbol(Pointer.nativeValue(new_symbol.invokePointer(new Object[]{s,s.length()})));
         }
         int hash = s.hashCode();
         if (cache.containsKey(hash)) {
@@ -76,6 +118,19 @@ public class Symbol extends JVMObject {
     }
 
     public static Symbol[] newSymbols(String[] arr){
+        if (new_symbol!=null){
+            Symbol[] re=new Symbol[arr.length];
+            for (int i = 0, arrLength = arr.length; i < arrLength; i++) {
+                String s = arr[i];
+                if (s.length() > MAX_LENGTH) {
+                    throw new IllegalArgumentException("UTF8 string too large");
+                } else {
+                    //new_symbol函数自带lookup_common，不需要缓存
+                    re[i]=new Symbol(Pointer.nativeValue(new_symbol.invokePointer(new Object[]{s,s.length()})));
+                }
+            }
+            return re;
+        }
         Symbol[] re=new Symbol[arr.length];
         ClassWriter cw=new ClassWriter(0);
         creater.accept(cw, 0);

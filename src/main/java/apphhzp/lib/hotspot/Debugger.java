@@ -15,6 +15,16 @@ import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
 import apphhzp.lib.hotspot.oops.klass.Klass;
 import apphhzp.lib.hotspot.oops.oop.OopDesc;
 import apphhzp.lib.natives.NativeUtil;
+import com.sun.jna.Function;
+import com.sun.jna.Pointer;
+
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.Random;
+
+import static apphhzp.lib.ClassHelper.unsafe;
 
 public final class Debugger {
     public static boolean isDebug=true;
@@ -94,16 +104,23 @@ public final class Debugger {
 
         System.err.println(test.val);
         System.err.println(Runtime1.blobFor(32).getName());
-
-
-//        long addr= Pointer.nativeValue(JVM.Functions.throw_and_post_jvmti_exception_function),end=Pointer.nativeValue(JVM.Functions.throw_klass_external_name_exception_function);
-//        //addr=unsafe.getAddress(addr);
-//        for (int i=0;addr+i<end;i++){
+        long st=System.nanoTime(),ed;
+        for (int i=1000;i<=500000;i++){
+            Symbol.newSymbol(String.valueOf(i));
+        }
+        ed=System.nanoTime();
+        System.err.println(ed-st);
+//        for (int i=0;;i++){
 //            System.err.println(Long.toHexString(unsafe.getByte(addr+i)&0xffL));
 //            if (i%8==0){
 //                System.err.println("0x"+Long.toHexString(unsafe.getLong(addr+i)));
 //            }
+//            if ((unsafe.getByte(addr+i)&0xffL)==0xcc){
+//                break;
+//            }
 //        }
+        //Pointer pointer=new_symbol.invokePointer(new Object[]{"saddsadffdas"});
+        //System.err.println(Symbol.of(Pointer.nativeValue(pointer)));
 //        Function function=Function.getFunction(new Pointer(JVM.lookupSymbol("psd")));
 //        for (CodeHeap heap:CodeCache.getHeaps()){
 //            for (CodeBlob blob:heap){
