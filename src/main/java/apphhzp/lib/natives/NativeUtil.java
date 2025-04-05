@@ -1,6 +1,9 @@
 package apphhzp.lib.natives;
 
+import apphhzp.lib.ClassHelper;
 import apphhzp.lib.api.ObjectInstrumentation;
+import apphhzp.lib.helfy.JVM;
+import apphhzp.lib.hotspot.runtime.JavaThread;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -83,4 +86,10 @@ public final class NativeUtil {
     public static native Object[] getObjectsWithTag(long tag);
     public static native <T> T[] getInstancesOfClass(Class<T> klass);
     public static native ObjectInstrumentation createObjectInstrumentationImpl();
+//    public static void createThread(CppThreadTask task){
+//        if (ClassHelper.isHotspotJVM){
+//            createThread(task, JavaThread.JNI_ATTACH_STATE_OFFSET);
+//        }
+//    }
+    public static native void createThread(Runnable task,String name);
 }

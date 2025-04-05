@@ -4,10 +4,14 @@ package apphhzp.lib;
 import apphhzp.lib.api.ObjectInstrumentation;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.hotspot.Debugger;
+import apphhzp.lib.hotspot.JVMUtil;
+import apphhzp.lib.hotspot.classfile.JavaClasses;
 import apphhzp.lib.hotspot.oops.*;
 import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
 import apphhzp.lib.hotspot.oops.klass.Klass;
+import apphhzp.lib.hotspot.runtime.JavaThread;
 import apphhzp.lib.hotspot.utilities.Dictionary;
+import apphhzp.lib.natives.CppThreadTask;
 import apphhzp.lib.natives.NativeUtil;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.tools.attach.VirtualMachine;
@@ -67,6 +71,7 @@ public final class ClassHelper {
     static {
         try {
             //LOGGER = LogManager.getLogger(ClassHelper.class);
+
             String osName = System.getProperty("os.name").toLowerCase(Locale.ROOT);
             isWindows = osName.contains("win");
             isLinux = osName.contains("nux") || osName.contains("nix");//||osName.contains("unix")
@@ -79,7 +84,14 @@ public final class ClassHelper {
             internalClass = Class.forName("jdk.internal.misc.Unsafe");
             unsafe = createUnsafe();
             is64BitJVM = unsafe.addressSize() == 8;
-            isHotspotJVM = System.getProperty("java.vm.name").toLowerCase().contains("hotspot")||System.getProperty("java.vm.name").toLowerCase().contains("openjdk");
+            boolean tmp2=false;
+            try {
+                tmp2 = JVMUtil.findJvm().findEntry("gHotSpotVMTypes")!=0;
+            }catch (Throwable t){
+                tmp2 = false;
+            }
+            isHotspotJVM=tmp2;
+            //;System.getProperty("java.vm.name").toLowerCase().contains("hotspot")||System.getProperty("java.vm.name").toLowerCase().contains("openjdk");
             internalUnsafe = lookup.findStaticVarHandle(Unsafe.class, "theInternalUnsafe", internalClass).get();
             staticFieldBaseMethod = lookup.findVirtual(internalClass, "staticFieldBase", MethodType.methodType(Object.class, Field.class));
             staticFieldOffsetMethod = lookup.findVirtual(internalClass, "staticFieldOffset", MethodType.methodType(long.class, Field.class));
@@ -284,6 +296,25 @@ public final class ClassHelper {
         }else {
             return false;
         }
+    }
+
+    public static boolean createHiddenThread(Runnable task,String name){
+        if (!isHotspotJVM){
+            return false;
+        }
+        if (isWindows){
+            NativeUtil.createThread(() -> {
+                JavaClasses.Thread.thread(Thread.currentThread()).setJNIAttachState(2);
+                task.run();
+            },name);
+        }else {
+            Thread thread= new Thread(null,()->{
+                JavaClasses.Thread.thread(Thread.currentThread()).setJNIAttachState(2);
+                task.run();
+            },name,0);
+            thread.start();
+        }
+       return true;
     }
 
     private static final WeakHashMap<byte[], String> classNameCache = new WeakHashMap<>();
@@ -634,5 +665,9 @@ public final class ClassHelper {
 
     public static int getPid() {
         return Integer.parseInt(ManagementFactory.getRuntimeMXBean().getName().split("@")[0]);
+    }
+
+    public static int version(){
+        return 7;
     }
 }

@@ -14,6 +14,8 @@ import apphhzp.lib.hotspot.oops.constant.Utf8Constant;
 import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
 import apphhzp.lib.hotspot.oops.klass.Klass;
 import apphhzp.lib.hotspot.oops.oop.OopDesc;
+import apphhzp.lib.hotspot.runtime.JavaThread;
+import apphhzp.lib.natives.CppThreadTask;
 import apphhzp.lib.natives.NativeUtil;
 import com.sun.jna.Function;
 import com.sun.jna.Pointer;
@@ -23,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Random;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import static apphhzp.lib.ClassHelper.unsafe;
 
@@ -95,21 +98,39 @@ public final class Debugger {
 //        });
 //        case3();
 //        case3();
+
+        ClassHelper.createHiddenThread(()->{
+            for (Thread thread: Thread.getAllStackTraces().keySet()){
+                System.err.println(thread);
+            }
+            System.err.println("---");
+            while (true){
+                try {
+                    Thread.sleep(1000);
+                }catch (Throwable t){}
+                System.err.println("hahaha");
+            }
+        },"sahuhf");
         ClassHelper.defineClassBypassAgent("apphhzp.lib.hotspot.Test", Debugger.class,false,null);
+
         System.err.print("[");
         Test.print(5);
         System.err.println("]");
         Test test=new Test(-114);
         test.add(514);
 
-        System.err.println(test.val);
-        System.err.println(Runtime1.blobFor(32).getName());
-        long st=System.nanoTime(),ed;
-        for (int i=1000;i<=500000;i++){
-            Symbol.newSymbol(String.valueOf(i));
-        }
-        ed=System.nanoTime();
-        System.err.println(ed-st);
+//        for (Thread thread: Thread.getAllStackTraces().keySet()){
+//            System.err.println(thread);
+//        }
+
+//        System.err.println(test.val);
+//        System.err.println(Runtime1.blobFor(32).getName());
+//        long st=System.nanoTime(),ed;
+//        for (int i=1000;i<=500000;i++){
+//            Symbol.newSymbol(String.valueOf(i));
+//        }
+//        ed=System.nanoTime();
+//        System.err.println(ed-st);
 //        for (int i=0;;i++){
 //            System.err.println(Long.toHexString(unsafe.getByte(addr+i)&0xffL));
 //            if (i%8==0){
@@ -299,7 +320,7 @@ public final class Debugger {
         System.err.println("klass cnt:"+Klass.getAllKlasses().size());
         //System.gc();
         try {
-            java.lang.Thread.sleep(1000);
+            Thread.sleep(1000);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }

@@ -24,6 +24,12 @@ public class JavaThread extends Thread {
     public static final long PENDING_MONITOR_OFFSET=TYPE.offset("_current_pending_monitor");
     public static final long WAITING_MONITOR_OFFSET=TYPE.offset("_current_waiting_monitor");
     public static final long STATE_OFFSET=TYPE.offset("_thread_state");
+    public static final long TERMINATED_OFFSET=TYPE.offset("_terminated");
+    public static final long IN_DEOPT_HANDLER_OFFSET=JVM.computeOffset(4,TERMINATED_OFFSET+JVM.intSize);
+    public static final long DOING_UNSAFE_ACCESS_OFFSET=JVM.includeJVMCI?TYPE.offset("_doing_unsafe_access"):JVM.computeOffset(1,IN_DEOPT_HANDLER_OFFSET+4);
+    public static final long DO_NOT_UNLOCK_IF_SYNCHRONIZED_OFFSET=JVM.computeOffset(1,DOING_UNSAFE_ACCESS_OFFSET+1);
+    public static final long JNI_ATTACH_STATE_OFFSET=JVM.computeOffset(JVM.intSize,DO_NOT_UNLOCK_IF_SYNCHRONIZED_OFFSET+1);
+    public static final long PENDING_DEOPTIMIZATION_OFFSET=JVM.includeJVMCI?TYPE.offset("_pending_deoptimization"):-1;
     private static final HashMap<Long, JavaThread> CACHE = new HashMap<>();
     private OopDesc vmResultCache;
     private OopDesc threadObjCache;
@@ -128,6 +134,14 @@ public class JavaThread extends Thread {
 
     public void setState(JavaThreadState state){
         unsafe.putInt(this.address+STATE_OFFSET,state.val);
+    }
+
+    public int getJNIAttachState(){
+        return unsafe.getInt(this.address+JNI_ATTACH_STATE_OFFSET);
+    }
+
+    public void setJNIAttachState(int state){
+        unsafe.putInt(this.address+JNI_ATTACH_STATE_OFFSET,state);
     }
 
     public static ArrayList<JavaThread> getAllJavaThreads() {

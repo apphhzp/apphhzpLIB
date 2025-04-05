@@ -1,23 +1,26 @@
 package apphhzp.lib.hotspot.classfile;
 
+import apphhzp.lib.ClassHelper;
+import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.hotspot.oops.ClassLoaderData;
 import apphhzp.lib.hotspot.oops.oop.OopDesc;
+import apphhzp.lib.hotspot.runtime.JavaThread;
 import apphhzp.lib.hotspot.stream.AllFieldStream;
+
+import javax.annotation.Nullable;
+import java.lang.invoke.VarHandle;
 
 import static apphhzp.lib.ClassHelper.unsafe;
 
 public class JavaClasses {
     public static class ClassLoader{
         public static final long loader_data_offset;
-        public static final boolean isJavaLong;
         static {
             int ld_offset =-1;
-            boolean flag=true;
             for (AllFieldStream stream = new AllFieldStream(VMClasses.classLoaderKlass()); !stream.done(); stream.next()){
                 if (stream.field().isInternal()){
                     if(stream.getName().toString().equals("loader_data")){
                         ld_offset =stream.getOffset();
-                        flag=stream.field().getSignature(VMClasses.classLoaderKlass().getConstantPool()).toString().equals("J");
                     }
                 }
             }
@@ -25,14 +28,10 @@ public class JavaClasses {
                 throw new RuntimeException("Could not get loader_data_offset");
             }
             loader_data_offset= ld_offset;
-            isJavaLong=flag;
         }
 
         public static long getPointerFrom(java.lang.ClassLoader loader){
-            if (isJavaLong){
-                return unsafe.getLong(loader, loader_data_offset);
-            }
-            return unsafe.getInt(loader, loader_data_offset);
+            return JVM.oopSize==8?unsafe.getLong(loader, loader_data_offset): unsafe.getInt(loader, loader_data_offset);
         }
 
         public static ClassLoaderData loader_data_acquire(OopDesc loader) {
@@ -66,7 +65,6 @@ public class JavaClasses {
         public static final long oop_size_offset;
         static {
             int ld_offset =-1;
-            boolean flag=true;
             for (AllFieldStream stream = new AllFieldStream(VMClasses.classLoaderKlass()); !stream.done(); stream.next()){
                 if (stream.field().isInternal()){
                     if(stream.getName().toString().equals("oop_size")){
@@ -80,8 +78,27 @@ public class JavaClasses {
             oop_size_offset= ld_offset;
         }
 
-        public static int getOopSizeRaw(OopDesc oop){
-            return unsafe.getInt(oop.getObject(),oop_size_offset);
+        public static int getOopSizeRaw(java.lang.Class<?> oop){
+            return unsafe.getInt(oop,oop_size_offset);
+        }
+    }
+
+    public static class Thread{
+        public static final VarHandle eetopGetter;
+        static {
+            try {
+                eetopGetter= ClassHelper.lookup.findVarHandle(java.lang.Thread.class,"eetop",long.class);
+            } catch (Throwable throwable){
+                throw new RuntimeException(throwable);
+            }
+        }
+
+        public static JavaThread thread(java.lang.Thread thread){
+            return JavaThread.getOrCreate((Long) eetopGetter.get(thread));
+        }
+
+        public static void setThread(java.lang.Thread thread,@Nullable JavaThread newThread){
+            eetopGetter.set(thread,newThread==null?0L:newThread.address);
         }
     }
 }

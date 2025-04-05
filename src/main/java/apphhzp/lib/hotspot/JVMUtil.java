@@ -17,9 +17,9 @@ public class JVMUtil {
     public static final MethodHandle open;
     public static final MethodHandle find;
     public static NativeLibrary findJvm() throws Throwable {
-        if (!isHotspotJVM){
-            return entry->0;
-        }
+//        if (!isHotspotJVM){
+//            return entry->0;
+//        }
         Path jvmDir = Paths.get(System.getProperty("java.home"));
         Path maybeJre = jvmDir.resolve("jre");
         if (Files.isDirectory(maybeJre)) {

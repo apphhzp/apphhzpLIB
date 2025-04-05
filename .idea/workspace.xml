@@ -6,8 +6,18 @@
   <component name="ChangeListManager">
     <list default="true" id="9ca22632-21c7-4fc4-930f-2cd8a2ab25e0" name="更改" comment="...">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apphhzpLIB.dll" beforeDir="false" afterPath="$PROJECT_DIR$/apphhzpLIB.dll" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build.gradle" beforeDir="false" afterPath="$PROJECT_DIR$/build.gradle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/ClassHelper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/ClassHelper.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/Debugger.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/Debugger.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oops/Symbol.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oops/Symbol.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/JVMUtil.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/JVMUtil.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/JavaClasses.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/JavaClasses.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/VMClasses.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/VMClasses.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oops/klass/InstanceMirrorKlass.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oops/klass/InstanceMirrorKlass.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/runtime/JavaThread.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/runtime/JavaThread.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/natives/NativeUtil.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/natives/NativeUtil.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/META-INF/mods.toml" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/META-INF/mods.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/apphhzpLIB.dll" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/apphhzpLIB.dll" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -103,7 +113,7 @@
     &quot;git-widget-placeholder&quot;: &quot;master&quot;,
     &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
     &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;D:/apphhzpLIB&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/apphhzpLIB/src/main/resources&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
@@ -118,8 +128,8 @@
 }</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
-      <recent name="D:\apphhzpLIB" />
       <recent name="D:\apphhzpLIB\src\main\resources" />
+      <recent name="D:\apphhzpLIB" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="D:\apphhzpLIB\src\main\resources" />
@@ -282,7 +292,13 @@
       <workItem from="1740902849462" duration="15000" />
       <workItem from="1741970305439" duration="2000" />
       <workItem from="1742021099715" duration="6999000" />
-      <workItem from="1742128486430" duration="271000" />
+      <workItem from="1742128486430" duration="1847000" />
+      <workItem from="1742617983174" duration="55000" />
+      <workItem from="1743317731999" duration="11381000" />
+      <workItem from="1743776725132" duration="545000" />
+      <workItem from="1743779143279" duration="1904000" />
+      <workItem from="1743825981387" duration="1539000" />
+      <workItem from="1743839548161" duration="546000" />
     </task>
     <task id="LOCAL-00001" summary=".">
       <option name="closed" value="true" />
@@ -436,7 +452,15 @@
       <option name="project" value="LOCAL" />
       <updated>1740891239133</updated>
     </task>
-    <option name="localTasksCounter" value="20" />
+    <task id="LOCAL-00020" summary="...">
+      <option name="closed" value="true" />
+      <created>1742128780244</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1742128780244</updated>
+    </task>
+    <option name="localTasksCounter" value="21" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

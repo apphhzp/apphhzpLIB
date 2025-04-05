@@ -14,7 +14,7 @@ public class InstanceMirrorKlass extends InstanceKlass{
 
     @Override
     public long oopSize(OopDesc oop) {
-        return JavaClasses.Class.getOopSizeRaw(oop);
+        return JavaClasses.Class.getOopSizeRaw(oop.getObject());
     }
 
     @Override
