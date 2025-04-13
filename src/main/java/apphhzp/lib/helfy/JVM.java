@@ -306,7 +306,7 @@ public final class JVM {
     }
 
     public static long getSymbol(String name) {
-        long address = JVM.findEntry(name);
+        long address = JVM.find(name);
         if (address == 0) {
             throw new NoSuchElementException("No such symbol: " + name);
         }
@@ -314,7 +314,7 @@ public final class JVM {
     }
 
     public static long lookupSymbol(String name) {
-        return JVM.findEntry(name);
+        return JVM.find(name);
     }
 
     public static Type type(String name) {
@@ -449,7 +449,7 @@ public final class JVM {
                     return 0L;
                 }
                 try {
-                    long addr = JVM.findEntry(vtblSymbol);
+                    long addr = JVM.find(vtblSymbol);
                     if (addr != 0L) {
                         type2vtblMap.put(type, addr);
                         return addr;

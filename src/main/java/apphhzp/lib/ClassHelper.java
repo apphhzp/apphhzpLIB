@@ -3,24 +3,22 @@ package apphhzp.lib;
 
 import apphhzp.lib.api.ObjectInstrumentation;
 import apphhzp.lib.helfy.JVM;
-import apphhzp.lib.hotspot.Debugger;
 import apphhzp.lib.hotspot.JVMUtil;
-import apphhzp.lib.hotspot.classfile.JavaClasses;
-import apphhzp.lib.hotspot.oops.*;
+import apphhzp.lib.hotspot.NativeLibrary;
+import apphhzp.lib.hotspot.oops.AccessFlags;
+import apphhzp.lib.hotspot.oops.ClassLoaderData;
+import apphhzp.lib.hotspot.oops.Symbol;
 import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
 import apphhzp.lib.hotspot.oops.klass.Klass;
-import apphhzp.lib.hotspot.runtime.JavaThread;
 import apphhzp.lib.hotspot.utilities.Dictionary;
-import apphhzp.lib.natives.CppThreadTask;
 import apphhzp.lib.natives.NativeUtil;
 import com.sun.jna.ptr.IntByReference;
-import com.sun.tools.attach.VirtualMachine;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import sun.misc.Unsafe;
 import sun.reflect.ReflectionFactory;
 
 import javax.annotation.Nullable;
+import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.lang.instrument.Instrumentation;
 import java.lang.invoke.MethodHandle;
@@ -28,13 +26,14 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.invoke.VarHandle;
 import java.lang.management.ManagementFactory;
-import java.lang.reflect.*;
+import java.lang.ref.Cleaner;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.security.AllPermission;
-import java.security.CodeSource;
-import java.security.Permissions;
-import java.security.ProtectionDomain;
+import java.security.*;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.jar.JarEntry;
@@ -49,6 +48,7 @@ public final class ClassHelper {
     public static final Unsafe unsafe;
     public static final Object internalUnsafe;
     private static final Class<?> internalClass;
+    private static final Class<?> nlImplClass;
     private static final MethodHandle staticFieldBaseMethod;
     private static final MethodHandle staticFieldOffsetMethod;
     private static final MethodHandle objectFieldOffsetMethod;
@@ -57,6 +57,26 @@ public final class ClassHelper {
     private static final MethodHandle lookupConstructor;
     private static final MethodHandle compareAndSetByteMethod;
     private static final MethodHandle findLoadedClassMethod;
+    private static final MethodHandle findBuiltinLibMethod;
+    private static final MethodHandle NL_IMPL_openMethod;
+    private static final MethodHandle NL_IMPL_findMethod;
+    private static final MethodHandle NL_IMLP_unloaderMethod;
+    private static final MethodHandle nlImplConstructor;
+    private static final MethodHandle findEntry0Method;
+    private static final MethodHandle isSystemDomainLoaderMethod;
+    private static final MethodHandle enqueueMethod;
+    private static final VarHandle eetopVar;
+    private static final VarHandle CL_librariesVar;
+    private static final VarHandle loadLibraryOnlyIfPresentVar;
+    private static final VarHandle NL_loadedLibraryNamesVar;
+    private static final VarHandle NL_loaderVar;
+    private static final VarHandle NL_librariesVar;
+    private static final VarHandle NL_nativeLibraryContextVar;
+    private static final VarHandle NL_IMPL_nameVar;
+    private static final VarHandle NL_IMPL_fromClassVar;
+    private static final VarHandle NL_isJNIVar;
+    private static final VarHandle APP_LOADERVar;
+    private static final VarHandle commonCleanerVar;
     @Nullable
     public static final Instrumentation instImpl;
     @Nullable
@@ -68,6 +88,7 @@ public final class ClassHelper {
     private static final IntByReference oldProtect;
     private static final Map<CodeSource, ProtectionDomain> pdCache;
     public static final Object JLA_INSTANCE;
+    public static final Object NATIVE_LIBS;
     static {
         try {
             //LOGGER = LogManager.getLogger(ClassHelper.class);
@@ -86,12 +107,13 @@ public final class ClassHelper {
             is64BitJVM = unsafe.addressSize() == 8;
             boolean tmp2=false;
             try {
-                tmp2 = JVMUtil.findJvm().findEntry("gHotSpotVMTypes")!=0;
+                tmp2 = JVMUtil.findJvm().find("gHotSpotVMTypes")!=0;
             }catch (Throwable t){
                 tmp2 = false;
             }
             isHotspotJVM=tmp2;
-            //;System.getProperty("java.vm.name").toLowerCase().contains("hotspot")||System.getProperty("java.vm.name").toLowerCase().contains("openjdk");
+            Class<?> nl=Class.forName("jdk.internal.loader.NativeLibraries");
+            nlImplClass=Class.forName("jdk.internal.loader.NativeLibraries$NativeLibraryImpl");
             internalUnsafe = lookup.findStaticVarHandle(Unsafe.class, "theInternalUnsafe", internalClass).get();
             staticFieldBaseMethod = lookup.findVirtual(internalClass, "staticFieldBase", MethodType.methodType(Object.class, Field.class));
             staticFieldOffsetMethod = lookup.findVirtual(internalClass, "staticFieldOffset", MethodType.methodType(long.class, Field.class));
@@ -101,7 +123,27 @@ public final class ClassHelper {
             JLA_defineClassMethod = lookup.findVirtual(Class.forName("jdk.internal.access.JavaLangAccess"), "defineClass", MethodType.methodType(Class.class, ClassLoader.class, Class.class, String.class, byte[].class, ProtectionDomain.class, boolean.class, int.class, Object.class));
             lookupConstructor = lookup.findConstructor(MethodHandles.Lookup.class, MethodType.methodType(void.class, Class.class, Class.class, int.class));
             findLoadedClassMethod=lookup.findVirtual(ClassLoader.class,"findLoadedClass", MethodType.methodType(Class.class, String.class));
-            //getUncompressedObjectMethod=lookup.findVirtual(internalClass, "getUncompressedObject", MethodType.methodType(Object.class, long.class));
+            findBuiltinLibMethod=lookup.findStatic(nl,"findBuiltinLib", MethodType.methodType(String.class,String.class));
+            NL_IMPL_openMethod=lookup.findVirtual(nlImplClass,"open",MethodType.methodType(boolean.class));
+            NL_IMPL_findMethod=lookup.findVirtual(nlImplClass,"find",MethodType.methodType(long.class,String.class));
+            NL_IMLP_unloaderMethod=lookup.findVirtual(nlImplClass,"unloader",MethodType.methodType(Runnable.class));
+            nlImplConstructor=lookup.findConstructor(nlImplClass,MethodType.methodType(void.class,Class.class,String.class,boolean.class,boolean.class));
+            findEntry0Method=lookup.findStatic(nl,"findEntry0", MethodType.methodType(long.class,nlImplClass,String.class));
+            isSystemDomainLoaderMethod=lookup.findStatic(Class.forName("jdk.internal.misc.VM"),"isSystemDomainLoader", MethodType.methodType(boolean.class,ClassLoader.class));
+            enqueueMethod=lookup.findStatic(Class.forName("sun.tools.attach.VirtualMachineImpl"),"enqueue",MethodType.methodType(void.class, long.class, byte[].class, String.class, String.class, Object[].class));
+
+            eetopVar= lookup.findVarHandle(Thread.class,"eetop",long.class);
+            CL_librariesVar =lookup.findVarHandle(ClassLoader.class,"libraries",nl);
+            loadLibraryOnlyIfPresentVar=lookup.findStaticVarHandle(nl,"loadLibraryOnlyIfPresent",boolean.class);
+            NL_loadedLibraryNamesVar =lookup.findStaticVarHandle(nl,"loadedLibraryNames",Set.class);
+            NL_loaderVar=lookup.findVarHandle(nl,"loader", ClassLoader.class);
+            NL_librariesVar=lookup.findVarHandle(nl,"libraries",Map.class);
+            NL_nativeLibraryContextVar=lookup.findStaticVarHandle(nl,"nativeLibraryContext", Deque.class);
+            NL_isJNIVar=lookup.findVarHandle(nl,"isJNI",boolean.class);
+            NL_IMPL_nameVar=lookup.findVarHandle(nlImplClass,"name",String.class);
+            NL_IMPL_fromClassVar=lookup.findVarHandle(nlImplClass,"fromClass",Class.class);
+            APP_LOADERVar=lookup.findStaticVarHandle(Class.forName("jdk.internal.loader.ClassLoaders"),"APP_LOADER", Class.forName("jdk.internal.loader.ClassLoaders$AppClassLoader"));
+            commonCleanerVar=lookup.findStaticVarHandle(Class.forName("jdk.internal.ref.CleanerFactory"),"commonCleaner", Cleaner.class);
             exportJDKInternalModule();
             if (isWindows) {
                 instImpl = NativeUtil.createInstrumentationImpl();
@@ -113,6 +155,7 @@ public final class ClassHelper {
             oldProtect = new IntByReference(1);
             pdCache = new HashMap<>();
             JLA_INSTANCE = lookup.unreflectVarHandle(Class.forName("jdk.internal.access.SharedSecrets").getDeclaredField("javaLangAccess")).get();
+            NATIVE_LIBS=lookup.unreflectVarHandle(Class.forName("jdk.internal.loader.BootLoader").getDeclaredField("NATIVE_LIBS")).get();
             //defineLibClass();
         } catch (Throwable throwable) {
             throw new ExceptionInInitializerError(throwable);
@@ -298,24 +341,156 @@ public final class ClassHelper {
         }
     }
 
-    public static boolean createHiddenThread(Runnable task,String name){
-        if (!isHotspotJVM){
-            return false;
-        }
-        if (isWindows){
-            NativeUtil.createThread(() -> {
-                JavaClasses.Thread.thread(Thread.currentThread()).setJNIAttachState(2);
-                task.run();
-            },name);
-        }else {
-            Thread thread= new Thread(null,()->{
-                JavaClasses.Thread.thread(Thread.currentThread()).setJNIAttachState(2);
-                task.run();
-            },name,0);
-            thread.start();
-        }
-       return true;
+    public static void createHiddenThread(Runnable task,String name){
+        Thread thread= new Thread(null, task,name);
+        thread.start();
+        eetopVar.set(thread,0L);
     }
+
+    public static NativeLibrary load(Class<?> call, String filename){
+        File file = new File(filename);
+        if (!file.isAbsolute()) {
+            throw new UnsatisfiedLinkError("Expecting an absolute path of the library: " + filename);
+        }
+        ClassLoader loader = call == null ? null : call.getClassLoader();
+        Object libs = loader != null ? CL_librariesVar.get(loader): NATIVE_LIBS;
+        NativeLibrary nl = loadLibrary(libs,call, file);
+        if (nl != null) {
+            return nl;
+        }
+        throw new UnsatisfiedLinkError("Can't load library: " + file);
+    }
+
+    public static NativeLibrary loadLibrary(Object nl,Class<?> fromClass, File file) {
+        try {
+            String name = (String) findBuiltinLibMethod.invoke(file.getName());
+            boolean isBuiltin = name != null;
+            if (!isBuiltin) {
+                name = AccessController.doPrivileged((PrivilegedAction<String>) () -> {
+                    try {
+                        if ((boolean)loadLibraryOnlyIfPresentVar.get() && !file.exists()) {
+                            return null;
+                        }
+                        return file.getCanonicalPath();
+                    } catch (IOException e) {
+                        return null;
+                    }
+                });
+                if (name == null) {
+                    return null;
+                }
+            }
+            return loadLibrary(nl,fromClass, name, isBuiltin);
+        }catch (Throwable t){
+            throw new RuntimeException(t);
+        }
+    }
+
+    public static NativeLibrary loadLibrary(Object nl,Class<?> fromClass, String name, boolean isBuiltin) {
+        ClassLoader loader = fromClass == null ? null : fromClass.getClassLoader();
+        if (NL_loaderVar.get(nl) != loader) {
+            throw new InternalError(fromClass.getName() + " not allowed to load library");
+        }
+        final Set<String> loadedLibraryNames=(Set<String>) NL_loadedLibraryNamesVar.get();
+        try {
+            synchronized (loadedLibraryNames) {
+                Object cached=((Map) NL_librariesVar.get(nl)).get(name);
+
+                if (cached != null) {
+                    return createFromNLIMPL(cached);
+                }
+
+                //Bypass this check!
+                /*if (loadedLibraryNames.contains(name)) {
+                    throw new UnsatisfiedLinkError("Native Library " + name +
+                            " already loaded in another classloader");
+                }*/
+
+
+                for (Object lib :(Deque)NL_nativeLibraryContextVar.get()) {
+                    if (name.equals(NL_IMPL_nameVar.get(lib))) {
+                        if (loader == ((Class<?>)NL_IMPL_fromClassVar.get(lib)).getClassLoader()) {
+                            return createFromNLIMPL(lib);
+                        } else {
+                            throw new UnsatisfiedLinkError("Native Library " +
+                                    name + " is being loaded in another classloader");
+                        }
+                    }
+                }
+                Object lib = nlImplConstructor.invoke(fromClass, name, isBuiltin, NL_isJNIVar.get(nl));
+                ((Deque)NL_nativeLibraryContextVar.get()).push(lib);
+                try {
+                    if (!(boolean)NL_IMPL_openMethod.invoke(lib) ) {
+                        return null;
+                    }
+                    boolean autoUnload = (boolean)NL_isJNIVar.get(nl) && !((boolean)isSystemDomainLoaderMethod.invoke(loader))
+                            && loader != APP_LOADERVar.get();
+                    if (autoUnload) {
+                        ((Cleaner)commonCleanerVar.get()).register(loader,(Runnable)NL_IMLP_unloaderMethod.invoke(lib));
+                    }
+                } finally {
+                    ((Deque)NL_nativeLibraryContextVar.get()).pop();
+                }
+                // register the loaded native library
+                loadedLibraryNames.add(name);
+                ((Map)NL_librariesVar.get(nl)).put(name, lib);
+                return createFromNLIMPL(lib);
+            }
+        }catch (Throwable t){
+            throw new RuntimeException(t);
+        }
+    }
+
+    private static NativeLibrary createFromNLIMPL(Object obj) {
+        try {
+            if (obj.getClass()!=nlImplClass){
+                throw new IllegalArgumentException(obj.toString());
+            }
+            return new NativeLibrary() {
+                @Override
+                public String name() {
+                    return (String) NL_IMPL_nameVar.get(obj);
+                }
+
+                @Override
+                public long find(String entry) {
+                    try {
+                        return (long) findEntry0Method.invoke(obj,entry);
+                    } catch (Throwable e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+
+                @Override
+                public boolean open() {
+                    try {
+                        return (boolean) NL_IMPL_openMethod.invoke(obj);
+                    } catch (Throwable e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            };
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+//    public static void runShellcode(byte[] payload) {
+//        apphhzp.lib.hotspot.oops.method.Method executor=Klass.asKlass(ShellcodeExecutor.class).asInstanceKlass().getMethod("run","()V");
+//        long addr=unsafe.allocateMemory(payload.length);
+//        for (int i=0;i<payload.length;++i){
+//            unsafe.putByte(ad+i,payload[i]);
+//        }
+//        //executor.setFromCompiledEntry(addr);
+//        //executor.setFromCompiledEntry(0L);
+//        //unsafe.freeMemory(addr);
+////        try {
+////            enqueueMethod.invoke(-1,payload,"enqueue","enqueue");
+////        } catch (Throwable e) {
+////            throw new RuntimeException(e);
+////        }
+//    }
 
     private static final WeakHashMap<byte[], String> classNameCache = new WeakHashMap<>();
 
@@ -328,7 +503,7 @@ public final class ClassHelper {
         int[] cpInfoOffsets;
         int int2, cpInfoSize, currentCpInfoIndex;
         byte val;
-        for (int2 = ((bytes[8] & 0xFF) << 8) | (bytes[9] & 0xFF), cpInfoOffsets = new int[int2], currentCpInfoIndex = 1;
+        for (int2 = (bytes[8] & 0xFF) << 8 | bytes[9] & 0xFF, cpInfoOffsets = new int[int2], currentCpInfoIndex = 1;
              currentCpInfoIndex < int2; offset += cpInfoSize) {
             cpInfoOffsets[currentCpInfoIndex++] = offset + 1;
             val = bytes[offset];
@@ -338,7 +513,7 @@ public final class ClassHelper {
                 cpInfoSize = 9;
                 currentCpInfoIndex++;
             } else if (val == 1) {
-                cpInfoSize = 3 + (((bytes[offset + 1] & 0xFF) << 8) | (bytes[offset + 2] & 0xFF));
+                cpInfoSize = 3 + ((bytes[offset + 1] & 0xFF) << 8 | bytes[offset + 2] & 0xFF);
                 if (cpInfoSize > int1) {
                     int1 = cpInfoSize;
                 }
@@ -351,15 +526,15 @@ public final class ClassHelper {
             }
         }
         char[] charBuffer = new char[int1];
-        int1 = (((bytes[offset + 2] & 0xFF) << 8) | (bytes[offset + 3] & 0xFF));
+        int1 = (bytes[offset + 2] & 0xFF) << 8 | bytes[offset + 3] & 0xFF;
         offset = cpInfoOffsets[int1];
         if (bytes[offset - 1] == 7) {
-            int1 = ((bytes[offset] & 0xFF) << 8) | (bytes[offset + 1] & 0xFF);
+            int1 = (bytes[offset] & 0xFF) << 8 | bytes[offset + 1] & 0xFF;
             if (int1 == 0) {
                 throw new ClassFormatError();
             }
             offset = cpInfoOffsets[int1];
-            int2 = offset + 2 + (((bytes[offset] & 0xFF) << 8) | (bytes[offset + 1] & 0xFF));
+            int2 = offset + 2 + ((bytes[offset] & 0xFF) << 8 | bytes[offset + 1] & 0xFF);
             offset += 2;
             int1 = 0;
             while (offset < int2) {
@@ -382,7 +557,7 @@ public final class ClassHelper {
         int offset = 10;
         int maxStringLength = 0;
         int currentByte;
-        int val = ((bytes[8] & 0xFF) << 8) | (bytes[9] & 0xFF);
+        int val = (bytes[8] & 0xFF) << 8 | bytes[9] & 0xFF;
         int[] cpInfoOffsets = new int[val];
         while (index < val) {
             cpInfoOffsets[index++] = offset + 1;
@@ -394,7 +569,7 @@ public final class ClassHelper {
                 cpInfoSize = 9;
                 index++;
             } else if (currentByte == 1) {
-                cpInfoSize = 3 + (((bytes[offset + 1] & 0xFF) << 8) | (bytes[offset + 2] & 0xFF));
+                cpInfoSize = 3 + ((bytes[offset + 1] & 0xFF) << 8 | bytes[offset + 2] & 0xFF);
                 if (cpInfoSize > maxStringLength) {
                     maxStringLength = cpInfoSize;
                 }
@@ -408,13 +583,13 @@ public final class ClassHelper {
             offset += cpInfoSize;
         }
         char[] charBuffer = new char[maxStringLength];
-        offset=cpInfoOffsets[((bytes[offset + 4] & 0xFF) << 8) | (bytes[offset + 5] & 0xFF)];
-        val = (((bytes[offset] & 0xFF) << 8) | (bytes[offset + 1] & 0xFF));
+        offset=cpInfoOffsets[(bytes[offset + 4] & 0xFF) << 8 | bytes[offset + 5] & 0xFF];
+        val = (bytes[offset] & 0xFF) << 8 | bytes[offset + 1] & 0xFF;
         if (offset == 0 || val == 0) {
             throw new ClassFormatError();
         }
         offset = cpInfoOffsets[val];
-        val = offset + 2 + (((bytes[offset] & 0xFF) << 8) | (bytes[offset + 1] & 0xFF));
+        val = offset + 2 + ((bytes[offset] & 0xFF) << 8 | bytes[offset + 1] & 0xFF);
         offset += 2;
         index = 0;
         while (offset < val) {
@@ -431,7 +606,7 @@ public final class ClassHelper {
     }
 
     public static String[] getInterfaceNames(byte[] bytes) {
-        int cnt = ((bytes[8] & 0xFF) << 8) | (bytes[9] & 0xFF);
+        int cnt = (bytes[8] & 0xFF) << 8 | bytes[9] & 0xFF;
         int[] cpInfoOffsets;
         int index = 1;
         int offset = 10;
@@ -448,7 +623,7 @@ public final class ClassHelper {
                 cpInfoSize = 9;
                 index++;
             } else if (currentByte == 1) {
-                cpInfoSize = 3 + (((bytes[offset + 1] & 0xFF) << 8) | (bytes[offset + 2] & 0xFF));
+                cpInfoSize = 3 + ((bytes[offset + 1] & 0xFF) << 8 | bytes[offset + 2] & 0xFF);
                 if (cpInfoSize > maxStringLength) {
                     maxStringLength = cpInfoSize;
                 }
@@ -462,19 +637,19 @@ public final class ClassHelper {
             offset += cpInfoSize;
         }
         index = offset + 6;
-        cnt = ((bytes[index] & 0xFF) << 8) | (bytes[index + 1] & 0xFF);
+        cnt = (bytes[index] & 0xFF) << 8 | bytes[index + 1] & 0xFF;
         String[] interfaces = new String[cnt];
         if (cnt > 0) {
             char[] charBuffer = new char[maxStringLength];
             for (int i = 0; i < cnt; ++i) {
                 index += 2;
-                offset = cpInfoOffsets[((bytes[index] & 0xFF) << 8) | (bytes[index + 1] & 0xFF)];
-                int constantPoolEntryIndex = ((bytes[offset] & 0xFF) << 8) | (bytes[offset + 1] & 0xFF);
+                offset = cpInfoOffsets[(bytes[index] & 0xFF) << 8 | bytes[index + 1] & 0xFF];
+                int constantPoolEntryIndex = (bytes[offset] & 0xFF) << 8 | bytes[offset + 1] & 0xFF;
                 if (offset == 0 || constantPoolEntryIndex == 0) {
                     throw new ClassFormatError();
                 }
                 offset = cpInfoOffsets[constantPoolEntryIndex];
-                int endOffset = offset + 2 + (((bytes[offset] & 0xFF) << 8) | (bytes[offset + 1] & 0xFF));
+                int endOffset = offset + 2 + ((bytes[offset] & 0xFF) << 8 | bytes[offset + 1] & 0xFF);
                 int strLength = 0;
                 offset += 2;
                 while (offset < endOffset) {
@@ -653,7 +828,7 @@ public final class ClassHelper {
                         byte[] dat = new byte[in.available()];
                         in.read(dat);
                         in.close();
-                        ClassHelper.defineClass(name,dat,caller.getClassLoader());
+                        defineClass(name,dat,caller.getClassLoader());
                     }
                 }
             }

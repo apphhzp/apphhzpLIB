@@ -2,7 +2,6 @@ package apphhzp.lib.hotspot;
 
 import apphhzp.lib.ClassHelper;
 import apphhzp.lib.helfy.JVM;
-import apphhzp.lib.hotspot.c1.Runtime1;
 import apphhzp.lib.hotspot.oops.ClassLoaderData;
 import apphhzp.lib.hotspot.oops.HeapVisitor;
 import apphhzp.lib.hotspot.oops.ObjectHeap;
@@ -14,26 +13,17 @@ import apphhzp.lib.hotspot.oops.constant.Utf8Constant;
 import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
 import apphhzp.lib.hotspot.oops.klass.Klass;
 import apphhzp.lib.hotspot.oops.oop.OopDesc;
-import apphhzp.lib.hotspot.runtime.JavaThread;
-import apphhzp.lib.natives.CppThreadTask;
 import apphhzp.lib.natives.NativeUtil;
-import com.sun.jna.Function;
-import com.sun.jna.Pointer;
 
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Random;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-
-import static apphhzp.lib.ClassHelper.unsafe;
+import java.lang.instrument.ClassFileTransformer;
+import java.lang.instrument.IllegalClassFormatException;
+import java.security.ProtectionDomain;
 
 public final class Debugger {
     public static boolean isDebug=true;
     private static int x1;
 
-    public static void main(String[] args) {//-XX:-UseCompressedOops  -XX:-UseCompressedClassPointers -XX:+UnlockDiagnosticVMOptions -XX:+PrintInlining
+    public static void main(String[] args) throws NoSuchFieldException, IllegalAccessException {//-XX:-UseCompressedOops  -XX:-UseCompressedClassPointers -XX:+UnlockDiagnosticVMOptions -XX:+PrintInlining
 //        {
 //            int i = 200;
 //            while (i-- > 0){
@@ -99,29 +89,50 @@ public final class Debugger {
 //        case3();
 //        case3();
 
-        ClassHelper.createHiddenThread(()->{
-            for (Thread thread: Thread.getAllStackTraces().keySet()){
-                System.err.println(thread);
+        ClassHelper.instImpl.addTransformer(new ClassFileTransformer() {
+            @Override
+            public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
+                if (className.startsWith("apphhzp/lib")){
+                    System.err.println("found: "+className);
+                }
+                return null;
             }
-            System.err.println("---");
-            while (true){
-                try {
-                    Thread.sleep(1000);
-                }catch (Throwable t){}
-                System.err.println("hahaha");
-            }
-        },"sahuhf");
-        ClassHelper.defineClassBypassAgent("apphhzp.lib.hotspot.Test", Debugger.class,false,null);
+        },true);
 
+        /*
+        * new byte[]{0x33, (byte) 0xC0, 0x50, (byte) 0xB8, 0x2E, 0x64, 0x6C, 0x6C,
+                     0x50, (byte) 0xB8, 0x65, 0x6C, 0x33, 0x32, 0x50, (byte) 0xB8,
+                     0x6B, 0x65, 0x72, 0x6E, 0x50, (byte) 0x8B, (byte) 0xC4, 0x50,
+                (byte) 0xB8, 0x7B, 0x1D, (byte) 0x80, 0x7C, (byte) 0xFF, (byte) 0xD0, 0x33,
+                (byte) 0xC0, 0x50, (byte) 0xB8, 0x2E, 0x65, 0x78, 0x65, 0x50,
+                (byte) 0xB8, 0x63, 0x61, 0x6C, 0x63, 0x50, (byte) 0x8B, (byte) 0xC4,
+                     0x6A, 0x05, 0x50, (byte) 0xB8, (byte) 0xAD, 0x23, (byte) 0x86, 0x7C,
+                (byte) 0xFF, (byte) 0xD0, 0x33, (byte) 0xC0, 0x50, (byte) 0xB8, (byte) 0xFA, (byte) 0xCA,
+                (byte) 0x81, 0x7C, (byte) 0xFF, (byte) 0xD0}
+        * */
+        ClassHelper.defineClassBypassAgent("apphhzp.lib.hotspot.Test", Debugger.class,false,null);
         System.err.print("[");
         Test.print(5);
         System.err.println("]");
         Test test=new Test(-114);
         test.add(514);
 
-//        for (Thread thread: Thread.getAllStackTraces().keySet()){
-//            System.err.println(thread);
-//        }
+        ClassHelper.createHiddenThread(()->{
+            //varHandle.set(Thread.currentThread(),0);
+            while (true){
+                System.err.println("azzz");
+                try {
+                    Thread.sleep(1000);
+                }catch (Throwable t){
+                }
+            }
+        },"azzz");
+        for (Thread obj: Thread.getAllStackTraces().keySet()){
+            System.err.println(obj);
+            if (obj.getName().equals("azzz")){
+                obj.suspend();
+            }
+        }
 
 //        System.err.println(test.val);
 //        System.err.println(Runtime1.blobFor(32).getName());

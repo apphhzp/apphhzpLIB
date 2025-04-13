@@ -1,9 +1,15 @@
 package apphhzp.lib.service;
 
 import apphhzp.lib.ClassHelper;
+import apphhzp.lib.ClassOption;
 import apphhzp.lib.CoremodHelper;
 import apphhzp.lib.hotspot.Debugger;
+import apphhzp.lib.hotspot.oops.AccessFlags;
+import apphhzp.lib.hotspot.oops.ClassLoaderData;
 import apphhzp.lib.hotspot.oops.Symbol;
+import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
+import apphhzp.lib.hotspot.oops.klass.Klass;
+import apphhzp.lib.hotspot.utilities.Dictionary;
 import cpw.mods.modlauncher.api.IEnvironment;
 import cpw.mods.modlauncher.api.ITransformationService;
 import cpw.mods.modlauncher.api.ITransformer;
@@ -14,6 +20,7 @@ import java.io.InputStream;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.security.ProtectionDomain;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
@@ -42,7 +49,6 @@ public class ApphhzpLibService implements ITransformationService {
 //        } catch (Throwable t) {
 //            throw new RuntimeException(t);
 //        }
-
         ClassHelper.defineClassesFromJar(ApphhzpLibService.class,s->true);
         CoremodHelper.coexist(ApphhzpLibService.class);
     }

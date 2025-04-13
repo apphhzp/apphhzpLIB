@@ -9,8 +9,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 
-import static apphhzp.lib.ClassHelper.isHotspotJVM;
-
 public class JVMUtil {
     public static final Class<?> nativeLibImpl;
     public static final MethodHandle constructor;
@@ -28,10 +26,13 @@ public class JVMUtil {
         jvmDir = jvmDir.resolve("bin");
         String os = System.getProperty("os.name").toLowerCase();
         Path pathToJvm;
+        String name;
         if (os.contains("win")) {
             pathToJvm = findFirstFile(jvmDir, "server/jvm.dll", "client/jvm.dll");
+            name="jvm.dll";
         } else if (os.contains("nix") || os.contains("nux")) {
             pathToJvm = findFirstFile(jvmDir, "lib/amd64/server/libjvm.so", "lib/i386/server/libjvm.so");
+            name="libjvm.so";
         } else {
             throw new RuntimeException("Unsupported OS (probably MacOS X): " + os);
         }
@@ -39,11 +40,19 @@ public class JVMUtil {
         //System.err.println(path);
         Object library = constructor.invoke(JVMUtil.class, path, false,true);
         open.invoke(library);
-        return entry -> {
-            try {
-                return (long) find.invoke(library, entry);
-            }catch (Throwable t){
-                throw new RuntimeException(t);
+        return new NativeLibrary() {
+            @Override
+            public String name() {
+                return name;
+            }
+
+            @Override
+            public long find(String entry) {
+                try {
+                    return (long) find.invoke(library, entry);
+                } catch (Throwable t) {
+                    throw new RuntimeException(t);
+                }
             }
         };
     }

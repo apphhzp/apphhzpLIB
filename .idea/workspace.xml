@@ -9,13 +9,14 @@
       <change beforePath="$PROJECT_DIR$/apphhzpLIB.dll" beforeDir="false" afterPath="$PROJECT_DIR$/apphhzpLIB.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/build.gradle" beforeDir="false" afterPath="$PROJECT_DIR$/build.gradle" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/ClassHelper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/ClassHelper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/helfy/JVM.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/helfy/JVM.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/Debugger.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/Debugger.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/JVMUtil.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/JVMUtil.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/JavaClasses.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/JavaClasses.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/VMClasses.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/classfile/VMClasses.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oops/klass/InstanceMirrorKlass.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oops/klass/InstanceMirrorKlass.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/runtime/JavaThread.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/runtime/JavaThread.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/NativeLibrary.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/NativeLibrary.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oops/Symbol.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oops/Symbol.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oops/constant/ConstantPoolCacheEntry.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/hotspot/oops/constant/ConstantPoolCacheEntry.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/natives/NativeUtil.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/natives/NativeUtil.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/apphhzp/lib/service/ApphhzpLibService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/apphhzp/lib/service/ApphhzpLibService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/resources/META-INF/mods.toml" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/META-INF/mods.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/resources/apphhzpLIB.dll" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/apphhzpLIB.dll" afterDir="false" />
     </list>
@@ -23,6 +24,9 @@
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="CodeInsightWorkspaceSettings">
+    <option name="optimizeImportsOnTheFly" value="true" />
   </component>
   <component name="ExternalProjectsData">
     <projectState path="$PROJECT_DIR$">
@@ -144,11 +148,14 @@
   <component name="RunAnythingCache">
     <option name="myCommands">
       <command value="git config --global http.sslVerify &quot;false&quot;" />
-      <command value="jhsdb hsdb" />
+      <command value="jstack 1140" />
+      <command value="jstack 14748" />
+      <command value="jstack 9252" />
       <command value="jps" />
+      <command value="jhsdb hsdb" />
     </option>
   </component>
-  <component name="RunManager" selected="应用程序.Debugger">
+  <component name="RunManager" selected="Gradle.apphhzpLIB [build]">
     <configuration name="Debugger" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="apphhzp.lib.hotspot.Debugger" />
       <module name="apphhzpLIB.main" />
@@ -298,7 +305,19 @@
       <workItem from="1743776725132" duration="545000" />
       <workItem from="1743779143279" duration="1904000" />
       <workItem from="1743825981387" duration="1539000" />
-      <workItem from="1743839548161" duration="546000" />
+      <workItem from="1743839548161" duration="3662000" />
+      <workItem from="1743848262230" duration="6914000" />
+      <workItem from="1743912781501" duration="119000" />
+      <workItem from="1743934109900" duration="375000" />
+      <workItem from="1744376778352" duration="1141000" />
+      <workItem from="1744421742726" duration="568000" />
+      <workItem from="1744426979604" duration="2385000" />
+      <workItem from="1744444952378" duration="14420000" />
+      <workItem from="1744515202629" duration="2728000" />
+      <workItem from="1744517967696" duration="2787000" />
+      <workItem from="1744535899142" duration="2392000" />
+      <workItem from="1744541339963" duration="22000" />
+      <workItem from="1744547561049" duration="974000" />
     </task>
     <task id="LOCAL-00001" summary=".">
       <option name="closed" value="true" />
@@ -460,7 +479,15 @@
       <option name="project" value="LOCAL" />
       <updated>1742128780244</updated>
     </task>
-    <option name="localTasksCounter" value="21" />
+    <task id="LOCAL-00021" summary="...">
+      <option name="closed" value="true" />
+      <created>1743840189269</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1743840189269</updated>
+    </task>
+    <option name="localTasksCounter" value="22" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

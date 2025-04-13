@@ -147,7 +147,7 @@ public class ConstantPoolCacheEntry extends JVMObject {
         return unsafe.getAddress(this.address + FLAGS_OFFSET);
     }
 
-    public int field_index() {
+    public int fieldIndex() {
         long flags = this.getFlags();
         if (is_field_entry(flags)) {
             return (int) (flags & 0xFFFFL);
@@ -155,7 +155,7 @@ public class ConstantPoolCacheEntry extends JVMObject {
         return -1;
     }
 
-    public int parameter_size() {
+    public int parameterSize() {
         long flags = this.getFlags();
         if (is_method_entry(flags)) {
             return (int) (flags & 0xFFL);
@@ -163,15 +163,15 @@ public class ConstantPoolCacheEntry extends JVMObject {
         return -1;
     }
 
-    public boolean has_appendix() {
+    public boolean hasAppendix() {
         return (this.getF1()!=0) && (this.getFlags() & (1 << has_appendix_shift)) != 0;
     }
 
-    public boolean has_local_signature() {
+    public boolean hasLocalSignature() {
         return (this.getF1()!=0) && (this.getFlags() & (1 << has_local_signature_shift)) != 0;
     }
 
-    public Method method_if_resolved(ConstantPool cpool) {
+    public Method methodIfResolved(ConstantPool cpool) {
         // Decode the action of set_method and set_interface_call
         int invoke_code = this.getB1();
         if (invoke_code != 0) {
@@ -185,7 +185,7 @@ public class ConstantPoolCacheEntry extends JVMObject {
                         return Method.getOrCreate(getF2());
                     case Bytecodes.Code._invokestatic:
                     case Bytecodes.Code._invokespecial:
-                        if (has_appendix()){
+                        if (hasAppendix()){
                             throw new RuntimeException();
                         }
                     case Bytecodes.Code._invokehandle:
@@ -198,24 +198,20 @@ public class ConstantPoolCacheEntry extends JVMObject {
         }
         invoke_code = this.getB2();
         if (invoke_code != 0) {
-            switch (invoke_code) {
-                case Bytecodes.Code._invokevirtual:
-                    if (isVFinal(this.getFlags())) {
-                        // invokevirtual
-                        if (!isVFinal(this.getFlags())){
-                            throw new RuntimeException();
-                        }
-                        return Method.getOrCreate(getF2());
-                    } else {
-                        int holder_index = cpool.uncached_klass_ref_index_at(this.getConstantPoolIndex());
-                        if (cpool.getTags().get(holder_index)==ConstantTag.Class) {
-                            Klass klass = cpool.getResolvedKlass(holder_index);
-                            return klass.getMethodAtVTable(this.f2AsIndex());
-                        }
+            if (invoke_code == Bytecodes.Code._invokevirtual) {
+                if (isVFinal(this.getFlags())) {
+                    // invokevirtual
+                    if (!isVFinal(this.getFlags())) {
+                        throw new RuntimeException();
                     }
-                    break;
-                default:
-                    break;
+                    return Method.getOrCreate(getF2());
+                } else {
+                    int holder_index = cpool.uncached_klass_ref_index_at(this.getConstantPoolIndex());
+                    if (cpool.getTags().get(holder_index) == ConstantTag.Class) {
+                        Klass klass = cpool.getResolvedKlass(holder_index);
+                        return klass.getMethodAtVTable(this.f2AsIndex());
+                    }
+                }
             }
         }
         return null;

@@ -2,8 +2,6 @@ package apphhzp.lib.natives;
 
 import apphhzp.lib.ClassHelper;
 import apphhzp.lib.api.ObjectInstrumentation;
-import apphhzp.lib.helfy.JVM;
-import apphhzp.lib.hotspot.runtime.JavaThread;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -29,32 +27,12 @@ public final class NativeUtil {
                 FileOutputStream fos = new FileOutputStream(f);
                 fos.write(dat);
                 fos.close();
-                System.load(f.getAbsolutePath());
+                ClassHelper.load(NativeUtil.class,f.getAbsolutePath());
             } catch (Throwable t) {
                 try {
-                    System.load(path);
-                }catch (UnsatisfiedLinkError error){
-                    path= s1 +"/apphhzpLIB2.dll";
-                    try {
-                        InputStream is = NativeUtil.class.getResourceAsStream("/apphhzpLIB.dll");
-                        //noinspection DataFlowIssue
-                        byte[] dat = new byte[is.available()];
-                        //noinspection ResultOfMethodCallIgnored
-                        is.read(dat);
-                        is.close();
-                        File f=new File(path);
-                        FileOutputStream fos = new FileOutputStream(f);
-                        fos.write(dat);
-                        fos.close();
-                        System.load(f.getAbsolutePath());
-                    }catch (Throwable throwable){
-                        try {
-                            System.load(path);
-                        }catch (Throwable throwable1){
-                            throw new RuntimeException(throwable1);
-                        }
-                    }
+                    ClassHelper.load(NativeUtil.class,path);
                 }catch (Throwable t2){
+                    t2.addSuppressed(t);
                     throw new RuntimeException(t2);
                 }
             }
@@ -86,10 +64,5 @@ public final class NativeUtil {
     public static native Object[] getObjectsWithTag(long tag);
     public static native <T> T[] getInstancesOfClass(Class<T> klass);
     public static native ObjectInstrumentation createObjectInstrumentationImpl();
-//    public static void createThread(CppThreadTask task){
-//        if (ClassHelper.isHotspotJVM){
-//            createThread(task, JavaThread.JNI_ATTACH_STATE_OFFSET);
-//        }
-//    }
     public static native void createThread(Runnable task,String name);
 }

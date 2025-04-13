@@ -131,6 +131,7 @@ public class Symbol extends JVMObject {
             }
             return re;
         }
+
         Symbol[] re=new Symbol[arr.length];
         ClassWriter cw=new ClassWriter(0);
         creater.accept(cw, 0);
