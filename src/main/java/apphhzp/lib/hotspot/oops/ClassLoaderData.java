@@ -6,7 +6,6 @@ import apphhzp.lib.hotspot.JVMObject;
 import apphhzp.lib.hotspot.classfile.*;
 import apphhzp.lib.hotspot.oops.klass.Klass;
 import apphhzp.lib.hotspot.oops.oop.Oop;
-import apphhzp.lib.hotspot.oops.oop.OopDesc;
 import apphhzp.lib.hotspot.oops.oop.WeakHandle;
 import apphhzp.lib.hotspot.utilities.Dictionary;
 import apphhzp.lib.hotspot.utilities.VMTypeGrowableArray;
@@ -17,7 +16,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.getUncompressedObject;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class ClassLoaderData extends JVMObject {
     public static final Type TYPE = JVM.type("ClassLoaderData");
@@ -244,10 +244,8 @@ public class ClassLoaderData extends JVMObject {
 
     @Nullable
     public ClassLoader getClassLoader() {
-        long addr = OopDesc.fromOopHandle(this.address + CLASS_LOADER_OFFSET);
-        return OopDesc.of(addr).getObject();
+        return getUncompressedObject(unsafe.getAddress(this.address+CLASS_LOADER_OFFSET));
     }
-
 
     public Oop getClassLoaderOop() {
         return new Oop(unsafe.getAddress(this.address+CLASS_LOADER_OFFSET));

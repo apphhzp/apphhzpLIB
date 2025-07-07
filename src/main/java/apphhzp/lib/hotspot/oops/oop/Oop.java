@@ -2,7 +2,8 @@ package apphhzp.lib.hotspot.oops.oop;
 
 import apphhzp.lib.hotspot.JVMObject;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.getUncompressedObject;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class Oop extends JVMObject {
     private OopDesc descCache;
@@ -26,7 +27,7 @@ public class Oop extends JVMObject {
     }
 
     public <T> T getJavaObject(){
-        return this.get().getObject();
+        return getUncompressedObject(this.address);
     }
 
     public void set(OopDesc desc){

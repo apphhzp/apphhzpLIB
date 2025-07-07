@@ -1,5 +1,7 @@
 package apphhzp.lib.hotspot.classfile;
 
+import apphhzp.lib.hotspot.util.RawCType;
+
 import java.util.Arrays;
 
 public class ClassFileStream {
@@ -130,13 +132,13 @@ public class ClassFileStream {
     }
 
     // Read u2 from stream
-    short get_u2_fast() {
+    @RawCType("u2") int get_u2_fast() {
         short res = (short)((_current[_current_pos]&0xff)<<8 | _current[_current_pos+1]&0xff);
         _current_pos += 2;
-        return res;
+        return res&0xff;
     }
 
-    short get_u2() {
+    @RawCType("u2") int get_u2() {
         if (_need_verify) {
             guarantee_more(2);
         } else {
@@ -148,14 +150,14 @@ public class ClassFileStream {
     }
 
     // Read u4 from stream
-    int get_u4_fast() {
+    @RawCType("u4") int get_u4_fast() {
         int res = (_current[_current_pos]&0xff)<<24 | (_current[_current_pos+1]&0xff)<<16 | (_current[_current_pos+2]&0xff)<<8 | _current[_current_pos+3]&0xff;
         _current_pos += 4;
         return res;
     }
 
     // Read u8 from stream
-    long get_u8_fast() {
+    @RawCType("u8") long get_u8_fast() {
         long res =(_current[_current_pos]&0xffL)<<56L|(_current[_current_pos+1]&0xffL)<<48L|(_current[_current_pos+2]&0xffL)<<40L|(_current[_current_pos+3]&0xffL)<<32L|(_current[_current_pos+4]&0xffL)<<24L|(_current[_current_pos+5]&0xffL)<<16L|(_current[_current_pos+6]&0xffL)<<8L|(_current[_current_pos+7]&0xffL);// Bytes::get_Java_u8 (address) _current;
         _current_pos += 8;
         return res;

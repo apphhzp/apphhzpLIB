@@ -4,10 +4,9 @@ import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.JVMObject;
 
-import javax.annotation.Nonnull;
 import java.util.NoSuchElementException;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class JVMFlag extends JVMObject {
     public static final Type TYPE= JVM.type("JVMFlag");
@@ -122,14 +121,18 @@ public class JVMFlag extends JVMObject {
             return "unknown";
         }
     }
+    private static JVMFlag[] cache;
+    private static long cacheAddr;
     public static JVMFlag[] getAllFlags(){
         int len=getNumFlags()-1;
-        JVMFlag[] re=new JVMFlag[len];
-        long addr=unsafe.getAddress(FLAGS_ADDRESS);
-        for (int i=0;i<len;i++,addr+=SIZE){
-            re[i]=new JVMFlag(addr);
+        if (cache==null||cache.length!=len||cacheAddr!=unsafe.getAddress(FLAGS_ADDRESS)){
+            cache=new JVMFlag[len];
+            long addr=cacheAddr=unsafe.getAddress(FLAGS_ADDRESS);
+            for (int i=0;i<len;i++,addr+=SIZE){
+                cache[i]=new JVMFlag(addr);
+            }
         }
-        return re;
+        return cache;
     }
 
     public static JVMFlag getFlagAt(int index){
@@ -139,15 +142,15 @@ public class JVMFlag extends JVMObject {
         return new JVMFlag(unsafe.getAddress(FLAGS_ADDRESS) + (long) index * SIZE);
     }
 
-    public static void setFlagsHead(@Nonnull JVMFlag flag){
-        unsafe.putAddress(FLAGS_ADDRESS,flag.address);
-    }
+//    public static void setFlagsHead(@Nonnull JVMFlag flag){
+//        unsafe.putAddress(FLAGS_ADDRESS,flag.address);
+//    }
 
     public static int getNumFlags(){
         return (int) unsafe.getAddress(NUM_FLAGS_ADDRESS);
     }
 
-    public static void setNumFlags(int numFlags){
-        unsafe.putAddress(NUM_FLAGS_ADDRESS,numFlags);
-    }
+//    public static void setNumFlags(int numFlags){
+//        unsafe.putAddress(NUM_FLAGS_ADDRESS,numFlags);
+//    }
 }

@@ -3,12 +3,13 @@ package apphhzp.lib.hotspot.oops;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.JVMObject;
+import apphhzp.lib.hotspot.interpreter.Bytecodes;
 import apphhzp.lib.hotspot.oops.method.ConstMethod;
 import apphhzp.lib.hotspot.oops.method.Method;
 
 import javax.annotation.Nullable;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 import static apphhzp.lib.helfy.JVM.includeJVMTI;
 
 public class BreakpointInfo extends JVMObject {
@@ -20,23 +21,41 @@ public class BreakpointInfo extends JVMObject {
     public static final long SIGNATURE_INDEX_OFFSET = TYPE == null ? -1 : TYPE.offset("_signature_index");
     public static final long NEXT_OFFSET = TYPE == null ? -1 : TYPE.offset("_next");
     private BreakpointInfo nextCache;
-
     public static BreakpointInfo of(long addr) {
         if (!includeJVMTI) {
-            throw new IllegalStateException("Need JVMTI supported!");
+            throw new UnsupportedOperationException();
         }
         return new BreakpointInfo(addr);
+    }
+
+    public static BreakpointInfo create(Method m, int bci) {
+        if (!includeJVMTI) {
+            throw new UnsupportedOperationException();
+        }
+        long addr=unsafe.allocateMemory(SIZE);
+        BreakpointInfo re=new BreakpointInfo(addr);
+        re.setBytecodeIndex(bci);
+        re.setNameIndex(m.name_index());
+        re.setSignatureIndex(m.signature_index());
+        int val=unsafe.getByte(m.bcp_from(bci))&0xff;
+        if (val== Bytecodes.Code._breakpoint){
+            re.setOrigBytecode(m.orig_bytecode_at(bci));
+        }else {
+            re.setOrigBytecode(val);
+        }
+        re.setNext(null);
+        return re;
     }
 
     private BreakpointInfo(long addr) {
         super(addr);
     }
 
-    public int getOriginBytecode(){
+    public int getOrigBytecode(){
         return unsafe.getInt(this.address+ORG_BYTECODE_OFFSET);
     }
 
-    public void setOriginBytecode(int code){
+    public void setOrigBytecode(int code){
         unsafe.putInt(this.address+ORG_BYTECODE_OFFSET,code);
     }
 
@@ -88,5 +107,13 @@ public class BreakpointInfo extends JVMObject {
 
     public void setNext(@Nullable BreakpointInfo info){
         unsafe.putAddress(this.address+NEXT_OFFSET,info==null?0L:info.address);
+    }
+
+    public void clear(Method method) {
+        unsafe.putByte(method.bcp_from(this.getBytecodeIndex()), (byte) (this.getOrigBytecode()&0xff));
+        if (method.number_of_breakpoints()<=0){
+            throw new IllegalStateException("must not go negative");
+        }
+        method.decr_number_of_breakpoints();
     }
 }

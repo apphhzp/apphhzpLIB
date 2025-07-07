@@ -7,7 +7,7 @@ import apphhzp.lib.hotspot.utilities.VMTypeGrowableArray;
 
 import javax.annotation.Nullable;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class PackageEntry extends HashtableEntry {
     public static final int

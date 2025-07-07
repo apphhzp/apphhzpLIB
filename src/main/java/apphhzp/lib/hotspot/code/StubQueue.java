@@ -9,7 +9,7 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.function.LongFunction;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class StubQueue<T extends Stub> extends JVMObject implements Iterable<T> {
     public static final Type TYPE = JVM.type("StubQueue");

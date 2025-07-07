@@ -1,12 +1,10 @@
 package apphhzp.lib.hotspot.code;
 
-import apphhzp.lib.ClassHelper;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.Debugger;
-import apphhzp.lib.hotspot.interpreter.Bytecodes;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class InterpreterCodelet extends Stub{
     public static final Type TYPE= JVM.type("InterpreterCodelet");

@@ -1,13 +1,15 @@
 package apphhzp.lib.hotspot.oops;
 
-import apphhzp.lib.ClassHelper;
+import apphhzp.lib.ClassHelperSpecial;
 import apphhzp.lib.ClassOption;
+import apphhzp.lib.PlatformInfo;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.JVMObject;
 import apphhzp.lib.hotspot.oops.constant.ConstantPool;
 import apphhzp.lib.hotspot.oops.constant.Utf8Constant;
 import apphhzp.lib.hotspot.oops.klass.Klass;
+import apphhzp.lib.hotspot.util.RawCType;
 import com.sun.jna.Function;
 import com.sun.jna.Pointer;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
@@ -24,7 +26,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.NoSuchElementException;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class Symbol extends JVMObject {
     public static final Type TYPE=JVM.type("Symbol");
@@ -58,11 +60,11 @@ public class Symbol extends JVMObject {
                 Symbol symbol=getVMSymbol(i);
                 vmSymbols.put(symbol.toString(),symbol);
             }
-            if (JVM.Functions.throw_klass_external_name_exception_function!=null){
+            if (JVM.Functions.throw_klass_external_name_exception_function!=null&& PlatformInfo.isX86_64()){
                 long addr= Pointer.nativeValue(JVM.Functions.throw_klass_external_name_exception_function);
                 long offset=-1;
                 for (int i=0;i<10000;i++){
-                    if ((unsafe.getByte(addr+i)&0xffL)==0xcc){
+                    if ((unsafe.getByte(addr+i)&0xff)==0xcc){
                         break;
                     }
                     if ((unsafe.getByte(addr+i)&0xff)==0x48&&
@@ -80,8 +82,7 @@ public class Symbol extends JVMObject {
                     try {
                         String s=new String(Base64.getDecoder().decode("dmVyaWZ5IGl0"));
                         ok= Symbol.of(Pointer.nativeValue(tmp.invokePointer(new Object[]{s, s.length()}))).toString().equals(s);
-                    }catch (Throwable t){
-                    }
+                    }catch (Throwable ignored){}
                     if (ok){
                         new_symbol=tmp;
                     }else {
@@ -96,6 +97,16 @@ public class Symbol extends JVMObject {
         }catch (Throwable t){
             throw new RuntimeException(t);
         }
+    }
+    public static Symbol newSymbol(long buf,int len){
+        if (buf==0L||len<0){
+            throw new IllegalArgumentException();
+        }
+        byte[] str =new byte[len];
+        for (int i=0;i<len;i++){
+            str[i]= unsafe.getByte(buf+i);
+        }
+        return newSymbol(new String(str));
     }
     public static Symbol newSymbol(String s){
         if (s.length()>MAX_LENGTH) {
@@ -112,7 +123,7 @@ public class Symbol extends JVMObject {
         ClassWriter cw=new ClassWriter(0);
         creater.accept(cw, 0);
         cw.newUTF8(s);
-        Symbol re =((Utf8Constant) Klass.asKlass(ClassHelper.defineHiddenClass(cw.toByteArray(),"apphhzp.lib.hotspot.oop.SymbolCreater",false,Symbol.class,Symbol.class.getClassLoader(),null, ClassOption.NESTMATE).lookupClass()).asInstanceKlass().getConstantPool().getConstant(12)).str;
+        Symbol re =((Utf8Constant) Klass.asKlass(ClassHelperSpecial.defineHiddenClass(cw.toByteArray(),"apphhzp.lib.hotspot.oop.SymbolCreater",false,Symbol.class,Symbol.class.getClassLoader(),null, ClassOption.NESTMATE).lookupClass()).asInstanceKlass().getConstantPool().getConstant(12)).str;
         cache.put(re.hashCode(),re);
         return re;
     }
@@ -146,7 +157,7 @@ public class Symbol extends JVMObject {
                 cw.newUTF8(arr[i]);
             }
         }
-        ConstantPool pool=Klass.asKlass(ClassHelper.defineHiddenClass(cw.toByteArray(),"apphhzp.lib.hotspot.oop.SymbolCreater",false,Symbol.class,Symbol.class.getClassLoader(),null, ClassOption.NESTMATE).lookupClass()).asInstanceKlass().getConstantPool();
+        ConstantPool pool=Klass.asKlass(ClassHelperSpecial.defineHiddenClass(cw.toByteArray(),"apphhzp.lib.hotspot.oop.SymbolCreater",false,Symbol.class,Symbol.class.getClassLoader(),null, ClassOption.NESTMATE).lookupClass()).asInstanceKlass().getConstantPool();
         for (int i=0;i<re.length;i++){
             if (re[i]==null){
                 re[i]=pool.findSymbol(arr[i]);
@@ -196,7 +207,7 @@ public class Symbol extends JVMObject {
         }
         long addr=unsafe.getAddress(VM_SYMBOLS_ADDRESS + (long)index*JVM.oopSize);
         if (addr==0L){
-            return null;
+            throw new NullPointerException("index: "+index);
         }
         return vmSymbolsArray[index]=Symbol.of(addr);
     }
@@ -250,11 +261,11 @@ public class Symbol extends JVMObject {
         this.setRefCount(this.getRefCount()-1);
     }
 
-    public char getCChar(int index){
+    public char char_at(int index){
         if (index<0||index>=this.getLength()){
             throw new NoSuchElementException();
         }
-        return (char)unsafe.getByte(this.address+BODY_OFFSET+index);
+        return (char)(unsafe.getByte(this.address+BODY_OFFSET+index)&0xff);
     }
 
     public long identityHash(){
@@ -266,6 +277,14 @@ public class Symbol extends JVMObject {
                 ((addr_bits ^ ((long) this.getLength() << 8) ^ ((byte0 << 8) | byte1)) << 16))&0xffffffffL;
     }
 
+    public @RawCType("u1*") long bytes(){
+        return this.address+BODY_OFFSET;
+    }
+
+    public boolean is_permanent(){
+        return (this.getRefCount() == 0xffff);
+    }
+
     @Override
     public String toString() {
         long body = this.address + BODY_OFFSET;
@@ -275,5 +294,17 @@ public class Symbol extends JVMObject {
             b[i] = unsafe.getByte(body + i);
         }
         return new String(b, StandardCharsets.UTF_8);
+    }
+
+    public boolean equals(long buf, int len) {
+        if (buf==0L||this.getLength()!=len){
+            return false;
+        }
+        for (int i=0;i<len;i++){
+            if (unsafe.getByte(this.address+BODY_OFFSET+i)!=unsafe.getByte(buf+i)){
+                return false;
+            }
+        }
+        return true;
     }
 }

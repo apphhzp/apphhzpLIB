@@ -1,12 +1,13 @@
 package apphhzp.lib.hotspot.oops.klass;
 
+import apphhzp.lib.helfy.JVM;
+import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.oops.*;
+import apphhzp.lib.hotspot.oops.method.Method;
+import apphhzp.lib.hotspot.oops.oop.Oop;
 import apphhzp.lib.hotspot.oops.oop.OopDesc;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-import apphhzp.lib.helfy.JVM;
-import apphhzp.lib.helfy.Type;
-import apphhzp.lib.hotspot.oops.method.Method;
 import org.objectweb.asm.Opcodes;
 
 import javax.annotation.Nullable;
@@ -15,7 +16,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-import static apphhzp.lib.ClassHelper.*;
+import static apphhzp.lib.ClassHelperSpecial.*;
 import static apphhzp.lib.helfy.JVM.includeCDS;
 import static apphhzp.lib.helfy.JVM.oopSize;
 
@@ -56,7 +57,7 @@ public class Klass extends Metadata {
     private Klass nextKlassCache;
     private ClassLoaderData CLDCache;
     private VMTypeArray<Klass> secondarySupersCache;
-    private OopDesc mirrorCache;
+    private Oop mirrorCache;
 
     public static Klass asKlass(Class<?> target) {
         long addr = (oopSize == 8 ? unsafe.getLong(target, klassOffset) : unsafe.getInt(target, klassOffset) & 0xffffffffL);
@@ -270,16 +271,17 @@ public class Klass extends Metadata {
         return Klass.getOrCreate(addr);
     }
 
-    public OopDesc getMirror() {
-        long addr = OopDesc.fromOopHandle(this.address + MIRROR_OFFSET);
+    public Oop getMirror() {
+        long addr = unsafe.getAddress(this.address + MIRROR_OFFSET);
         if (!isEqual(this.mirrorCache, addr)) {
-            this.mirrorCache = OopDesc.of(addr);
+            this.mirrorCache = new Oop(addr);
         }
         return this.mirrorCache;
     }
 
     public Class<?> asClass() {
-        return this.getMirror().getObject();
+        return getMirror().getJavaObject();
+        //return getUncompressedObject(unsafe.getAddress(this.address + MIRROR_OFFSET));
     }
 
     public AccessFlags getAccessFlags() {

@@ -2,8 +2,9 @@ package apphhzp.lib.hotspot.interpreter;
 
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.hotspot.oops.method.Method;
+import apphhzp.lib.hotspot.util.RawCType;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 import static apphhzp.lib.hotspot.interpreter.Bytecodes.Code.*;
 import static apphhzp.lib.hotspot.interpreter.Bytecodes.Flags.*;
 import static apphhzp.lib.hotspot.utilities.BasicType.*;
@@ -347,11 +348,11 @@ public class Bytecodes {
     }
 
     public static String[] _name = new String[number_of_codes];
-    public static int[]/*BasicType[]*/ _result_type = new int[number_of_codes];
+    public static @RawCType("BasicType[]") int[] _result_type = new int[number_of_codes];
     public static byte[] _depth = new byte[number_of_codes];
-    public static int[]/*u_char[]*/      _lengths = new int[number_of_codes];
-    public static int[]/*Code[]*/        _java_code = new int[number_of_codes];
-    public static int[]/*char[]*/       _flags = new int[(1 << JVM.BitsPerByte) * 2]; // all second page for wide formats
+    public static @RawCType("u_char[]") int[]     _lengths = new int[number_of_codes];
+    public static @RawCType("Code[]") int[]        _java_code = new int[number_of_codes];
+    public static @RawCType("char[]") int[]       _flags = new int[(1 << JVM.BitsPerByte) * 2]; // all second page for wide formats
     private static boolean _is_initialized = false;
 
     static {
@@ -599,7 +600,7 @@ public class Bytecodes {
         return _name[code];
     }
 
-    public static int/*BasicType*/   result_type(int code) {
+    public static @RawCType("BasicType") int result_type(int code) {
         check(code);
         return _result_type[code];
     }

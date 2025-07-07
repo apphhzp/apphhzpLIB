@@ -12,7 +12,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class ConstantPoolCache extends JVMObject implements Iterable<ConstantPoolCacheEntry>{
     public static final Type TYPE= JVM.type("ConstantPoolCache");
@@ -83,7 +83,7 @@ public class ConstantPoolCache extends JVMObject implements Iterable<ConstantPoo
     }
 
     public int cpcToObjectIndex(int which) {
-        return this.getReferenceMap().find((short) which);
+        return this.getReferenceMap().find((short) (which&0xffff));
     }
 
     public ConstantPoolCacheEntry getEntry(int index){

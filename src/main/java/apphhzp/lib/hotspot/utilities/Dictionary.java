@@ -24,6 +24,10 @@ public class Dictionary extends Hashtable {
         }
         return null;
     }
+    public DictionaryEntry getEntry(Symbol class_name) {
+        long hash=this.computeHash(class_name);
+        return this.getEntry(this.hashToIndex(hash),hash,class_name);
+    }
 
     public InstanceKlass findClass(long hash,Symbol name) {
         int index = this.hashToIndex(hash);
@@ -61,18 +65,15 @@ public class Dictionary extends Hashtable {
         if (!class_name.equals(obj.getName())){
             throw new IllegalArgumentException("sanity check on name");
         }
-        DictionaryEntry entry = new_entry(hash, obj);
+        DictionaryEntry entry = newEntry(hash, obj);
         int index =this.hashToIndex(hash);
         this.addEntry(index, entry);
         //check_if_needs_resize();
     }
 
-    public DictionaryEntry new_entry(long hash, InstanceKlass klass) {
+    public DictionaryEntry newEntry(long hash, InstanceKlass klass) {
         DictionaryEntry entry = (DictionaryEntry) super.newEntry(hash, klass);
         entry.setPDSet(null);
-        if (!klass.isInstanceKlass()){
-            throw new IllegalArgumentException("Must be");
-        }
         return entry;
     }
 

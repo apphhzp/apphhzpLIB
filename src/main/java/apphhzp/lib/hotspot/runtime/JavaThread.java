@@ -2,13 +2,15 @@ package apphhzp.lib.hotspot.runtime;
 
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
-import apphhzp.lib.hotspot.oops.oop.OopDesc;
+import apphhzp.lib.hotspot.oops.Metadata;
+import apphhzp.lib.hotspot.oops.oop.Oop;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.getUncompressedObject;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class JavaThread extends Thread {
     public static final Type TYPE = JVM.type("JavaThread");
@@ -31,9 +33,9 @@ public class JavaThread extends Thread {
     public static final long JNI_ATTACH_STATE_OFFSET=JVM.computeOffset(JVM.intSize,DO_NOT_UNLOCK_IF_SYNCHRONIZED_OFFSET+1);
     public static final long PENDING_DEOPTIMIZATION_OFFSET=JVM.includeJVMCI?TYPE.offset("_pending_deoptimization"):-1;
     private static final HashMap<Long, JavaThread> CACHE = new HashMap<>();
-    private OopDesc vmResultCache;
-    private OopDesc threadObjCache;
-
+    public final Oop vmResult;
+    private Oop threadObjCache;
+    private Metadata vmResult2Cache;
     public static JavaThread getOrCreate(long addr) {
         if (addr == 0L) {
             throw new IllegalArgumentException("Pointer is NULL(0).");
@@ -59,6 +61,7 @@ public class JavaThread extends Thread {
 
     protected JavaThread(long addr) {
         super(addr);
+        this.vmResult =new Oop(addr+VM_RESULT_OFFSET);
     }
 
     public long getStackBase(){
@@ -82,24 +85,39 @@ public class JavaThread extends Thread {
     }
 
     @Nullable
-    public java.lang.Thread getThreadObj() {
-        long addr = OopDesc.fromOopHandle(this.address + THREAD_OBJ_OFFSET);
-        if (!isEqual(this.threadObjCache, addr)) {
-            this.threadObjCache = OopDesc.of(addr);
+    public java.lang.Thread getThread() {
+        return getUncompressedObject(unsafe.getAddress(this.address+THREAD_OBJ_OFFSET));
+    }
+
+    public Oop getThreadOop() {
+        long addr = unsafe.getAddress(this.address+THREAD_OBJ_OFFSET);
+        if (addr == 0L) {
+            return null;
         }
-        return this.threadObjCache.getObject();
+        if (!isEqual(this.threadObjCache,addr)){
+            this.threadObjCache=new Oop(addr);
+        }
+        return this.threadObjCache;
     }
 
     public long getJNIEnv(){
         return this.address+JNI_ENVIRONMENT_OFFSET;
     }
+    @Nullable
+    public <T> T getVMResult(){
+        return getUncompressedObject(this.address+VM_RESULT_OFFSET);
+    }
 
-    public OopDesc getVMResult(){
-        long addr=unsafe.getAddress(this.address+VM_RESULT_OFFSET);
-        if (!isEqual(this.vmResultCache,addr)){
-            this.vmResultCache= OopDesc.of(addr);
+    @Nullable
+    public Metadata getVMResult2(){
+        long addr=unsafe.getAddress(this.address+VM_RESULT2_OFFSET);
+        if (addr==0L){
+            return null;
         }
-        return this.vmResultCache;
+        if (!isEqual(this.vmResult2Cache,addr)){
+            this.vmResult2Cache=Metadata.getMetadata(addr);
+        }
+        return this.vmResult2Cache;
     }
 
     @Nullable

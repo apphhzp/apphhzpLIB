@@ -9,7 +9,7 @@ import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
 import apphhzp.lib.hotspot.oops.constant.ConstantPool;
 import apphhzp.lib.hotspot.oops.method.Method;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class FileMapHeader extends JVMObject {
     public static final Type TYPE= JVM.type("FileMapHeader");

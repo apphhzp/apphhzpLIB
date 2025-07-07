@@ -6,7 +6,7 @@ import apphhzp.lib.hotspot.JVMObject;
 import apphhzp.lib.hotspot.gc.g1.LiveRegionsClosure;
 import apphhzp.lib.hotspot.memory.MemRegion;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class CollectedHeap extends JVMObject {
     public static final Type TYPE= JVM.type("CollectedHeap");

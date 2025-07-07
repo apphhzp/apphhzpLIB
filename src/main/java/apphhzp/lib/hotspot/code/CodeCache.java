@@ -5,14 +5,11 @@ import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.JVMObject;
 import apphhzp.lib.hotspot.code.blob.CodeBlob;
 import apphhzp.lib.hotspot.code.blob.CompiledMethod;
-import apphhzp.lib.hotspot.code.blob.NMethod;
 import apphhzp.lib.hotspot.utilities.VMTypeGrowableArray;
-import com.sun.jna.Function;
-import com.sun.jna.Pointer;
 
 import javax.annotation.Nullable;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class CodeCache {
     public static final Type TYPE = JVM.type("CodeCache");
@@ -114,19 +111,28 @@ public class CodeCache {
         }
     }
 
+    /*
+    https://github.com/openjdk/jdk17u/blob/master/src/hotspot/share/code/codeCache.hpp#L275
+    static void mark_for_evol_deoptimization(InstanceKlass* dependee);
+    static int  mark_dependents_for_evol_deoptimization();
+    static void mark_all_nmethods_for_evol_deoptimization();
+    //Flushes compiled methods dependent on redefined classes, that have already been marked for deoptimization.
+    static void flush_evol_dependents();
+    static void old_nmethods_do(MetadataClosure* f) NOT_JVMTI_RETURN;
+    static void unregister_old_nmethod(CompiledMethod* c) NOT_JVMTI_RETURN;
+    * */
+
     public static void markAllNMethodsForDeoptimization() {
 
         for (CodeHeap heap : getCompiledHeaps()) {
             for (CodeBlob blob : heap) {
                 if (blob instanceof CompiledMethod compiledMethod) {
                     if (!compiledMethod.getMethod().getAccessFlags().isNative()) {
-                        //System.err.println(compiledMethod.getMethod().getConstMethod().getName());
                         compiledMethod.markForDeoptimization(true);
                     }
                 }
             }
         }
-
     }
 
     public static void makeMarkedNMethodsNotEntrant(){
@@ -134,7 +140,6 @@ public class CodeCache {
             for (CodeBlob blob : heap) {
                 if (blob instanceof CompiledMethod compiledMethod) {
                     if (!compiledMethod.isMarkedForDeoptimization()) {
-                        //System.err.println(compiledMethod.getMethod().getConstMethod().getName());
                         compiledMethod.makeNotEntrant();
                     }
                 }

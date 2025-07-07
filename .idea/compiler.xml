@@ -5,7 +5,7 @@
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
-      <module name="apphhzpLIB.main" options="" />
+      <module name="apphhzpLIB.main" options="--add-exports java.base/jdk.internal.misc=ALL-UNNAMED" />
     </option>
   </component>
 </project>

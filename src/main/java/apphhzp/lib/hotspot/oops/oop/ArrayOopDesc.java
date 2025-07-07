@@ -1,6 +1,6 @@
 package apphhzp.lib.hotspot.oops.oop;
 
-import apphhzp.lib.ClassHelper;
+import apphhzp.lib.ClassHelperSpecial;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.memory.Universe;
@@ -15,7 +15,7 @@ public class ArrayOopDesc extends OopDesc{
     }
 
     public int getLength() {
-        return ClassHelper.unsafe.getInt(this.address+LENGTH_OFFSET);
+        return ClassHelperSpecial.unsafe.getInt(this.address+LENGTH_OFFSET);
     }
 
     public static long headerSize(int type) {

@@ -1,10 +1,9 @@
 package apphhzp.lib.hotspot.memory;
 
-import apphhzp.lib.ClassHelper;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class MetaspaceObj {
     public static final Type TYPE= JVM.type("MetaspaceObj");

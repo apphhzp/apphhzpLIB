@@ -1,6 +1,6 @@
 package apphhzp.lib.helfy;
 
-import apphhzp.lib.ClassHelper;
+import apphhzp.lib.ClassHelperSpecial;
 
 import java.util.NoSuchElementException;
 import java.util.Set;
@@ -74,7 +74,7 @@ public class Type {
     }
 
     private static final class FakeType extends Type{
-        private static final long fakeAddress=ClassHelper.unsafe.allocateMemory(16);
+        private static final long fakeAddress= ClassHelperSpecial.unsafe.allocateMemory(16);
         private FakeType() {
             super("", null, 0, false, false, false, null);
         }

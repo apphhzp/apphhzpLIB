@@ -1,16 +1,18 @@
 package apphhzp.lib.hotspot.classfile;
 
-import apphhzp.lib.ClassHelper;
+import apphhzp.lib.ClassHelperSpecial;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.hotspot.oops.ClassLoaderData;
+import apphhzp.lib.hotspot.oops.klass.Klass;
 import apphhzp.lib.hotspot.oops.oop.OopDesc;
 import apphhzp.lib.hotspot.runtime.JavaThread;
 import apphhzp.lib.hotspot.stream.AllFieldStream;
+import apphhzp.lib.hotspot.stream.InternalFieldStream;
 
 import javax.annotation.Nullable;
 import java.lang.invoke.VarHandle;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class JavaClasses {
     public static class ClassLoader{
@@ -87,18 +89,58 @@ public class JavaClasses {
         public static final VarHandle eetopGetter;
         static {
             try {
-                eetopGetter= ClassHelper.lookup.findVarHandle(java.lang.Thread.class,"eetop",long.class);
+                eetopGetter= ClassHelperSpecial.lookup.findVarHandle(java.lang.Thread.class,"eetop",long.class);
             } catch (Throwable throwable){
                 throw new RuntimeException(throwable);
             }
         }
 
         public static JavaThread thread(java.lang.Thread thread){
-            return JavaThread.getOrCreate((Long) eetopGetter.get(thread));
+            Long val= (Long) eetopGetter.get(thread);
+            if (val==0L){
+                return null;
+            }
+            return JavaThread.getOrCreate(val );
         }
 
         public static void setThread(java.lang.Thread thread,@Nullable JavaThread newThread){
             eetopGetter.set(thread,newThread==null?0L:newThread.address);
+        }
+    }
+
+    public static class StackFrameInfo{
+        public static final java.lang.Class<?> clazz;
+        public static final long version_offset;
+        static {
+            try {
+                clazz=java.lang.Class.forName("java.lang.StackFrameInfo");
+                long offset=-1;
+                for (InternalFieldStream fieldStream=new InternalFieldStream(Klass.asKlass(clazz).asInstanceKlass()); !fieldStream.done(); fieldStream.next()){
+                    if (fieldStream.getName().toString().equals("version")){
+                        offset=fieldStream.getOffset();
+                    }
+                }
+                if (offset==-1){
+                    throw new RuntimeException("Could not get _version_offset!");
+                }
+                version_offset= offset;
+            } catch (Throwable e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public static short getVersion(Object object){
+            if (!object.getClass().isAssignableFrom(clazz)){
+                throw new IllegalArgumentException();
+            }
+            return unsafe.getShort(object,version_offset);
+        }
+
+        public static void setVersion(Object object,short version){
+            if (!object.getClass().isAssignableFrom(clazz)){
+                throw new IllegalArgumentException();
+            }
+            unsafe.putShort(object,version_offset,version);
         }
     }
 }

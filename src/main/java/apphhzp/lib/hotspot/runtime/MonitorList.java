@@ -9,7 +9,7 @@ import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class MonitorList extends JVMObject implements Iterable<ObjectMonitor>{
     public static final Type TYPE= JVM.type("MonitorList");

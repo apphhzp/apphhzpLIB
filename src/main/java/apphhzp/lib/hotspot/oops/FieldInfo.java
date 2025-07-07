@@ -6,7 +6,7 @@ import apphhzp.lib.hotspot.oops.constant.ConstantPool;
 import apphhzp.lib.hotspot.oops.constant.Utf8Constant;
 import org.objectweb.asm.Opcodes;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 import static apphhzp.lib.hotspot.oops.AccessFlags.JVM_ACC_FIELD_INTERNAL;
 import static apphhzp.lib.hotspot.oops.AccessFlags.JVM_ACC_FIELD_STABLE;
 

@@ -3,7 +3,7 @@ package apphhzp.lib.hotspot.utilities;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.hotspot.JVMObject;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 /*
 * typedef size_t idx_t;

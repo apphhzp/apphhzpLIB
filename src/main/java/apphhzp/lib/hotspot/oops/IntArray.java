@@ -7,7 +7,7 @@ import apphhzp.lib.hotspot.JVMObject;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class IntArray extends JVMObject implements Iterable<Integer> {
     public static final Type TYPE= JVM.type("Array<int>");

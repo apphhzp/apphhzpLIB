@@ -1,10 +1,8 @@
 package apphhzp.lib.hotspot.prims;
 
-import apphhzp.lib.ClassHelper;
-import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.hotspot.JVMObject;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class JvmtiCachedClassFileData extends JVMObject {
     public static final long LENGTH_OFFSET=0;

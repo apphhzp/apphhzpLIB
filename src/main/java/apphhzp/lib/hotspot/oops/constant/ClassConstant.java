@@ -2,7 +2,7 @@ package apphhzp.lib.hotspot.oops.constant;
 
 import apphhzp.lib.hotspot.oops.klass.Klass;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class ClassConstant extends Constant{
     public final Utf8Constant name;

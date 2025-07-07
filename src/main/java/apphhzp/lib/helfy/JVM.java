@@ -20,7 +20,7 @@ import javax.annotation.Nullable;
 import java.lang.management.ManagementFactory;
 import java.util.*;
 
-import static apphhzp.lib.ClassHelper.*;
+import static apphhzp.lib.ClassHelperSpecial.*;
 
 public final class JVM {
     public static final boolean ENABLE_EXTRA_CHECK =true;
@@ -93,6 +93,7 @@ public final class JVM {
     public static final long codeEntryAlignment;
     public static final boolean includeAssert;
     public static final boolean usePerfData;
+    public static final boolean specialAlignment;
     private JVM() {
     }
 
@@ -306,7 +307,7 @@ public final class JVM {
     }
 
     public static long getSymbol(String name) {
-        long address = JVM.find(name);
+        long address = JVM.lookup(name);
         if (address == 0) {
             throw new NoSuchElementException("No such symbol: " + name);
         }
@@ -314,7 +315,7 @@ public final class JVM {
     }
 
     public static long lookupSymbol(String name) {
-        return JVM.find(name);
+        return JVM.lookup(name);
     }
 
     public static Type type(String name) {
@@ -389,6 +390,7 @@ public final class JVM {
         for (Object2LongMap.Entry<String> entry : functions.object2LongEntrySet()) {
             System.err.println("&"+entry.getKey()+" = 0x"+Long.toHexString(entry.getLongValue()));
         }
+        System.err.println("over");
     }
 
     public static void putCLevelLong(long address,long val){
@@ -429,15 +431,17 @@ public final class JVM {
         Thread.clearCacheMap();
     }
 
+    private static final String vt;
+
     public static String vtblSymbolForType(Type type) {
-        if (!isWindows) {
+        if (!isWindows&&vt==null) {
             throw new IllegalStateException("Unsupported OS");
         }
-        return "??_7" + type.name + "@@6B@";
+        return isWindows?"??_7" + type.name + "@@6B@":vt+type.name.length()+type.name;
     }
 
     public static long getVtblForType(Type type) {
-        if (type == null || !isWindows) {
+        if (type == null || (!isWindows&&vt==null)) {
             return 0L;
         } else {
             if (type2vtblMap.containsKey(type)) {
@@ -449,7 +453,7 @@ public final class JVM {
                     return 0L;
                 }
                 try {
-                    long addr = JVM.find(vtblSymbol);
+                    long addr = JVM.lookup(vtblSymbol);
                     if (addr != 0L) {
                         type2vtblMap.put(type, addr);
                         return addr;
@@ -476,11 +480,12 @@ public final class JVM {
             }
             return vtblAddr;
         }
+
         return type2vtbl.getLong(type);
     }
 
     public static Type findDynamicTypeForAddress(long addr, Type baseType) {
-        if (!isWindows) {
+        if (!isWindows&&vt==null) {
             return baseType;
         }
         if (vtblForType(baseType) == 0) {
@@ -543,6 +548,10 @@ public final class JVM {
         return size & -alignment;
     }
 
+    public static long align_metadata_size(long size){
+        return alignUp(size,1);
+    }
+
     public static int nthBit(int n){
         return n >= BitsPerWord ? 0 : 1 << n;
     }
@@ -582,6 +591,35 @@ public final class JVM {
             re[i+offset]=computeOffset(alignments[i],(i+offset>0?re[i+offset-1]:0)+(i>0?sizes[i-1]:0));
         }
         return has_vtbl_pointer?Arrays.copyOfRange(re,1,re.length):re;
+    }
+
+    public static void assertOffset(long expectation, long actuality){
+        if (expectation!=actuality){
+            throw new AssertionError("Unexpected offset! expectation: "+expectation+" actuality: "+actuality);
+        }
+    }
+
+    public static int extract_low_short_from_int(int x) {
+        return x & 0xffff;
+    }
+
+    public static int extract_high_short_from_int(int x) {
+        return (x >> 16) & 0xffff;
+    }
+
+    public static int build_int_from_shorts( int low, int high ) {
+        return (((high&0xffff) << 16) | (low&0xffff));
+    }
+    private static final HashMap<String,JVMFlag> flagsCache=new HashMap<>();
+    public static JVMFlag getFlag(String str){
+        return flagsCache.computeIfAbsent(str,(name)->{
+            for (JVMFlag flag:JVMFlag.getAllFlags()){
+                if (flag.getName().equals(name)){
+                    return flag;
+                }
+            }
+            return null;
+        });
     }
 
     public static final class Functions{
@@ -771,7 +809,7 @@ public final class JVM {
                 readVmTypes(readVmStructs());
                 readVmIntConstants();
                 readVmLongConstants();
-                includeJVMCI = intConstant("INCLUDE_JVMCI") != 0;
+                includeJVMCI = intConstant("INCLUDE_JVMCI") == 1&&lookupSymbol("jvmciHotSpotVMTypes")!=0L;
                 oopSize = intConstant("oopSize");
                 if (includeJVMCI){
                     readVmCITypes(readVmCIStructs());
@@ -799,63 +837,78 @@ public final class JVM {
                 } else {
                     usingClientCompiler = usingServerCompiler = false;
                 }
+
+                if (!isWindows){
+                    if (lookupSymbol("__vt_10JavaThread")!=0L){
+                        vt="__vt_";
+                    }else if (lookupSymbol("_vt_10JavaThread")!=0L){
+                        vt="_vt_";
+                    }else if (lookupSymbol("_ZTV10JavaThread")!=0L){
+                        vt="_ZTV";
+                    }else {
+                        vt=null;
+                    }
+                }else {
+                    vt=null;
+                }
+
                 JVMFlag[] flags = JVMFlag.getAllFlags();
-                boolean sharedSpaces = false, compressedOops = false, compressedClassPointers = false, TLAB = false,
-                        RestrictContended=false, RestrictReservedStack=false,EnableContended =false,
-                        DumpSharedSpaces=false,BytecodeVerificationRemote=false,
-                        BytecodeVerificationLocal=false,INCLUDE_JFR=false,ClassUnloading=false,ExtensiveErrorReports=false,
-                        UsePerfData=false;
-                long PMRC=0,CodeEntryAlignment=0;
-                int DiagnoseSyncOnValueBasedClasses=0,OAIB=8;
+//                boolean sharedSpaces = false, compressedOops = false, compressedClassPointers = false, TLAB = false,
+//                        RestrictContended=false, RestrictReservedStack=false,EnableContended =false,
+//                        DumpSharedSpaces=false,BytecodeVerificationRemote=false,
+//                        BytecodeVerificationLocal=false,INCLUDE_JFR=false,ClassUnloading=false,ExtensiveErrorReports=false,
+//                        UsePerfData=false;
+//                long PMRC=0,CodeEntryAlignment=0;
+//                int DiagnoseSyncOnValueBasedClasses=0,OAIB=8;
                 for (JVMFlag flag : flags) {
                     String name = flag.getName();
-                    if ("UseSharedSpaces".equals(name)) {
-                        sharedSpaces = flag.getBool();
-                    } else if ("UseCompressedOops".equals(name)) {
-                        compressedOops=flag.getBool();
-                    } else if ("UseCompressedClassPointers".equals(name)) {
-                        compressedClassPointers=flag.getBool();
-                    } else if ("UseTLAB".equals(name)) {
-                        TLAB= flag.getBool();
-                    } else if ("PerMethodRecompilationCutoff".equals(name)) {
-                        PMRC=flag.getIntx();
-                    }else if ("ObjectAlignmentInBytes".equals(name)){
-                        OAIB=(int) flag.getIntx();
-                    }else if ("RestrictContended".equals(name)){
-                        RestrictContended=flag.getBool();
-                    }else if ("RestrictReservedStack".equals(name)){
-                        RestrictReservedStack=flag.getBool();
-                    }else if ("EnableContended".equals(name)){
-                        EnableContended=flag.getBool();
-                    }else if ("DiagnoseSyncOnValueBasedClasses".equals(name)){
-                        DiagnoseSyncOnValueBasedClasses=(int) flag.getIntx();
-                    }else if ("DumpSharedSpaces".equals(name)){
-                        DumpSharedSpaces=flag.getBool();
-                    }else if ("BytecodeVerificationRemote".equals(name)){
-                        BytecodeVerificationRemote=flag.getBool();
-                    }else if ("BytecodeVerificationLocal".equals(name)){
-                        BytecodeVerificationLocal=flag.getBool();
-                    }else if ("FlightRecorder".equals(name)){
-                        INCLUDE_JFR=true;
-                    }else if ("ClassUnloading".equals(name)){
-                        ClassUnloading=flag.getBool();
-                    }else if("ExtensiveErrorReports".equals(name)){
-                        ExtensiveErrorReports=flag.getBool();
-                    }else if ("CodeEntryAlignment".equals(name)){
-                        CodeEntryAlignment=flag.getIntx();
-                    }else if ("UsePerfData".equals(name)){
-                        UsePerfData=flag.getBool();
-                    }
+//                    if ("UseSharedSpaces".equals(name)) {
+//                        sharedSpaces = flag.getBool();
+//                    } else if ("UseCompressedOops".equals(name)) {
+//                        compressedOops=flag.getBool();
+//                    } else if ("UseCompressedClassPointers".equals(name)) {
+//                        compressedClassPointers=flag.getBool();
+//                    } else if ("UseTLAB".equals(name)) {
+//                        TLAB= flag.getBool();
+//                    } else if ("PerMethodRecompilationCutoff".equals(name)) {
+//                        PMRC=flag.getIntx();
+//                    }else if ("ObjectAlignmentInBytes".equals(name)){
+//                        OAIB=(int) flag.getIntx();
+//                    }else if ("RestrictContended".equals(name)){
+//                        RestrictContended=flag.getBool();
+//                    }else if ("RestrictReservedStack".equals(name)){
+//                        RestrictReservedStack=flag.getBool();
+//                    }else if ("EnableContended".equals(name)){
+//                        EnableContended=flag.getBool();
+//                    }else if ("DiagnoseSyncOnValueBasedClasses".equals(name)){
+//                        DiagnoseSyncOnValueBasedClasses=(int) flag.getIntx();
+//                    }else if ("DumpSharedSpaces".equals(name)){
+//                        DumpSharedSpaces=flag.getBool();
+//                    }else if ("BytecodeVerificationRemote".equals(name)){
+//                        BytecodeVerificationRemote=flag.getBool();
+//                    }else if ("BytecodeVerificationLocal".equals(name)){
+//                        BytecodeVerificationLocal=flag.getBool();
+//                    }else if ("FlightRecorder".equals(name)){
+//                        INCLUDE_JFR=true;
+//                    }else if ("ClassUnloading".equals(name)){
+//                        ClassUnloading=flag.getBool();
+//                    }else if("ExtensiveErrorReports".equals(name)){
+//                        ExtensiveErrorReports=flag.getBool();
+//                    }else if ("CodeEntryAlignment".equals(name)){
+//                        CodeEntryAlignment=flag.getIntx();
+//                    }else if ("UsePerfData".equals(name)){
+//                        UsePerfData=flag.getBool();
+//                    }
                     System.err.println(name);
                 }
-                usingSharedSpaces = sharedSpaces;
-                usingCompressedOops = compressedOops;
-                usingCompressedClassPointers = compressedClassPointers;
-                usingTLAB = TLAB;
+                usingSharedSpaces = getFlag("UseSharedSpaces").getBool();
+                usingCompressedOops = getFlag("UseCompressedOops").getBool();
+                usingCompressedClassPointers = getFlag("UseCompressedClassPointers").getBool();
+                usingTLAB = getFlag("UseTLAB").getBool();
                 invocationEntryBci=intConstant("InvocationEntryBci");
-                PerMethodRecompilationCutoff=PMRC;
-                objectAlignmentInBytes=OAIB;
-                logMinObjAlignmentInBytes= Integer.numberOfTrailingZeros(OAIB);
+                PerMethodRecompilationCutoff=getFlag("PerMethodRecompilationCutoff").getIntx();
+                objectAlignmentInBytes= (int) getFlag("ObjectAlignmentInBytes").getIntx();
+                logMinObjAlignmentInBytes= Integer.numberOfTrailingZeros(objectAlignmentInBytes);
                 if (usingCompressedOops){
                     heapOopSize=intSize;
                 }else {
@@ -870,23 +923,26 @@ public final class JVM {
                 LogHeapWordSize=intConstant("LogHeapWordSize");
                 LogHeapWordsPerLong = LogBytesPerLong - LogHeapWordSize;
                 HeapWordsPerLong=BytesPerLong / oopSize;
-                restrictContended=RestrictContended;
-                restrictReservedStack=RestrictReservedStack;
-                enableContended=EnableContended;
-                diagnoseSyncOnValueBasedClasses=DiagnoseSyncOnValueBasedClasses;
-                dumpSharedSpaces=DumpSharedSpaces;
-                bytecodeVerificationRemote=BytecodeVerificationRemote;
-                bytecodeVerificationLocal=BytecodeVerificationLocal;
+                restrictContended=getFlag("RestrictContended").getBool();
+                restrictReservedStack=getFlag("RestrictReservedStack").getBool();
+                enableContended=getFlag("EnableContended").getBool();
+                diagnoseSyncOnValueBasedClasses= (int) getFlag("DiagnoseSyncOnValueBasedClasses").getIntx();
+                dumpSharedSpaces=getFlag("DumpSharedSpaces").getBool();
+                bytecodeVerificationRemote=getFlag("BytecodeVerificationRemote").getBool();
+                bytecodeVerificationLocal=getFlag("BytecodeVerificationLocal").getBool();
                 wordSize=type("char*").size;
                 includeCDS=types.containsKey("FileMapInfo");
                 includeG1GC=types.containsKey("G1CollectedHeap");
                 includeCDSJavaHeap=includeCDS&&includeG1GC&&isLP64&&!PlatformInfo.getOS().equals("win32");
-                includeJFR=INCLUDE_JFR;
-                classUnloading=ClassUnloading;
-                product=!ExtensiveErrorReports;
-                codeEntryAlignment=CodeEntryAlignment;
+                includeJFR=getFlag("FlightRecorder")!=null;
+                classUnloading=getFlag("ClassUnloading").getBool();
+                {
+                    product=computeOffset(oopSize,includeJFR?type.offset("_flags")+4:type.offset("_flags")+2)==type.offset("_i2i_entry");
+                }
+                codeEntryAlignment=getFlag("CodeEntryAlignment").getIntx();
                 includeAssert=intConstant("ConstantPool::CPCACHE_INDEX_TAG")!=0;
-                usePerfData=UsePerfData;
+                usePerfData=getFlag("UsePerfData").getBool();
+                specialAlignment=type("Arguments").global("_num_jvm_flags")<type("Arguments").global("_jvm_flags_array");
 //                String cpu = getCPU();
 //                Class<?> machDescClass = Class.forName("sun.jvm.hotspot.debugger.MachineDescription");
 //                int pid=getPid();
@@ -909,11 +965,12 @@ public final class JVM {
 //                    tmp=debugger;
 //                }
             } else {
+                vt=null;
                 isLP64= "aarch64".equals(cpu) || "amd64".equals(cpu) || "x86_64".equals(cpu) || "ppc64".equals(cpu);
                 JVM = null;
                 codeEntryAlignment=0;
                 LogHeapWordsPerLong=LogHeapWordSize=WordAlignmentMask=BitsPerWord=LogBitsPerWord=BytesPerWord=LogBytesPerWord=unsignedSize=floatSize=doubleSize=diagnoseSyncOnValueBasedClasses=logMinObjAlignmentInBytes=objectAlignmentInBytes = intSize = size_tSize = oopSize =longSize= 0;
-                usePerfData=includeAssert=product=classUnloading=includeJFR=includeCDSJavaHeap=includeCDS=bytecodeVerificationRemote=
+                specialAlignment=usePerfData=includeAssert=product=classUnloading=includeJFR=includeCDSJavaHeap=includeCDS=bytecodeVerificationRemote=
                         bytecodeVerificationLocal=dumpSharedSpaces=includeG1GC= enableContended=restrictReservedStack=
                         restrictContended= includeJVMTI = usingClientCompiler = usingServerCompiler =
                         usingSharedSpaces = usingTLAB = includeJVMCI = false;

@@ -2,7 +2,7 @@ package apphhzp.lib.hotspot.oops.constant;
 
 import apphhzp.lib.hotspot.oops.Symbol;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class Utf8Constant extends Constant{
     public final Symbol str;

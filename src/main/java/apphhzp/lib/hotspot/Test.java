@@ -1,7 +1,7 @@
 package apphhzp.lib.hotspot;
 
 
-import java.util.function.Function;
+import java.lang.instrument.ClassFileTransformer;
 
 public class Test {
     public int val;
@@ -18,5 +18,13 @@ public class Test {
 
     public void add(int x){
         val += x;
+    }
+
+    public static Object  doit(){
+        return Debugger.test(1);
+    }
+
+    public static boolean check(Object re,Object obj){
+        return obj instanceof ClassFileTransformer&&re instanceof byte[];
     }
 }

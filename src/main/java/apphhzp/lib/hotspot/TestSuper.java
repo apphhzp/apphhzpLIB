@@ -1,8 +1,8 @@
 package apphhzp.lib.hotspot;
 
-public interface TestSuper {
+public class TestSuper {
     public static int x1 = 0;
-    public default void print(){
+      void print(){
         System.err.println("Hi!");
     }
 }

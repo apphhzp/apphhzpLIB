@@ -1,0 +1,44 @@
+package apphhzp.lib.hotspot.prims;
+
+import apphhzp.lib.helfy.JVM;
+import apphhzp.lib.helfy.Type;
+
+public class JvmtiExport {
+    public static final Type TYPE= JVM.includeJVMTI?JVM.type("JvmtiExport"):null;
+    public static final long CAN_ACCESS_LOCAL_VARIABLES_ADDRESS;
+    public static final long CAN_HOTSWAP_OR_POST_BREAKPOINT_ADDRESS;
+    public static final long CAN_WALK_ANY_SPACE_ADDRESS;
+    public static final long CAN_POST_ON_EXCEPTIONS_ADDRESS;
+    public static final long SHOULD_POST_SAMPLED_OBJECT_ALLOC_ADDRESS;
+    public static final long REDEFINITION_COUNT_ADDRESS;
+    public static final long ALL_DEPENDENCIES_ARE_RECORDED_ADDRESS;
+    public static final long SHOULD_POST_CLASS_FILE_LOAD_HOOK_ADDRESS;
+    static {
+        if (TYPE!=null){
+            CAN_ACCESS_LOCAL_VARIABLES_ADDRESS = TYPE.global("_can_access_local_variables");
+            CAN_HOTSWAP_OR_POST_BREAKPOINT_ADDRESS=TYPE.global("_can_hotswap_or_post_breakpoint");
+            CAN_WALK_ANY_SPACE_ADDRESS=TYPE.global("_can_walk_any_space");
+            CAN_POST_ON_EXCEPTIONS_ADDRESS=TYPE.global("_can_post_on_exceptions");
+            SHOULD_POST_SAMPLED_OBJECT_ALLOC_ADDRESS=CAN_POST_ON_EXCEPTIONS_ADDRESS+33;
+            REDEFINITION_COUNT_ADDRESS=JVM.computeOffset(8,SHOULD_POST_SAMPLED_OBJECT_ALLOC_ADDRESS+1);
+            if (JVM.specialAlignment){
+                ALL_DEPENDENCIES_ARE_RECORDED_ADDRESS= REDEFINITION_COUNT_ADDRESS-SHOULD_POST_SAMPLED_OBJECT_ALLOC_ADDRESS>=2 ?SHOULD_POST_SAMPLED_OBJECT_ALLOC_ADDRESS+1:REDEFINITION_COUNT_ADDRESS+8;
+                if (REDEFINITION_COUNT_ADDRESS - SHOULD_POST_SAMPLED_OBJECT_ALLOC_ADDRESS >= 2) {
+                    if (REDEFINITION_COUNT_ADDRESS - SHOULD_POST_SAMPLED_OBJECT_ALLOC_ADDRESS >= 3) {
+                        SHOULD_POST_CLASS_FILE_LOAD_HOOK_ADDRESS = ALL_DEPENDENCIES_ARE_RECORDED_ADDRESS + 1;
+                    }else{
+                        SHOULD_POST_CLASS_FILE_LOAD_HOOK_ADDRESS = REDEFINITION_COUNT_ADDRESS + 8;
+                    }
+                } else {
+                    SHOULD_POST_CLASS_FILE_LOAD_HOOK_ADDRESS = ALL_DEPENDENCIES_ARE_RECORDED_ADDRESS + 1;
+                }
+            }else{
+                ALL_DEPENDENCIES_ARE_RECORDED_ADDRESS= REDEFINITION_COUNT_ADDRESS+8;
+                SHOULD_POST_CLASS_FILE_LOAD_HOOK_ADDRESS= ALL_DEPENDENCIES_ARE_RECORDED_ADDRESS+1;
+            }
+        }else {
+            CAN_ACCESS_LOCAL_VARIABLES_ADDRESS=CAN_HOTSWAP_OR_POST_BREAKPOINT_ADDRESS=CAN_WALK_ANY_SPACE_ADDRESS=CAN_POST_ON_EXCEPTIONS_ADDRESS=SHOULD_POST_SAMPLED_OBJECT_ALLOC_ADDRESS=REDEFINITION_COUNT_ADDRESS=ALL_DEPENDENCIES_ARE_RECORDED_ADDRESS=SHOULD_POST_CLASS_FILE_LOAD_HOOK_ADDRESS=0;
+        }
+    }
+
+}

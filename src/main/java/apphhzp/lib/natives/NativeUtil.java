@@ -1,7 +1,11 @@
 package apphhzp.lib.natives;
 
-import apphhzp.lib.ClassHelper;
+import apphhzp.lib.ClassHelperSpecial;
+import apphhzp.lib.ClassOption;
+import apphhzp.lib.api.ApphhzpInst;
+import apphhzp.lib.api.JVMInterfaceFunctions;
 import apphhzp.lib.api.ObjectInstrumentation;
+import apphhzp.lib.api.callbacks.Callback;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -9,9 +13,14 @@ import java.io.InputStream;
 import java.lang.instrument.Instrumentation;
 import java.util.Locale;
 
+import static apphhzp.lib.ClassHelperSpecial.defineHiddenClass;
+
 @SuppressWarnings({"unused", "SpellCheckingInspection"})
 public final class NativeUtil {
+    public static volatile boolean isLoading;
+    private static final Class<?> apphhzpInstImplClass;
     static {
+        isLoading=true;
         if (System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win")) {
             final String s=new File(".").getAbsolutePath();
             String s1 = s.substring(0, s.length() - 2);
@@ -27,16 +36,19 @@ public final class NativeUtil {
                 FileOutputStream fos = new FileOutputStream(f);
                 fos.write(dat);
                 fos.close();
-                ClassHelper.load(NativeUtil.class,f.getAbsolutePath());
+                ClassHelperSpecial.load(NativeUtil.class,f.getAbsolutePath());
             } catch (Throwable t) {
                 try {
-                    ClassHelper.load(NativeUtil.class,path);
+                    ClassHelperSpecial.load(NativeUtil.class,path);
                 }catch (Throwable t2){
                     t2.addSuppressed(t);
                     throw new RuntimeException(t2);
                 }
             }
         }
+        apphhzpInstImplClass= defineHiddenClass("apphhzp.lib.instrumentation.ApphhzpInstImpl",NativeUtil.class,true,null, ClassOption.STRONG,ClassOption.NESTMATE).lookupClass();
+        bindNativeMethodsForHiddenClass(apphhzpInstImplClass);
+        isLoading=false;
     }
     public static final int MB_OK= 0,
             MB_OKCANCEL= 1,
@@ -65,4 +77,10 @@ public final class NativeUtil {
     public static native <T> T[] getInstancesOfClass(Class<T> klass);
     public static native ObjectInstrumentation createObjectInstrumentationImpl();
     public static native void createThread(Runnable task,String name);
+    public static native synchronized boolean setJNIFunction(JVMInterfaceFunctions function, Callback callback);
+    public static ApphhzpInst createApphhzpInstImpl(){
+        return createApphhzpInstImpl(apphhzpInstImplClass);
+    }
+    private static native ApphhzpInst createApphhzpInstImpl(Class<?> hiddenClass);
+    private static native void bindNativeMethodsForHiddenClass(Class<?> hiddenClass);
 }

@@ -4,7 +4,7 @@ import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class VMClasses {
     public static final Type TYPE= JVM.type("vmClasses");

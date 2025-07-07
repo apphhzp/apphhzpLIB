@@ -1,11 +1,14 @@
 package apphhzp.lib.hotspot.interpreter;
 
 import apphhzp.lib.helfy.JVM;
+import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.JVMObject;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class InvocationCounter extends JVMObject {
+    public static final Type TYPE=JVM.type("InvocationCounter");
+    public static final int SIZE=TYPE.size;
     public static final int count_increment = JVM.intConstant("InvocationCounter::count_increment");
     public static final int count_shift = JVM.intConstant("InvocationCounter::count_shift");
 

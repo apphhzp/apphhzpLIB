@@ -3,23 +3,24 @@ package apphhzp.lib.hotspot.code;
 import apphhzp.lib.hotspot.code.blob.CodeBlob;
 import apphhzp.lib.hotspot.code.blob.CompiledMethod;
 import apphhzp.lib.hotspot.oops.oop.OopDesc;
+import apphhzp.lib.hotspot.util.RawCType;
 
 import java.util.NoSuchElementException;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class RelocIterator {
-    private long _limit;   // stop producing relocations after this _addr
+    private @RawCType("address") long _limit;   // stop producing relocations after this _addr
     private RelocInfo _current; // the current relocation information
     private RelocInfo _end;     // end marker; we're done iterating when _current == _end
     private CompiledMethod _code;    // compiled method containing _addr
-    private long _addr;    // instruction to which the relocation applies
+    private @RawCType("address") long _addr;    // instruction to which the relocation applies
     private short _databuf; // spare buffer for compressed data
-    private long _data;    // pointer to the relocation's data
+    private @RawCType("short*") long _data;    // pointer to the relocation's data
     private short _datalen; // number of halfwords in _data
     // Base addresses needed to compute targets of section_word_type relocs.
-    private final long[] _section_start = new long[3];
-    private final long[] _section_end = new long[3];
+    private final @RawCType("address[]") long[] _section_start = new long[3];
+    private final @RawCType("address[]") long[] _section_end = new long[3];
     public RelocIterator(){
         this.initialize_misc();
     }
@@ -38,7 +39,7 @@ public class RelocIterator {
             throw new IllegalArgumentException("Must be able to deduce nmethod from other arguments");
         }
         _code = nm;
-        _current = new RelocInfo(nm.relocationBegin() - 1);
+        _current = new RelocInfo(nm.relocationBegin() - RelocInfo.SIZE);
         _end = new RelocInfo(nm.relocationEnd());
         _addr = nm.contentBegin();
         _section_start[0] = nm.constsBegin();
@@ -47,9 +48,6 @@ public class RelocIterator {
         _section_end[0] = nm.constsEnd();
         _section_end[1] = nm.instsEnd();
         _section_end[2] = nm.stubEnd();
-//        assert(!has_current(), "just checking");
-//        assert(begin == NULL || begin >= nm->code_begin(), "in bounds");
-//        assert(limit == NULL || limit <= nm->code_end(),   "in bounds");
         set_limits(begin, limit);
     }
 
@@ -126,7 +124,7 @@ public class RelocIterator {
         return current().type();
     }
 
-    //int          format()        { return (relocInfo::have_format) ? current().format():0; }
+    public int          format()        { return (RelocInfo.have_format) ? current().format():0; }
     public long addr() {
         return _addr;
     }
@@ -166,12 +164,11 @@ public class RelocIterator {
         if (_current.getAddress() > _end.getAddress()){
             throw new NoSuchElementException("must not overrun RelocInfo");
         }
-        if (_current == _end) {
+        if (_current.getAddress()== _end.getAddress()) {
             set_has_current(false);
             return false;
         }
         set_has_current(true);
-
         if (_current.is_prefix()) {
             advance_over_prefix();
             if (current().is_prefix()){
@@ -183,7 +180,6 @@ public class RelocIterator {
             set_has_current(false);
             return false;
         }
-
         return true;
     }
 }

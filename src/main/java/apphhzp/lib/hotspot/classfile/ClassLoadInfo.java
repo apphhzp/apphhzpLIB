@@ -1,26 +1,26 @@
 package apphhzp.lib.hotspot.classfile;
 
 import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
-import apphhzp.lib.hotspot.oops.oop.OopDesc;
+import apphhzp.lib.hotspot.oops.oop.Oop;
 
 public class ClassLoadInfo {
-    private final OopDesc _protection_domain;
+    private final Oop _protection_domain;
     private final ClassInstanceInfo _class_hidden_info=new ClassInstanceInfo();
     private final boolean _is_hidden;
     private final boolean _is_strong_hidden;
     private final boolean _can_access_vm_annotations;
 
-    public ClassLoadInfo(OopDesc protection_domain) {
+    public ClassLoadInfo(Oop protection_domain) {
         _protection_domain = protection_domain;
         _class_hidden_info._dynamic_nest_host = null;
-        _class_hidden_info._class_data =OopDesc.NULL;
+        _class_hidden_info._class_data =null;
         _is_hidden = false;
         _is_strong_hidden = false;
         _can_access_vm_annotations = false;
     }
 
-    ClassLoadInfo(OopDesc protection_domain, InstanceKlass dynamic_nest_host,
-                  OopDesc class_data, boolean is_hidden, boolean is_strong_hidden,
+    ClassLoadInfo(Oop protection_domain, InstanceKlass dynamic_nest_host,
+                  Oop class_data, boolean is_hidden, boolean is_strong_hidden,
                   boolean can_access_vm_annotations) {
         _protection_domain = protection_domain;
         _class_hidden_info._dynamic_nest_host = dynamic_nest_host;
@@ -30,7 +30,7 @@ public class ClassLoadInfo {
         _can_access_vm_annotations = can_access_vm_annotations;
     }
 
-    OopDesc protection_domain() {
+    Oop protection_domain() {
         return _protection_domain;
     }
 

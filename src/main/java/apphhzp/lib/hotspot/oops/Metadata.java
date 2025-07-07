@@ -10,7 +10,7 @@ import apphhzp.lib.hotspot.oops.method.Method;
 
 public class Metadata extends JVMObject {
     public static final Type TYPE=JVM.type("Metadata");
-    public Metadata(long addr) {
+    protected Metadata(long addr) {
         super(addr);
     }
     public static Metadata getMetadata(long addr) {
@@ -18,7 +18,6 @@ public class Metadata extends JVMObject {
             return null;
         }
         Type type=JVM.findDynamicTypeForAddress(addr,Metadata.TYPE);
-        System.err.println(type.name);
         return switch (type.name) {
             case "Metadata" -> new Metadata(addr);
             case "Klass", "ArrayKlass", "ObjArrayKlass", "TypeArrayKlass" -> Klass.getOrCreate(addr);

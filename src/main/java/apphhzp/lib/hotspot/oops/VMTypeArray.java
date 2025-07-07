@@ -9,7 +9,7 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.function.LongFunction;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class VMTypeArray<T extends JVMObject> extends JVMObject implements Iterable<T>{
     public static final long DATA_OFFSET= JVM.oopSize;//内存对齐
@@ -36,8 +36,12 @@ public class VMTypeArray<T extends JVMObject> extends JVMObject implements Itera
 
     public T get(int index) {
         checkBound(index);
+        long addr=unsafe.getAddress(this.address+DATA_OFFSET+ (long) JVM.oopSize *index);
+        if (addr==0L){
+            return null;
+        }
         try {
-            return constructor.apply(unsafe.getAddress(this.address+DATA_OFFSET+ (long) JVM.oopSize *index));
+            return constructor.apply(addr);
         }catch (Throwable t){
             throw new RuntimeException(t);
         }
@@ -64,7 +68,8 @@ public class VMTypeArray<T extends JVMObject> extends JVMObject implements Itera
         try {
             T[] re= (T[]) Array.newInstance(this.type,this.length());
             for (int i=0,len=this.length();i<len;i++){
-                re[i]= constructor.apply(unsafe.getAddress(this.address+DATA_OFFSET+(long) JVM.oopSize*i));
+                long addr=unsafe.getAddress(this.address+DATA_OFFSET+(long) JVM.oopSize*i);
+                re[i]= addr==0L?null:constructor.apply(addr);
             }
             return re;
         }catch (Throwable t){
@@ -131,8 +136,12 @@ public class VMTypeArray<T extends JVMObject> extends JVMObject implements Itera
             public T next() {
                 if (index >= size)
                     throw new NoSuchElementException();
+                long addr=unsafe.getAddress(VMTypeArray.this.address+DATA_OFFSET+ (long) JVM.oopSize *this.index++);
+                if (addr==0L){
+                    return null;
+                }
                 try {
-                    return constructor.apply(unsafe.getAddress(VMTypeArray.this.address+DATA_OFFSET+ (long) JVM.oopSize *this.index++));
+                    return constructor.apply(addr);
                 }catch (Throwable t){
                     throw new RuntimeException(t);
                 }

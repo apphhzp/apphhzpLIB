@@ -1,6 +1,7 @@
 package apphhzp.lib.hotspot.utilities;
 
 import apphhzp.lib.helfy.JVM;
+import apphhzp.lib.hotspot.util.RawCType;
 
 public class BasicType {
     public static final int T_BOOLEAN= JVM.intConstant("T_BOOLEAN");
@@ -56,6 +57,9 @@ public class BasicType {
         };
     }
     public String getName() {
+        return getName(value);
+    }
+    public static String getName(int value) {
         if (value == T_BOOLEAN) {
             return "boolean";
         } else if (value == T_CHAR) {
@@ -91,5 +95,38 @@ public class BasicType {
         } else {
             return "ILLEGAL TYPE";
         }
+    }
+
+    public static  boolean is_java_type(@RawCType("BasicType")int t) {
+        return T_BOOLEAN <= t && t <= T_VOID;
+    }
+
+    public static  boolean is_java_primitive(@RawCType("BasicType")int t) {
+        return T_BOOLEAN <= t && t <= T_LONG;
+    }
+
+    public static  boolean is_subword_type(@RawCType("BasicType")int t) {
+        // these guys are processed exactly like T_INT in calling sequences:
+        return (t == T_BOOLEAN || t == T_CHAR || t == T_BYTE || t == T_SHORT);
+    }
+
+    public static  boolean is_signed_subword_type(@RawCType("BasicType")int t) {
+        return (t == T_BYTE || t == T_SHORT);
+    }
+
+    public static  boolean is_double_word_type(@RawCType("BasicType")int t) {
+        return (t == T_DOUBLE || t == T_LONG);
+    }
+
+    public static  boolean is_reference_type(@RawCType("BasicType")int t) {
+        return (t == T_OBJECT || t == T_ARRAY);
+    }
+
+    public static  boolean is_integral_type(@RawCType("BasicType")int t) {
+        return is_subword_type(t) || t == T_INT || t == T_LONG;
+    }
+
+    public static  boolean is_floating_point_type(@RawCType("BasicType")int t) {
+        return (t == T_FLOAT || t == T_DOUBLE);
     }
 }

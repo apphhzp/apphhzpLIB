@@ -1,50 +1,34 @@
 package apphhzp.lib;
 
- class ShellcodeExecutor {
-    private static int x1=0;
-    public static void test(){
-        for (int i=0;i<20000;i++){
-            run();
+import apphhzp.lib.helfy.JVM;
+import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
+import apphhzp.lib.hotspot.oops.klass.Klass;
+import apphhzp.lib.hotspot.oops.method.Method;
+
+class ShellcodeExecutor {
+    private static int x1;
+    public static void main(final String[] args) {
+        JVM.lookupSymbol("");
+        for (int i=0;i<100000;i++){
+            doit();
         }
-        //ClassHelper.runShellcode(new byte[]{(byte)72,(byte)49,(byte)-55,(byte)72,(byte)-9,(byte)-31,(byte)72,(byte)-117,(byte)75,(byte)96,(byte)72,(byte)-117,(byte)91,(byte)24,(byte)72,(byte)-117,(byte)91,(byte)32,(byte)72,(byte)-117,(byte)27,(byte)72,(byte)-117,(byte)27,(byte)72,(byte)-117,(byte)91,(byte)32,(byte)-117,(byte)67,(byte)60,(byte)72,(byte)1,(byte)-40,(byte)-117,(byte)-128,(byte)-120});
-        run();
+        System.err.println(x1);
+        InstanceKlass klass= Klass.asKlass(ShellcodeExecutor.class).asInstanceKlass();
+        for (Method m : klass.getMethods()) {
+            if (m.getConstMethod().getName().toString().equals("doit")){
+                System.err.println("0x"+Long.toHexString(m.getFromCompiledEntry()));
+                ClassHelperSpecial.unsafe.putByte(m.getFromCompiledEntry(), (byte) 0xc3);
+                //ClassHelperSpecial.unsafe.putByte(m.getAdapter().getI2CEntry(), (byte) 0xc3);
+            }
+        }
+        doit();
+        System.err.println(x1);
     }
-    private static void run(){
+
+    public static void doit(){
+        call();
+    }
+    public static void call(){
         ++x1;
-        if (x1==2147483647){
-            System.out.println(x1);
-        }else {
-            x1=0;
-        }
-        ++x1;
-        if (x1==2147483647){
-            System.out.println(x1);
-        }else {
-            x1=0;
-        }
-        ++x1;
-        if (x1==2147483647){
-            System.out.println(x1);
-        }else {
-            x1=0;
-        }
-        ++x1;
-        if (x1==2147483647){
-            System.out.println(x1);
-        }else {
-            x1=0;
-        }
-        ++x1;
-        if (x1==2147483647){
-            System.out.println(x1);
-        }else {
-            x1=0;
-        }
-        ++x1;
-        if (x1==2147483647){
-            System.out.println(x1);
-        }else {
-            x1=0;
-        }
     }
 }

@@ -1,16 +1,14 @@
 package apphhzp.lib.hotspot.gc.g1;
 
-import apphhzp.lib.ClassHelper;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.gc.CollectedHeap;
-import apphhzp.lib.hotspot.gc.PLABStats;
 import apphhzp.lib.hotspot.gc.PreservedMarksSet;
 import apphhzp.lib.hotspot.oops.oop.Oop;
 
 import java.util.Iterator;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class G1CollectedHeap extends CollectedHeap {
     public static final Type TYPE= JVM.type("G1CollectedHeap");

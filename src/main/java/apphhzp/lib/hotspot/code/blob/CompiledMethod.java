@@ -2,13 +2,14 @@ package apphhzp.lib.hotspot.code.blob;
 
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
+import apphhzp.lib.hotspot.code.NativeCallWrapper;
 import apphhzp.lib.hotspot.code.RelocInfo;
 import apphhzp.lib.hotspot.code.RelocIterator;
 import apphhzp.lib.hotspot.oops.method.Method;
 
 import javax.annotation.Nullable;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class CompiledMethod extends CodeBlob {
     public static final Type TYPE = JVM.type("CompiledMethod");
@@ -137,5 +138,9 @@ public class CompiledMethod extends CodeBlob {
                 not_entrant = 2,  // marked for deoptimization but activations may still exist,will be transformed to zombie when all activations are gone
                 unloaded = 3,  // there should be no activations, should not be called, will be
                 zombie = 4;// transformed to zombie by the sweeper, when not "locked in vm".
+    }
+
+    public NativeCallWrapper call_wrapper_at(long call){
+        throw new UnsupportedOperationException();
     }
 }

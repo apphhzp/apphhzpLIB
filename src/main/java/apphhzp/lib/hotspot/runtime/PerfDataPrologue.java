@@ -1,6 +1,5 @@
 package apphhzp.lib.hotspot.runtime;
 
-import apphhzp.lib.ClassHelper;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.JVMObject;
@@ -8,7 +7,7 @@ import apphhzp.lib.hotspot.JVMObject;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class PerfDataPrologue extends JVMObject implements Iterable<PerfDataEntry>{
     public static final Type TYPE= JVM.type("PerfDataPrologue");

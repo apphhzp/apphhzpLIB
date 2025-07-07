@@ -1,14 +1,12 @@
 package apphhzp.lib.hotspot.gc.g1;
 
 import apphhzp.lib.helfy.JVM;
-import apphhzp.lib.helfy.Type;
-import apphhzp.lib.hotspot.JVMObject;
 import apphhzp.lib.hotspot.memory.MemRegion;
 
 import javax.annotation.Nullable;
 import java.util.Iterator;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 //class G1HeapRegionTable : public G1BiasedMappedArray<HeapRegion*>;
 public class G1HeapRegionTable extends G1BiasedMappedArray {

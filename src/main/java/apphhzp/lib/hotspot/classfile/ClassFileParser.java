@@ -7,11 +7,13 @@ import apphhzp.lib.hotspot.oops.constant.ConstantPool;
 import apphhzp.lib.hotspot.oops.constant.ConstantTag;
 import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
 import apphhzp.lib.hotspot.oops.method.Method;
-import apphhzp.lib.hotspot.oops.oop.OopDesc;
+import apphhzp.lib.hotspot.oops.oop.Oop;
+import apphhzp.lib.hotspot.util.RawCType;
 import apphhzp.lib.hotspot.utilities.BasicType;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+
 
 public class ClassFileParser {
     public static final int JAVA_CLASSFILE_MAGIC = 0xCAFEBABE, JAVA_MIN_SUPPORTED_VERSION = 45, JAVA_PREVIEW_MINOR_VERSION = 65535
@@ -30,13 +32,18 @@ public class ClassFileParser {
             , JAVA_8_VERSION = 52, JAVA_9_VERSION = 53, JAVA_10_VERSION = 54, JAVA_11_VERSION = 55, JAVA_12_VERSION = 56, JAVA_13_VERSION = 57, JAVA_14_VERSION = 58, JAVA_15_VERSION = 59, JAVA_16_VERSION = 60, JAVA_17_VERSION = 61;
 
 
-    //[Publicity]
+    /**
+     * enum Publicity
+     */
     public static final int
             INTERNAL = 0,
             BROADCAST = 1;
     //[END]
 
-    // "used to verify unqualified names"
+    /**
+     * enum<br>
+     * used to verify unqualified names
+     * */
     public static final int
             LegalClass = 0,
             LegalField = 1,
@@ -49,8 +56,8 @@ public class ClassFileParser {
     ClassFileStream _stream; // Actual input stream
     Symbol _class_name;
     ClassLoaderData _loader_data;
-    boolean _is_hidden;
-    boolean _can_access_vm_annotations;
+    final boolean _is_hidden;
+    final boolean _can_access_vm_annotations;
     int _orig_cp_size;
 
     // Metadata created before the instance klass is created.  Must be deallocated
@@ -62,30 +69,29 @@ public class ClassFileParser {
     VMTypeArray<Method> _methods;
     U2Array _inner_classes;
     U2Array _nest_members;
-    int/*u2*/ _nest_host;
+    @RawCType("u2") int _nest_host;
     U2Array _permitted_subclasses;
     VMTypeArray<RecordComponent> _record_components;
     VMTypeArray<InstanceKlass> _local_interfaces;
     VMTypeArray<InstanceKlass> _transitive_interfaces;
     Annotations _combined_annotations;
-    U1Array/*AnnotationArray* */ _class_annotations;
-    U1Array/*AnnotationArray* */ _class_type_annotations;
-    VMTypeArray<U1Array>/*Array<AnnotationArray*>* */ _fields_annotations;
-    VMTypeArray<U1Array>/*Array<AnnotationArray*>* */ _fields_type_annotations;
+    @RawCType("AnnotationArray*") U1Array _class_annotations;
+    @RawCType("AnnotationArray*") U1Array _class_type_annotations;
+    @RawCType("Array<AnnotationArray*>*") VMTypeArray<U1Array> _fields_annotations;
+    @RawCType("Array<AnnotationArray*>*") VMTypeArray<U1Array> _fields_type_annotations;
     InstanceKlass _klass;  // InstanceKlass* once created.
     InstanceKlass _klass_to_deallocate; // an InstanceKlass* to be destroyed
-    //
-    ClassAnnotationCollector/*ClassAnnotationCollector* */ _parsed_annotations;
-    FieldAllocationCount /*FieldAllocationCount* */ _fac;
-    FieldLayoutInfo _field_info;
 
-    //intArray* _method_ordering;
-    ArrayList<Integer> _method_ordering;
+    @RawCType("ClassAnnotationCollector*") ClassAnnotationCollector _parsed_annotations;
+    @RawCType("FieldAllocationCount*") FieldAllocationCount _fac;
+    @RawCType("FieldLayoutInfo*") FieldLayoutInfo _field_info;
 
-    //GrowableArray<Method*>* _all_mirandas;
-    ArrayList<Method> _all_mirandas;
 
-    byte[] /*u_char*/ _linenumbertable_buffer = new byte[fixed_buffer_size];
+    @RawCType("intArray*") ArrayList<Integer> _method_ordering;
+
+    @RawCType("GrowableArray<Method*>*") ArrayList<Method> _all_mirandas;
+
+    @RawCType("u_char[]") byte[] _linenumbertable_buffer = new byte[fixed_buffer_size];
 
     // Size of Java vtable (in words)
     int _vtable_size;
@@ -93,13 +99,13 @@ public class ClassFileParser {
 
     int _num_miranda_methods;
 
-    int /*ReferenceType*/ _rt;
+    @RawCType("ReferenceType") int _rt;
 
-    OopDesc _protection_domain;
+    Oop _protection_domain;
     AccessFlags _access_flags;
 
     // for tracing and notifications
-    int /*Publicity*/ _pub_level;
+    @RawCType("Publicity") int _pub_level;
 
     // Used to keep track of whether a constant pool item 19 or 20 is found.  These
     // correspond to CONSTANT_Module and CONSTANT_Package tags and are not allowed
@@ -113,16 +119,16 @@ public class ClassFileParser {
     // class attributes parsed before the instance klass is created:
     boolean _synthetic_flag;
     int _sde_length;
-    char[] _sde_buffer;
-    int/*u2*/ _sourcefile_index;
-    int/*u2*/ _generic_signature_index;
+    @RawCType("char*") char[] _sde_buffer;
+    @RawCType("u2") int _sourcefile_index;
+    @RawCType("u2") int _generic_signature_index;
 
-    int/*u2*/ _major_version;
-    int/*u2*/ _minor_version;
-    int/*u2*/ _this_class_index;
-    int/*u2*/ _super_class_index;
-    int/*u2*/ _itfs_len;
-    int/*u2*/ _java_fields_count;
+    @RawCType("u2") int _major_version;
+    @RawCType("u2") int _minor_version;
+    @RawCType("u2") int _this_class_index;
+    @RawCType("u2") int _super_class_index;
+    @RawCType("u2") int _itfs_len;
+    @RawCType("u2") int _java_fields_count;
 
     boolean _need_verify;
     boolean _relax_verify;
@@ -142,14 +148,14 @@ public class ClassFileParser {
                            Symbol name,
                            ClassLoaderData loader_data,
                                   ClassLoadInfo cl_info,
-                           int /*Publicity*/ pub_level){
+                           @RawCType("Publicity") int  pub_level){
         this._stream=stream;
         this._class_name=null;
         this._loader_data=loader_data;
         this._is_hidden=cl_info.is_hidden();
         this._can_access_vm_annotations=cl_info.can_access_vm_annotations();
         this._orig_cp_size=0;
-        this._super_klass=InstanceKlass.create();
+        this._super_klass=null;//InstanceKlass.create();
         this._cp=null;
         this._fields=null;
         this._methods=null;
@@ -226,9 +232,240 @@ public class ClassFileParser {
 
         stream.set_verify(_need_verify);
         _relax_verify = relax_format_check_for(_loader_data);
-//        parse_stream(stream);
+        parse_stream(stream);
+        //post_process_parsed_stream(stream, _cp);
+    }
+
+    private void check_property(boolean property, String msg,int index) {
+        if (!property){
+            throw new AssertionError("(index:"+ index+")"+msg);
+        }
+    }
+
+    private void parse_stream(final ClassFileStream stream) {
+        if (stream==null){
+            throw new RuntimeException("invariant");
+        }
+        if (_class_name==null){
+            throw new RuntimeException("invariant");
+        }
+
+        // BEGIN STREAM PARSING
+        stream.guarantee_more(8);  // magic, major, minor
+        // Magic value
+        int magic = stream.get_u4_fast();
+        if (magic!=JAVA_CLASSFILE_MAGIC){
+            throw new IllegalStateException("Incompatible magic value "+magic+" in class file");
+        }
+
+        // Version numbers
+        _minor_version = stream.get_u2_fast();
+        _major_version = stream.get_u2_fast();
+
+        // Don't check it!
+        //verify_class_version(_major_version, _minor_version, _class_name);
+
+        stream.guarantee_more(3); // length, first cp tag
+        @RawCType("u2") int cp_size = stream.get_u2_fast();
+        if (cp_size<1){
+            throw new RuntimeException("Illegal constant pool size "+cp_size+" in class file");
+        }
+
+        _orig_cp_size = cp_size;
+        if (is_hidden()) { // Add a slot for hidden class name.
+            cp_size++;
+        }
+
+        _cp = ConstantPool.allocate(cp_size);
+        throw new UnsupportedOperationException("Not implemented yet");
+//        ConstantPool cp = _cp;
 //
-//        post_process_parsed_stream(stream, _cp);
+//        parse_constant_pool(stream, cp, _orig_cp_size);
+//
+//        if (cp_size!=cp.getLength()){
+//            throw new RuntimeException("invariant");
+//        }
+//
+//        // ACCESS FLAGS
+//        stream.guarantee_more(8);  // flags, this_class, super_class, infs_len
+//
+//        // Access flags
+//        int flags;
+//        // JVM_ACC_MODULE is defined in JDK-9 and later.
+//        if (_major_version >= JAVA_9_VERSION) {
+//            flags =  (stream.get_u2_fast() & (JVM_RECOGNIZED_CLASS_MODIFIERS | 0x8000));
+//        } else {
+//            flags =  (stream.get_u2_fast() & JVM_RECOGNIZED_CLASS_MODIFIERS);
+//        }
+//
+//        if ((flags & JVM_ACC_INTERFACE)!=0 && _major_version < JAVA_6_VERSION) {
+//            // Set abstract bit for old class files for backward compatibility
+//            flags |= JVM_ACC_ABSTRACT;
+//        }
+//
+//        verify_legal_class_modifiers(flags);
+//
+//        short bad_constant = class_bad_constant_seen();
+//        if (bad_constant != 0) {
+//            // Do not throw CFE until after the access_flags are checked because if
+//            // ACC_MODULE is set in the access flags, then NCDFE must be thrown, not CFE.
+//            throw new ClassFormatError("Unknown constant tag "+bad_constant+" in class file");
+//            return;
+//        }
+//
+//        _access_flags=AccessFlags.getOrCreate((flags));
+//
+//        // This class and superclass
+//        _this_class_index = stream.get_u2_fast();
+////        check_property(
+////                valid_cp_range(_this_class_index, cp_size) &&
+////                        cp.tag_at(_this_class_index).is_unresolved_klass(),
+////                "Invalid this class index %u in constant pool in class file %s",
+////                _this_class_index);
+//
+//        Symbol  class_name_in_cp = cp.klass_name_at(_this_class_index);
+//        if (class_name_in_cp==null){
+//            throw new RuntimeException("class_name can't be null");
+//        }
+//
+//        // Don't need to check whether this class name is legal or not.
+//        // It has been checked when constant pool is parsed.
+//        // However, make sure it is not an array type.
+//        if (_need_verify) {
+////            guarantee_property(class_name_in_cp.char_at(0) != JVM_SIGNATURE_ARRAY,
+////                    "Bad class name in class file %s",);
+//        }
+//
+//        // Update the _class_name as needed depending on whether this is a named, un-named, or hidden class.
+//
+//        if (_is_hidden) {
+//            if (_class_name == null){
+//                throw new RuntimeException("Unexpected null _class_name");
+//            }
+//
+//        } else {
+//            // Check if name in class file matches given name
+//            if (_class_name != class_name_in_cp) {
+//                if (!_class_name.equals(Symbol.getVMSymbol("<Unknown>"))) {
+//                    throw new NoClassDefFoundError(_class_name.toString()+" (wrong name: "+ class_name_in_cp +")");
+//                    return;
+//                } else {
+//                    // The class name was not known by the caller so we set it from
+//                    // the value in the CP.
+//                    update_class_name(class_name_in_cp);
+//                }
+//                // else nothing to do: the expected class name matches what is in the CP
+//            }
+//        }
+//
+//        // Verification prevents us from creating names with dots in them, this
+//        // asserts that that's the case.
+//        assert(is_internal_format(_class_name), "external class name format used internally");
+//
+//        if (!is_internal()) {
+//            LogTarget(Debug, class, preorder) lt;
+//            if (lt.is_enabled()){
+//                ResourceMark rm(THREAD);
+//                LogStream ls(lt);
+//                ls.print("%s", _class_name.as_klass_external_name());
+//                if (stream.source() != NULL) {
+//                    ls.print(" source: %s", stream.source());
+//                }
+//                ls.cr();
+//            }
+//        }
+//
+//        // SUPERKLASS
+//        _super_class_index = stream.get_u2_fast();
+//        _super_klass = parse_super_class(cp,
+//                _super_class_index,
+//                _need_verify);
+//
+//        // Interfaces
+//        _itfs_len = stream.get_u2_fast();
+//        parse_interfaces(stream,
+//                _itfs_len,
+//                cp,
+//                &_has_nonstatic_concrete_methods);
+//        if (_local_interfaces == null){
+//            throw new RuntimeException("invariant");
+//        }
+//
+//        // Fields (offsets are filled in later)
+//        _fac = new FieldAllocationCount();
+//        parse_fields(stream,
+//                _access_flags.isInterface(),
+//                _fac,
+//                cp,
+//                cp_size,
+//                &_java_fields_count,);
+//
+//        if (_fields==null){
+//            throw new RuntimeException("invariant");
+//        }
+//
+//        // Methods
+//        AccessFlags promoted_flags;
+//        parse_methods(stream,
+//                _access_flags.is_interface(),
+//                &promoted_flags,
+//                &_has_final_method,
+//                &_declares_nonstatic_concrete_methods,);
+//        if (_methods==null){
+//            throw new RuntimeException("invariant");
+//        }
+//
+//        // promote flags from parse_methods() to the klass' flags
+//        _access_flags.add_promoted_flags(promoted_flags.as_int());
+//
+//        if (_declares_nonstatic_concrete_methods) {
+//            _has_nonstatic_concrete_methods = true;
+//        }
+//
+//        // Additional attributes/annotations
+//        _parsed_annotations = new ClassAnnotationCollector();
+//        parse_classfile_attributes(stream, cp, _parsed_annotations);
+//        if (_inner_classes==null){
+//            throw new RuntimeException("invariant");
+//        }
+//
+//        // Finalize the Annotations metadata object,
+//        // now that all annotation arrays have been created.
+//        create_combined_annotations();
+//
+//        // Make sure this is the end of class file stream
+//        if (!stream.at_eos()){
+//            throw new RuntimeException("Extra bytes at the end of class file");
+//        }
+
+        // all bytes in stream read and parsed
+    }
+
+    public void create_combined_annotations() {
+        if (_class_annotations == null &&
+                _class_type_annotations == null &&
+                _fields_annotations == null &&
+                _fields_type_annotations == null) {
+            // Don't create the Annotations object unnecessarily.
+            return;
+        }
+
+        Annotations  annotations = Annotations.create();
+        annotations.setClassAnnotations(_class_annotations);
+        annotations.setClassTypeAnnotations(_class_type_annotations);
+        annotations.setFieldsAnnotations(_fields_annotations);
+        annotations.setFieldsTypeAnnotations(_fields_type_annotations);
+
+        // This is the Annotations object that will be
+        // assigned to InstanceKlass being constructed.
+        _combined_annotations = annotations;
+
+        // The annotations arrays below has been transfered the
+        // _combined_annotations so these fields can now be cleared.
+        _class_annotations       = null;
+        _class_type_annotations  = null;
+        _fields_annotations      = null;
+        _fields_type_annotations = null;
     }
 
     public static boolean relax_format_check_for(ClassLoaderData loader_data) {
@@ -252,7 +489,7 @@ public class ClassFileParser {
 //        if (_class_name == vmSymbols::java_lang_Object()) {
 //            check_property(_local_interfaces == Universe::the_empty_instance_klass_array(),
 //                    "java.lang.Object cannot implement an interface in class file %s",
-//                    CHECK);
+//                  );
 //        }
 //        // We check super class after class file is parsed and format is checked
 //        if (_super_class_index > 0 && NULL == _super_klass) {
@@ -262,7 +499,7 @@ public class ClassFileParser {
 //                // errors not checked yet.
 //                guarantee_property(super_class_name == vmSymbols::java_lang_Object(),
 //                        "Interfaces must have java.lang.Object as superclass in class file %s",
-//                        CHECK);
+//                      );
 //            }
 //            Handle loader(THREAD, _loader_data.class_loader());
 //            _super_klass = (const InstanceKlass*)
@@ -271,7 +508,7 @@ public class ClassFileParser {
 //                    loader,
 //                    _protection_domain,
 //                    true,
-//                    CHECK);
+//                  );
 //        }
 //
 //        if (_super_klass != NULL) {
@@ -411,6 +648,351 @@ public class ClassFileParser {
         }
         if (_bad_constant_seen == 0) _bad_constant_seen = bad_constant;
     }
+
+//    public void parse_constant_pool(ClassFileStream  stream,
+//                                              ConstantPool cp, int length) {
+//        if (cp==null){
+//            throw new RuntimeException("invariant");
+//        }
+//        if (stream==null){
+//            throw new RuntimeException("invariant");
+//        }
+//        // parsing constant pool entries
+//        parse_constant_pool_entries(stream, cp, length, CHECK);
+//        if (class_bad_constant_seen() != 0) {
+//            // a bad CP entry has been detected previously so stop parsing and just return.
+//            return;
+//        }
+//
+//        int index = 1;  // declared outside of loops for portability
+//        int num_klasses = 0;
+//
+//        // first verification pass - validate cross references
+//        // and fixup class and string constants
+//        for (index = 1; index < length; index++) {          // Index 0 is unused
+//            byte tag = cp.tag_at(index);
+//            switch (tag) {
+//                case JVM_CONSTANT_Class: {
+//                    throw new RuntimeException("ShouldNotReachHere");     // Only JVM_CONSTANT_ClassIndex should be present
+//                    break;
+//                }
+//                case JVM_CONSTANT_Fieldref:
+//                    // fall through
+//                case JVM_CONSTANT_Methodref:
+//                    // fall through
+//                case JVM_CONSTANT_InterfaceMethodref: {
+//                    if (!_need_verify) break;
+//                    final int klass_ref_index = cp.klass_ref_index_at(index);
+//                    final int name_and_type_ref_index = cp.name_and_type_ref_index_at(index);
+//                    check_property(valid_klass_reference_at(klass_ref_index),
+//                            "Invalid constant pool index %u in class file %s",
+//                            klass_ref_index, CHECK);
+//                    check_property(valid_cp_range(name_and_type_ref_index, length) &&
+//                                    cp.tag_at(name_and_type_ref_index).is_name_and_type(),
+//                            "Invalid constant pool index %u in class file %s",
+//                            name_and_type_ref_index, CHECK);
+//                    break;
+//                }
+//                case JVM_CONSTANT_String: {
+//                    throw new RuntimeException("ShouldNotReachHere");     // Only JVM_CONSTANT_StringIndex should be present
+//                    break;
+//                }
+//                case JVM_CONSTANT_Integer, JVM_CONSTANT_Float:
+//                    break;
+//                case JVM_CONSTANT_Long:
+//                case JVM_CONSTANT_Double: {
+//                    index++;
+//                    check_property(
+//                            (index < length && cp.tag_at(index).is_invalid()),
+//                            "Improper constant pool long/double index %u in class file %s",
+//                            index, CHECK);
+//                    break;
+//                }
+//                case JVM_CONSTANT_NameAndType: {
+//                    if (!_need_verify) break;
+//                    final int name_ref_index = cp.name_ref_index_at(index);
+//                    final int signature_ref_index = cp.signature_ref_index_at(index);
+//                    check_property(valid_symbol_at(name_ref_index),
+//                            "Invalid constant pool index %u in class file %s",
+//                            name_ref_index, CHECK);
+//                    check_property(valid_symbol_at(signature_ref_index),
+//                            "Invalid constant pool index %u in class file %s",
+//                            signature_ref_index, CHECK);
+//                    break;
+//                }
+//                case JVM_CONSTANT_Utf8:
+//                    break;
+//                case JVM_CONSTANT_UnresolvedClass:         // fall-through
+//                case JVM_CONSTANT_UnresolvedClassInError: {
+//                    throw new RuntimeException("ShouldNotReachHere");     // Only JVM_CONSTANT_ClassIndex should be present
+//                    break;
+//                }
+//                case JVM_CONSTANT_ClassIndex: {
+//                    final int class_index = cp.klass_index_at(index);
+//                    check_property(valid_symbol_at(class_index),
+//                            "Invalid constant pool index %u in class file %s",
+//                            class_index, CHECK);
+//                    cp.unresolved_klass_at_put(index, class_index, num_klasses++);
+//                    break;
+//                }
+//                case JVM_CONSTANT_StringIndex: {
+//                    final int string_index = cp.string_index_at(index);
+//                    check_property(valid_symbol_at(string_index),
+//                            "Invalid constant pool index %u in class file %s",
+//                            string_index, CHECK);
+//                    Symbol sym = cp.symbol_at(string_index);
+//                    cp.unresolved_string_at_put(index, sym);
+//                    break;
+//                }
+//                case JVM_CONSTANT_MethodHandle: {
+//                    final int ref_index = cp.method_handle_index_at(index);
+//                    check_property(valid_cp_range(ref_index, length),
+//                            "Invalid constant pool index %u in class file %s",
+//                            ref_index, CHECK);
+//                    final byte tag2 = cp.tag_at(ref_index);
+//                    final int ref_kind = cp.method_handle_ref_kind_at(index);
+//
+//                    switch (ref_kind) {
+//                        case JVM_REF_getField:
+//                        case JVM_REF_getStatic:
+//                        case JVM_REF_putField:
+//                        case JVM_REF_putStatic: {
+//                            check_property(
+//                                    tag2.is_field(),
+//                                    "Invalid constant pool index %u in class file %s (not a field)",
+//                                    ref_index, CHECK);
+//                            break;
+//                        }
+//                        case JVM_REF_invokeVirtual:
+//                        case JVM_REF_newInvokeSpecial: {
+//                            check_property(
+//                                    tag2.is_method(),
+//                                    "Invalid constant pool index %u in class file %s (not a method)",
+//                                    ref_index, CHECK);
+//                            break;
+//                        }
+//                        case JVM_REF_invokeStatic:
+//                        case JVM_REF_invokeSpecial: {
+//                            check_property(
+//                                    tag2.is_method() ||
+//                                            ((_major_version >= JAVA_8_VERSION) && tag2.is_interface_method()),
+//                                    "Invalid constant pool index %u in class file %s (not a method)",
+//                                    ref_index, CHECK);
+//                            break;
+//                        }
+//                        case JVM_REF_invokeInterface: {
+//                            check_property(
+//                                    tag2.is_interface_method(),
+//                                    "Invalid constant pool index %u in class file %s (not an interface method)",
+//                                    ref_index, CHECK);
+//                            break;
+//                        }
+//                        default: {
+//                            classfile_parse_error(
+//                                    "Bad method handle kind at constant pool index %u in class file %s",
+//                                    index, THREAD);
+//                            return;
+//                        }
+//                    } // switch(refkind)
+//                    // Keep the ref_index unchanged.  It will be indirected at link-time.
+//                    break;
+//                } // case MethodHandle
+//                case JVM_CONSTANT_MethodType: {
+//                    final int ref_index = cp.method_type_index_at(index);
+//                    check_property(valid_symbol_at(ref_index),
+//                            "Invalid constant pool index %u in class file %s",
+//                            ref_index, CHECK);
+//                    break;
+//                }
+//                case JVM_CONSTANT_Dynamic: {
+//                    final int name_and_type_ref_index =
+//                            cp.bootstrap_name_and_type_ref_index_at(index);
+//
+//                    check_property(valid_cp_range(name_and_type_ref_index, length) &&
+//                                    cp.tag_at(name_and_type_ref_index).is_name_and_type(),
+//                            "Invalid constant pool index %u in class file %s",
+//                            name_and_type_ref_index, CHECK);
+//                    // bootstrap specifier index must be checked later,
+//                    // when BootstrapMethods attr is available
+//
+//                    // Mark the constant pool as having a CONSTANT_Dynamic_info structure
+//                    cp.set_has_dynamic_constant();
+//                    break;
+//                }
+//                case JVM_CONSTANT_InvokeDynamic: {
+//                    final int name_and_type_ref_index =
+//                            cp.bootstrap_name_and_type_ref_index_at(index);
+//
+//                    check_property(valid_cp_range(name_and_type_ref_index, length) &&
+//                                    cp.tag_at(name_and_type_ref_index).is_name_and_type(),
+//                            "Invalid constant pool index %u in class file %s",
+//                            name_and_type_ref_index, CHECK);
+//                    // bootstrap specifier index must be checked later,
+//                    // when BootstrapMethods attr is available
+//                    break;
+//                }
+//                default: {
+//                    fatal("bad constant pool tag value %u", cp.tag_at(index).value());
+//                    ShouldNotReachHere();
+//                    break;
+//                }
+//            } // switch(tag)
+//        } // end of for
+//
+//        cp.allocate_resolved_klasses(_loader_data, num_klasses, CHECK);
+//
+//        if (!_need_verify) {
+//            return;
+//        }
+//
+//        // second verification pass - checks the strings are of the right format.
+//        // but not yet to the other entries
+//        for (index = 1; index < length; index++) {
+//            final byte tag = cp.tag_at(index).value();
+//            switch (tag) {
+//                case JVM_CONSTANT_UnresolvedClass: {
+//                    final Symbol class_name = cp.klass_name_at(index);
+//                    // check the name
+//                    verify_legal_class_name(class_name, CHECK);
+//                    break;
+//                }
+//                case JVM_CONSTANT_NameAndType: {
+//                    if (_need_verify) {
+//                        final int sig_index = cp.signature_ref_index_at(index);
+//                        final int name_index = cp.name_ref_index_at(index);
+//                        final Symbol name = cp.symbol_at(name_index);
+//                        final Symbol sig = cp.symbol_at(sig_index);
+//                        guarantee_property(sig.utf8_length() != 0,
+//                                "Illegal zero length constant pool entry at %d in class %s",
+//                                sig_index, CHECK);
+//                        guarantee_property(name.utf8_length() != 0,
+//                                "Illegal zero length constant pool entry at %d in class %s",
+//                                name_index, CHECK);
+//
+//                        if (Signature::is_method(sig)) {
+//                            // Format check method name and signature
+//                            verify_legal_method_name(name, CHECK);
+//                            verify_legal_method_signature(name, sig, CHECK);
+//                        } else {
+//                            // Format check field name and signature
+//                            verify_legal_field_name(name, CHECK);
+//                            verify_legal_field_signature(name, sig, CHECK);
+//                        }
+//                    }
+//                    break;
+//                }
+//                case JVM_CONSTANT_Dynamic: {
+//                    final int name_and_type_ref_index =
+//                            cp.name_and_type_ref_index_at(index);
+//                    // already verified to be utf8
+//                    final int name_ref_index =
+//                            cp.name_ref_index_at(name_and_type_ref_index);
+//                    // already verified to be utf8
+//                    final int signature_ref_index =
+//                            cp.signature_ref_index_at(name_and_type_ref_index);
+//                    final Symbol name = cp.symbol_at(name_ref_index);
+//                    final Symbol signature = cp.symbol_at(signature_ref_index);
+//                    if (_need_verify) {
+//                        // CONSTANT_Dynamic's name and signature are verified above, when iterating NameAndType_info.
+//                        // Need only to be sure signature is the right type.
+//                        if (Signature::is_method(signature)) {
+//                            throwIllegalSignature("CONSTANT_Dynamic", name, signature, CHECK);
+//                        }
+//                    }
+//                    break;
+//                }
+//                case JVM_CONSTANT_InvokeDynamic:
+//                case JVM_CONSTANT_Fieldref:
+//                case JVM_CONSTANT_Methodref:
+//                case JVM_CONSTANT_InterfaceMethodref: {
+//                    final int name_and_type_ref_index =
+//                            cp.name_and_type_ref_index_at(index);
+//                    // already verified to be utf8
+//                    final int name_ref_index =
+//                            cp.name_ref_index_at(name_and_type_ref_index);
+//                    // already verified to be utf8
+//                    final int signature_ref_index =
+//                            cp.signature_ref_index_at(name_and_type_ref_index);
+//                    final Symbol name = cp.symbol_at(name_ref_index);
+//                    final Symbol signature = cp.symbol_at(signature_ref_index);
+//                    if (tag == JVM_CONSTANT_Fieldref) {
+//                        if (_need_verify) {
+//                            // Field name and signature are verified above, when iterating NameAndType_info.
+//                            // Need only to be sure signature is non-zero length and the right type.
+//                            if (Signature::is_method(signature)) {
+//                                throwIllegalSignature("Field", name, signature, CHECK);
+//                            }
+//                        }
+//                    } else {
+//                        if (_need_verify) {
+//                            // Method name and signature are verified above, when iterating NameAndType_info.
+//                            // Need only to be sure signature is non-zero length and the right type.
+//                            if (!Signature::is_method(signature)) {
+//                                throwIllegalSignature("Method", name, signature, CHECK);
+//                            }
+//                        }
+//                        // 4509014: If a class method name begins with '<', it must be "<init>"
+//                        final @RawCType("unsigned int") int name_len = name.utf8_length();
+//                        if (tag == JVM_CONSTANT_Methodref &&
+//                                name_len != 0 &&
+//                                name.char_at(0) == JVM_SIGNATURE_SPECIAL &&
+//                                        name != vmSymbols::object_initializer_name()) {
+//                            classfile_parse_error(
+//                                    "Bad method name at constant pool index %u in class file %s",
+//                                    name_ref_index, THREAD);
+//                            return;
+//                        }
+//                    }
+//                    break;
+//                }
+//                case JVM_CONSTANT_MethodHandle: {
+//                    final int ref_index = cp.method_handle_index_at(index);
+//                    final int ref_kind = cp.method_handle_ref_kind_at(index);
+//                    switch (ref_kind) {
+//                        case JVM_REF_invokeVirtual:
+//                        case JVM_REF_invokeStatic:
+//                        case JVM_REF_invokeSpecial:
+//                        case JVM_REF_newInvokeSpecial: {
+//                            final int name_and_type_ref_index =
+//                                    cp.name_and_type_ref_index_at(ref_index);
+//                            final int name_ref_index =
+//                                    cp.name_ref_index_at(name_and_type_ref_index);
+//                            final Symbol name = cp.symbol_at(name_ref_index);
+//                            if (ref_kind == JVM_REF_newInvokeSpecial) {
+//                                if (name != vmSymbols::object_initializer_name()) {
+//                                    classfile_parse_error(
+//                                            "Bad constructor name at constant pool index %u in class file %s",
+//                                            name_ref_index, THREAD);
+//                                    return;
+//                                }
+//                            } else {
+//                                if (name == vmSymbols::object_initializer_name()) {
+//                                    classfile_parse_error(
+//                                            "Bad method name at constant pool index %u in class file %s",
+//                                            name_ref_index, THREAD);
+//                                    return;
+//                                }
+//                            }
+//                            break;
+//                        }
+//                        // Other ref_kinds are already fully checked in previous pass.
+//                    } // switch(ref_kind)
+//                    break;
+//                }
+//                case JVM_CONSTANT_MethodType: {
+//                    final Symbol no_name = vmSymbols::type_name(); // place holder
+//                    final Symbol signature = cp.method_type_signature_at(index);
+//                    verify_legal_method_signature(no_name, signature, CHECK);
+//                    break;
+//                }
+//                case JVM_CONSTANT_Utf8: {
+//                    if (cp.symbol_at(index).getRefCount()==0){
+//                        throw new RuntimeException("count corrupted");
+//                    }
+//                }
+//            }  // switch(tag)
+//        }  // end of for
+//    }
 
 //    public void parse_constant_pool_entries( ClassFileStream  stream,
 //                                                      ConstantPool cp,
@@ -667,9 +1249,9 @@ public class ClassFileParser {
 //        // Update this_class_index's slot in the constant pool with the new Utf8 entry.
 //        // We have to update the resolved_klass_index and the name_index together
 //        // so extract the existing resolved_klass_index first.
-//        CPKlassSlot cp_klass_slot = _cp->klass_slot_at(_this_class_index);
+//        CPKlassSlot cp_klass_slot = _cp.klass_slot_at(_this_class_index);
 //        int resolved_klass_index = cp_klass_slot.resolved_klass_index();
-//        _cp->unresolved_klass_at_put(_this_class_index, hidden_index, resolved_klass_index);
+//        _cp.unresolved_klass_at_put(_this_class_index, hidden_index, resolved_klass_index);
 //        if (!(_cp.klass_slot_at(_this_class_index).name_index() == _orig_cp_size)){
 //            throw new IllegalStateException("Bad name_index");
 //        }
@@ -818,17 +1400,17 @@ public class ClassFileParser {
 //        set_precomputed_flags(ik);
 //
 //        // check if this class can access its super class
-//        check_super_class_access(ik, CHECK);
+//        check_super_class_access(ik);
 //
 //        // check if this class can access its superinterfaces
-//        check_super_interface_access(ik, CHECK);
+//        check_super_interface_access(ik);
 //
 //        // check if this class overrides any final method
-//        check_final_method_override(ik, CHECK);
+//        check_final_method_override(ik);
 //
 //        // reject static interface methods prior to Java 8
 //        if (ik.is_interface() && _major_version < JAVA_8_VERSION) {
-//            check_illegal_static_method(ik, CHECK);
+//            check_illegal_static_method(ik);
 //        }
 //
 //        // Obtain this_klass' module entry

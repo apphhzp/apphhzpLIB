@@ -4,13 +4,14 @@ import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.classfile.ProtectionDomainCacheEntry;
 import apphhzp.lib.hotspot.classfile.ProtectionDomainEntry;
-import apphhzp.lib.hotspot.oops.*;
+import apphhzp.lib.hotspot.oops.Metadata;
+import apphhzp.lib.hotspot.oops.Symbol;
 import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
-import apphhzp.lib.hotspot.oops.oop.OopDesc;
 
 import javax.annotation.Nullable;
+import java.security.ProtectionDomain;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class DictionaryEntry extends HashtableEntry{
     public static final Type TYPE= JVM.type("DictionaryEntry");
@@ -23,6 +24,10 @@ public class DictionaryEntry extends HashtableEntry{
 
     public InstanceKlass getInstanceKlass(){
         return (InstanceKlass) Metadata.getMetadata(this.getLiteralPointer());
+    }
+
+    public void setInstanceKlass(InstanceKlass new_klass){
+         this.setLiteralPointer(new_klass.address);
     }
 
     public boolean equals(Symbol className) {
@@ -60,21 +65,21 @@ public class DictionaryEntry extends HashtableEntry{
         unsafe.putAddress(this.address+PD_SET_OFFSET,pdSet==null?0L:pdSet.address);
     }
 
-    public boolean containsPD(OopDesc pd){
-        if (pd.equals(OopDesc.of(((Class<?>)(this.getInstanceKlass().getMirror().getObject())).getProtectionDomain()))){
+    public boolean containsPD(ProtectionDomain pd){
+        if (pd.equals(this.getInstanceKlass().asClass().getProtectionDomain())){
             return true;
         }
         for (ProtectionDomainEntry current =this.getPDSet();
              current != null;
              current = current.getNext()) {
-            if (current.getPD().get().equals(pd)){
+            if (current.getPD().getJavaObject().equals(pd)){
                 return true;
             }
         }
         return false;
     }
 
-    public void addPD(OopDesc protection_domain, ProtectionDomainCacheEntry entry) {
+    public void addPD(ProtectionDomain protection_domain, ProtectionDomainCacheEntry entry) {
         if (!containsPD(protection_domain)) {
             ProtectionDomainEntry new_head = ProtectionDomainEntry.create(entry,this.getPDSet());
             this.setPDSet(new_head);

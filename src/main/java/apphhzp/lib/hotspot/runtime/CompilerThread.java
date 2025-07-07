@@ -6,7 +6,7 @@ import apphhzp.lib.hotspot.ci.CiEnv;
 
 import javax.annotation.Nullable;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class CompilerThread extends JavaThread{
     public static final Type TYPE= JVM.type("CompilerThread");

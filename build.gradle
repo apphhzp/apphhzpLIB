@@ -3,7 +3,7 @@ plugins {
 }
 
 group = 'apphhzp.lib'
-version = '1.0.7'
+version = '1.0.8.1'
 repositories {
     mavenCentral()
 }
@@ -28,4 +28,6 @@ dependencies {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
+    options.compilerArgs<<"--add-exports"
+    options.compilerArgs<<'java.base/jdk.internal.misc=ALL-UNNAMED'
 }

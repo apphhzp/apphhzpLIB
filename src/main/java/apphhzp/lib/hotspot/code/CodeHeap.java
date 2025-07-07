@@ -11,7 +11,7 @@ import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 import static apphhzp.lib.hotspot.code.blob.CodeBlob.getCodeBlob;
 
 public class CodeHeap extends JVMObject implements Iterable<CodeBlob> {

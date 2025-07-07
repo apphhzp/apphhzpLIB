@@ -19,7 +19,7 @@ import apphhzp.lib.hotspot.stream.AllFieldStream;
 import javax.annotation.Nullable;
 import java.util.Objects;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 import static apphhzp.lib.helfy.JVM.oopSize;
 
 public class InstanceKlass extends Klass {
@@ -564,7 +564,7 @@ public class InstanceKlass extends Klass {
             }
             cur = cur.getNext();
         }
-        m.setHighestOsrCompLevel(CompLevel.of(max_level));
+        m.set_highest_osr_comp_level((max_level));
         return found;
     }
 
@@ -636,7 +636,7 @@ public class InstanceKlass extends Klass {
         if (idnum < methods.length()) {
             m = methods.get(idnum);
         }
-        if (m == null || m.getConstMethod().getMethodID() != idnum) {
+        if (m == null || m.getConstMethod().getMethodIdnum() != idnum) {
 //            for (int index = 0; index < methods()->length(); ++index) {
 //                m = methods()->at(index);
 //                if (m->method_idnum() == idnum) {
@@ -644,7 +644,7 @@ public class InstanceKlass extends Klass {
 //                }
 //            }
             for (Method method : methods) {
-                if (method.getConstMethod().getMethodID() == idnum) {
+                if (method.getConstMethod().getMethodIdnum() == idnum) {
                     return method;
                 }
             }

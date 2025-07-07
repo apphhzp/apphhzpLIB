@@ -6,7 +6,7 @@ import apphhzp.lib.hotspot.JVMObject;
 
 import javax.annotation.Nullable;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class FileMapInfo extends JVMObject {
     public static final Type TYPE=JVM.usingSharedSpaces?JVM.type("FileMapInfo"):Type.EMPTY;

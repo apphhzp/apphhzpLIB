@@ -10,7 +10,7 @@ import org.objectweb.asm.Opcodes;
 
 import javax.annotation.Nullable;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 // _flags     [tos|0|F=1|0|0|0|f|v|0 |0000|field_index] (for field entries)
 // bit length [ 4 |1| 1 |1|1|1|1|1|1 |1     |-3-|----16-----]

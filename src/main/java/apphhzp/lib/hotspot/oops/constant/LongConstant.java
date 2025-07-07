@@ -1,6 +1,6 @@
 package apphhzp.lib.hotspot.oops.constant;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class LongConstant extends Constant{
     public final long val;

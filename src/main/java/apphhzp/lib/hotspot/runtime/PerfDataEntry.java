@@ -8,7 +8,7 @@ import apphhzp.lib.hotspot.utilities.BasicType;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class PerfDataEntry extends JVMObject {
     public static final Type TYPE= JVM.type("PerfDataEntry");

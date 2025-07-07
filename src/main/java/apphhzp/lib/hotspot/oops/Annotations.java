@@ -6,7 +6,7 @@ import apphhzp.lib.hotspot.JVMObject;
 
 import javax.annotation.Nullable;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class Annotations extends JVMObject {
     public static final Type TYPE= JVM.includeJVMCI?JVM.type("Annotations"):null;

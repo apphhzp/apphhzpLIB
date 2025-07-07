@@ -6,7 +6,7 @@ import apphhzp.lib.hotspot.JVMObject;
 
 import java.util.function.LongFunction;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class HashtableEntry extends BasicHashtableEntry{
     public static final Type TYPE= JVM.type("IntptrHashtableEntry");

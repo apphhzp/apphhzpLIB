@@ -1,6 +1,6 @@
 package apphhzp.lib.hotspot.stream;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class CompressedReadStream extends CompressedStream{
 

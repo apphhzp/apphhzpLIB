@@ -8,7 +8,7 @@ import apphhzp.lib.hotspot.oops.oop.OopDesc;
 
 import java.util.ConcurrentModificationException;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public final class ClassLoaderDataGraph {
     public static final Type TYPE= JVM.type("ClassLoaderDataGraph");

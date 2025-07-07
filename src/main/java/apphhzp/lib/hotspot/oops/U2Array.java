@@ -8,7 +8,7 @@ import javax.annotation.Nonnull;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class U2Array extends JVMObject implements Iterable<Integer>{
     public static final Type TYPE= JVM.type("Array<u2>");

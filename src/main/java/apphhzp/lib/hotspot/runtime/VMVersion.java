@@ -3,7 +3,7 @@ package apphhzp.lib.hotspot.runtime;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public final class VMVersion{
     public static final Type TYPE= JVM.type("Abstract_VM_Version");

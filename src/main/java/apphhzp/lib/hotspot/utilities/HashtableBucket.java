@@ -1,13 +1,12 @@
 package apphhzp.lib.hotspot.utilities;
 
-import apphhzp.lib.ClassHelper;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.JVMObject;
 
 import java.util.function.LongFunction;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class HashtableBucket extends JVMObject {
     public static final Type TYPE= JVM.type("HashtableBucket<mtInternal>");

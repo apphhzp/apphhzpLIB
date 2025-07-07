@@ -6,7 +6,7 @@ import apphhzp.lib.hotspot.utilities.HashtableEntry;
 
 import javax.annotation.Nullable;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class ProtectionDomainCacheEntry extends HashtableEntry {
     public final WeakHandle literal;

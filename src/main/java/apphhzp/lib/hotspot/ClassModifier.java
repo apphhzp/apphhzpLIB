@@ -2,20 +2,17 @@ package apphhzp.lib.hotspot;
 
 import apphhzp.lib.hotspot.code.blob.CompiledMethod;
 import apphhzp.lib.hotspot.code.blob.NMethod;
-import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
-import apphhzp.lib.hotspot.oops.klass.Klass;
 import apphhzp.lib.hotspot.oops.MethodCounters;
 import apphhzp.lib.hotspot.oops.constant.ConstantPool;
 import apphhzp.lib.hotspot.oops.constant.ConstantPoolCacheEntry;
-import apphhzp.lib.hotspot.oops.method.ConstMethod;
+import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
 import apphhzp.lib.hotspot.oops.method.Method;
-import org.objectweb.asm.Opcodes;
 
 import java.util.Arrays;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
-public final class ClassModifier {
+final class ClassModifier {
     private ClassModifier() {
     }
 
@@ -79,41 +76,41 @@ public final class ClassModifier {
         }
     }
 
-    public static void addReturn(Class<?> clazz,String name,String desc){
-        if (!desc.endsWith(")V")){
-            return;
-        }
-        InstanceKlass klass= Klass.asKlass(clazz).asInstanceKlass();
-        Method method=klass.getMethod(name,desc);
-        if (method!=null){
-            ConstMethod constMethod=method.getConstMethod(),newConstMethod;
-            ConstantPool pool=klass.getConstantPool(),newPool;
-//            constMethod.setCode(0,(byte) Opcodes.RETURN);
-//            ///pool.getCache().clearResolvedCacheEntry();
-            byte[] oldCode,newCode;
-            oldCode=constMethod.getCodes();
-            newCode=new byte[1];
-            newCode[0]= (byte) Opcodes.RETURN;
-            //System.arraycopy(oldCode, 0, newCode, 1, oldCode.length);
-            printUnsignedByteArray(oldCode);
-            System.err.println(constMethod.getSize());
-            System.err.println(constMethod.lastU2ElementOffset());
-            if (ConstMethod.hasLineNumberTable(constMethod.getFlags())) {
-               System.err.println(constMethod.getLineNumberFromBCI(3));
-            }
-            System.err.println(constMethod.getMethodParametersLength());
-            newConstMethod=constMethod.copy(1-constMethod.getCodeSize(),newCode);
-            printUnsignedByteArray(newCode);
-            System.err.println(newConstMethod.getSize());
-            System.err.println(newConstMethod.lastU2ElementOffset());
-            if (ConstMethod.hasLineNumberTable(constMethod.getFlags())) {
-                System.err.println(constMethod.getLineNumberFromBCI(3));
-            }
-            System.err.println(constMethod.getMethodParametersLength());
-            method.setConstMethod(newConstMethod);
-            method.setCompiledMethod(null);
-        }
-    }
+//    public static void addReturn(Class<?> clazz,String name,String desc){
+//        if (!desc.endsWith(")V")){
+//            return;
+//        }
+//        InstanceKlass klass= Klass.asKlass(clazz).asInstanceKlass();
+//        Method method=klass.getMethod(name,desc);
+//        if (method!=null){
+//            ConstMethod constMethod=method.getConstMethod(),newConstMethod;
+//            ConstantPool pool=klass.getConstantPool(),newPool;
+////            constMethod.setCode(0,(byte) Opcodes.RETURN);
+////            ///pool.getCache().clearResolvedCacheEntry();
+//            byte[] oldCode,newCode;
+//            oldCode=constMethod.getCodes();
+//            newCode=new byte[1];
+//            newCode[0]= (byte) Opcodes.RETURN;
+//            //System.arraycopy(oldCode, 0, newCode, 1, oldCode.length);
+//            printUnsignedByteArray(oldCode);
+//            System.err.println(constMethod.getSize());
+//            System.err.println(constMethod.lastU2ElementOffset());
+//            if (ConstMethod.hasLineNumberTable(constMethod.getFlags())) {
+//               System.err.println(constMethod.getLineNumberFromBCI(3));
+//            }
+//            System.err.println(constMethod.getMethodParametersLength());
+//            newConstMethod=constMethod.copy(1-constMethod.getCodeSize(),newCode);
+//            printUnsignedByteArray(newCode);
+//            System.err.println(newConstMethod.getSize());
+//            System.err.println(newConstMethod.lastU2ElementOffset());
+//            if (ConstMethod.hasLineNumberTable(constMethod.getFlags())) {
+//                System.err.println(constMethod.getLineNumberFromBCI(3));
+//            }
+//            System.err.println(constMethod.getMethodParametersLength());
+//            method.setConstMethod(newConstMethod);
+//            method.setCompiledMethod(null);
+//        }
+//    }
 
     private static void printUnsignedByteArray(byte[] array){
         short[] out=new short[array.length];

@@ -8,8 +8,12 @@ import javax.annotation.Nonnull;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
+
+/**
+ * typedef U1Array AnnotationArray;
+ * */
 public class U1Array extends JVMObject implements Iterable<Byte>{
     public static final Type TYPE= JVM.type("Array<u1>");
     public static final long DATA_OFFSET=TYPE.offset("_data");

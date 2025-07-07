@@ -7,7 +7,7 @@ import apphhzp.lib.hotspot.JVMObject;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class ThreadsList extends JVMObject {
     public static final Type TYPE = JVM.type("ThreadsList");

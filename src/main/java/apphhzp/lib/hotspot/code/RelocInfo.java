@@ -1,29 +1,38 @@
 package apphhzp.lib.hotspot.code;
 
 import apphhzp.lib.PlatformInfo;
+import apphhzp.lib.helfy.JVM;
 
 import java.util.NoSuchElementException;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class RelocInfo {
     public static final int format_width,offset_unit;
     static {
-        String cpu= PlatformInfo.getCPU();
-        if (cpu.equals("x86")) {
-            offset_unit = 1;
-            format_width = 1;
-        } else if (cpu.equals("amd64")) {
-            offset_unit = 1;
-            format_width = 2;
-        } else if (cpu.equals("ppc64")) {
-            offset_unit = 4;
-            format_width = 1;
-        } else if (cpu.equals("aarch64")) {
-            offset_unit = 4;
-            format_width = 1;
-        } else {
-            throw new ExceptionInInitializerError("Unsupported cpu: " + cpu);
+        String cpu = PlatformInfo.getCPU();
+        switch (cpu) {
+            case "x86" -> {
+                offset_unit = 1;
+                format_width = 1;
+            }
+            case "amd64" -> {
+                offset_unit = 1;
+                format_width = 2;
+            }
+            case "ppc64" -> {
+                offset_unit = 4;
+                format_width = JVM.isLP64 ? 1 : 0;
+            }
+            case "aarch64" -> {
+                offset_unit = 4;
+                format_width = 1;
+            }
+            case "arm" -> {
+                offset_unit = 4;
+                format_width = 0;
+            }
+            default -> throw new RuntimeException("Should not reach here");
         }
     }
     public static final int
@@ -37,6 +46,9 @@ public class RelocInfo {
             offset_width       = nontype_width - format_width,
             offset_mask        = (1<<offset_width) - 1,
             format_mask        = (1<<format_width) - 1;
+    public static final int narrow_oop_in_const=JVM.isLP64?1:0/*unused*/;
+    public static final int length_limit=1 + 1 + (3*JVM.BytesPerWord/JVM.BytesPerShort) + 1;
+    public static final boolean have_format        = format_width > 0;
     public static final int SIZE = 2;
     private long address;
 
@@ -81,6 +93,9 @@ public class RelocInfo {
         return Type.of(this.value() >>> nontype_width);
     }
 
+    public int  format() {
+        return format_mask==0? 0: format_mask & (this.value() >>> offset_width); }
+
     public boolean is_none() {
         return type() == Type.NONE;
     }
@@ -108,6 +123,20 @@ public class RelocInfo {
             throw new IllegalStateException("must have offset");
         }
         return (this.value() & offset_mask)*offset_unit;//offset_unit;
+    }
+
+    public static int data0_from_int(int x)         { return x >> value_width; }
+    public static int data1_from_int(int x)         { return (short)x; }
+    public static int jint_from_data(long/* short* */ data) {
+        return (unsafe.getShort(data)<< value_width) + (unsafe.getShort(data+2)&0xffff);
+    }
+
+    public static int short_data_at(int n, long/* short* */ data, int datalen) {
+        return datalen > n ? unsafe.getShort(data+n*2L) : 0;
+    }
+
+    public static int jint_data_at(int n, long/* short* */ data, int datalen) {
+        return datalen > n+1 ? jint_from_data(data+n*2L) : short_data_at(n, data, datalen);
     }
 
     public enum Type {
@@ -167,8 +196,9 @@ public class RelocInfo {
                 return RUNTIME_CALL_W_CP_TYPE;
             } else if (val == DATA_PREFIX_TAG.id) {
                 return DATA_PREFIX_TAG;
+            }else {
+                throw new NoSuchElementException("" + val);
             }
-            throw new NoSuchElementException("" + val);
         }
     }
 }

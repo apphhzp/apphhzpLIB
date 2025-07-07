@@ -50,6 +50,12 @@ public class ConstantTag {
         return re;
     }
 
+    public static boolean has_bootstrap(byte tag){
+        return (tag == Dynamic ||
+                tag == DynamicInError ||
+                tag == InvokeDynamic);
+    }
+
     public static final int REF_getField = 1;
     public static final int REF_getStatic = 2;
     public static final int REF_putField = 3;

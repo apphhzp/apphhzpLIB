@@ -5,7 +5,7 @@ import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.JVMObject;
 import apphhzp.lib.hotspot.compiler.CompilerType;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class CodeBlob extends JVMObject {
     public static final Type TYPE = JVM.type("CodeBlob");

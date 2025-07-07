@@ -1,15 +1,15 @@
 package apphhzp.lib.hotspot.code.blob;
 
-import apphhzp.lib.ClassHelper;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
+import apphhzp.lib.hotspot.code.DirectNativeCallWrapper;
+import apphhzp.lib.hotspot.code.NativeCallWrapper;
 import apphhzp.lib.hotspot.compiler.CompLevel;
-import apphhzp.lib.hotspot.oops.MethodData;
 import apphhzp.lib.hotspot.oops.method.Method;
 
 import javax.annotation.Nullable;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class NMethod extends CompiledMethod {
     public static final Type TYPE = JVM.type("nmethod");
@@ -152,36 +152,36 @@ public class NMethod extends CompiledMethod {
         return false;//this.makeNotEntrantOrZombie(States.not_entrant);
     }
 
-    public void unlinkFromMethod() {
-        Method method = this.getMethod();
-        if (method != null) {
-            method.unlinkCode(this);
-        }
-    }
-
-    public boolean tryTransition(int new_state_int) {
-        byte new_state = (byte) new_state_int;
-        for (;;) {
-            byte old_state = this.getState();
-            if (old_state >= new_state) {
-                return false;
-            }
-            if (ClassHelper.compareAndSwapByte(null, this.address + STATE_OFFSET, old_state, new_state)) {
-                return true;
-            }
-        }
-    }
-
-    public void inc_decompile_count() {
-        if (!this.isCompiledByC2() && !this.isCompiledByJVMCI()) {
-            return;
-        }
-        Method m = this.getMethod();
-        if (m == null) return;
-        MethodData mdo = m.getMethodData();
-        if (mdo == null) return;
-        mdo.incDecompileCount();
-    }
+//    public void unlinkFromMethod() {
+//        Method method = this.getMethod();
+//        if (method != null) {
+//            method.unlinkCode(this);
+//        }
+//    }
+//
+//    public boolean tryTransition(int new_state_int) {
+//        byte new_state = (byte) new_state_int;
+//        for (;;) {
+//            byte old_state = this.getState();
+//            if (old_state >= new_state) {
+//                return false;
+//            }
+//            if (ClassHelperSpecial.compareAndSwapByte(null, this.address + STATE_OFFSET, old_state, new_state)) {
+//                return true;
+//            }
+//        }
+//    }
+//
+//    public void inc_decompile_count() {
+//        if (!this.isCompiledByC2() && !this.isCompiledByJVMCI()) {
+//            return;
+//        }
+//        Method m = this.getMethod();
+//        if (m == null) return;
+//        MethodData mdo = m.getMethodData();
+//        if (mdo == null) return;
+//        mdo.incDecompileCount();
+//    }
 
     //This is unrealistic....
 
@@ -288,4 +288,8 @@ public class NMethod extends CompiledMethod {
 //        //NMethodSweeper::report_state_change(this);
 //        return true;
 //    }
+
+    public NativeCallWrapper call_wrapper_at(long call) {
+        return new DirectNativeCallWrapper(/*(NativeCall*)*/ call);
+    }
 }

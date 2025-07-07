@@ -13,7 +13,7 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import javax.annotation.Nullable;
 import java.security.ProtectionDomain;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 import static apphhzp.lib.helfy.JVM.oopSize;
 
 public class ModuleEntry extends HashtableEntry {

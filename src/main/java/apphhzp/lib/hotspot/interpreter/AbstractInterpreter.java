@@ -6,7 +6,7 @@ import apphhzp.lib.hotspot.JVMObject;
 import apphhzp.lib.hotspot.code.InterpreterCodelet;
 import apphhzp.lib.hotspot.code.StubQueue;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class AbstractInterpreter {
     public static final Type TYPE= JVM.type("AbstractInterpreter");

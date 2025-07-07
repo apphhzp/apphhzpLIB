@@ -6,7 +6,7 @@ import apphhzp.lib.hotspot.oops.oop.Oop;
 
 import javax.annotation.Nullable;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class ProtectionDomainEntry extends JVMObject {
     public static final int SIZE= JVM.oopSize*2;

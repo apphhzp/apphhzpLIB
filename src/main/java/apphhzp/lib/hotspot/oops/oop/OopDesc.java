@@ -7,7 +7,7 @@ import apphhzp.lib.hotspot.oops.klass.Klass;
 
 import javax.annotation.Nullable;
 
-import static apphhzp.lib.ClassHelper.*;
+import static apphhzp.lib.ClassHelperSpecial.*;
 
 //OopHandle is oopDesc(jobject)**
 //typedef class oopDesc* oop;
@@ -218,17 +218,17 @@ public class OopDesc extends JVMObject {
             }
         }
 
-        TransformHelper() {}
+        private TransformHelper() {}
 
-        TransformHelper(Object c) {
+        private TransformHelper(Object c) {
             content = c;
         }
 
-        synchronized void changeContent(Object c) {
+        private synchronized void changeContent(Object c) {
             unsafe.putObjectVolatile(this, OFFSET, c);
         }
 
-        synchronized void changeContent(long c) {
+        private synchronized void changeContent(long c) {
             if (!is64BitJVM|| JVM.usingCompressedOops) {
                 unsafe.putIntVolatile(this, OFFSET, (int) c);
             }else {

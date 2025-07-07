@@ -7,7 +7,7 @@ import apphhzp.lib.hotspot.gc.CollectedHeap;
 import apphhzp.lib.hotspot.gc.g1.G1CollectedHeap;
 import apphhzp.lib.hotspot.utilities.BasicType;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class Universe {
     public static final Type TYPE= JVM.type("Universe");

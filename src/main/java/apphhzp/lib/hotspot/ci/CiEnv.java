@@ -8,7 +8,7 @@ import apphhzp.lib.hotspot.opto.Compile;
 
 import javax.annotation.Nullable;
 
-import static apphhzp.lib.ClassHelper.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class CiEnv extends JVMObject {
     public static final Type TYPE = JVM.type("ciEnv");
