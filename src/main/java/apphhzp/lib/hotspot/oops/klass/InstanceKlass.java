@@ -6,7 +6,7 @@ import apphhzp.lib.hotspot.JVMObject;
 import apphhzp.lib.hotspot.classfile.ModuleEntry;
 import apphhzp.lib.hotspot.classfile.PackageEntry;
 import apphhzp.lib.hotspot.code.blob.NMethod;
-import apphhzp.lib.hotspot.compiler.CompLevel;
+import apphhzp.lib.hotspot.interpreter.OopMapCache;
 import apphhzp.lib.hotspot.memory.ReferenceType;
 import apphhzp.lib.hotspot.oops.*;
 import apphhzp.lib.hotspot.oops.constant.ConstantPool;
@@ -14,13 +14,17 @@ import apphhzp.lib.hotspot.oops.method.ConstMethod;
 import apphhzp.lib.hotspot.oops.method.Method;
 import apphhzp.lib.hotspot.oops.oop.OopDesc;
 import apphhzp.lib.hotspot.runtime.Thread;
+import apphhzp.lib.hotspot.runtime.fieldDescriptor;
 import apphhzp.lib.hotspot.stream.AllFieldStream;
+import apphhzp.lib.hotspot.stream.JavaFieldStream;
+import apphhzp.lib.hotspot.util.RawCType;
 
 import javax.annotation.Nullable;
-import java.util.Objects;
+import java.io.PrintStream;
 
 import static apphhzp.lib.ClassHelperSpecial.unsafe;
 import static apphhzp.lib.helfy.JVM.oopSize;
+import static apphhzp.lib.hotspot.oops.klass.InstanceKlass.ClassState.*;
 
 public class InstanceKlass extends Klass {
     public static final Type TYPE = JVM.type("InstanceKlass");
@@ -232,14 +236,22 @@ public class InstanceKlass extends Klass {
         unsafe.putAddress(this.address + CONSTANTS_OFFSET, pool.address);
         VMTypeArray<Method> methods = this.getMethods();
         for (Method method : methods) {
-            method.getConstMethod().setConstantPool(pool);
+            method.constMethod().set_constants(pool);
         }
         methods = this.getDefaultMethods();
         if (methods != null) {
             for (Method method : methods) {
-                method.getConstMethod().setConstantPool(pool);
+                method.constMethod().set_constants(pool);
             }
         }
+    }
+
+    public Annotations annotations(){
+        long addr=unsafe.getAddress(this.address+ANNOTATIONS_OFFSET);
+        if (addr==0L){
+            return null;
+        }
+        return new Annotations(addr);
     }
 
     public U2Array getInnerClasses() {
@@ -323,7 +335,7 @@ public class InstanceKlass extends Klass {
         unsafe.putShort(this.address + STATIC_OOP_FIELD_COUNT_OFFSET,(short)(count&0xffff));
     }
 
-    public int getFieldsCount() {
+    public int java_fields_count() {
         return unsafe.getShort(this.address + FIELDS_COUNT_OFFSET) & 0xffff;
     }
 
@@ -347,44 +359,28 @@ public class InstanceKlass extends Klass {
         unsafe.putByte(this.address+IS_MARKED_DEPENDENT_OFFSET,(byte)(mark?1:0));
     }
 
-    public int getInitState() {
+    public @RawCType("ClassState") int init_state() {
         return unsafe.getByte(this.address + INIT_STATE_OFFSET) & 0xff;
     }
 
-    public void setInitState(int state) {
+    public void set_init_state(int state) {
         unsafe.putByte(this.address + INIT_STATE_OFFSET, (byte) (state & 0xff));
     }
-
-    public static final int classState_allocated = JVM.intConstant("InstanceKlass::allocated");
-    public static final int classState_loaded = JVM.intConstant("InstanceKlass::loaded");
-    public static final int classState_linked = JVM.intConstant("InstanceKlass::linked");
-    public static final int classState_being_initialized = JVM.intConstant("InstanceKlass::being_initialized");
-    public static final int classState_fully_initialized = JVM.intConstant("InstanceKlass::fully_initialized");
-    public static final int classState_initialization_error = JVM.intConstant("InstanceKlass::initialization_error");
-
-    public boolean isLoaded() {
-        return this.getInitState() >= classState_loaded;
+    public final static class ClassState{
+        public static final int allocated = JVM.intConstant("InstanceKlass::allocated");
+        public static final int loaded = JVM.intConstant("InstanceKlass::loaded");
+        public static final int linked = JVM.intConstant("InstanceKlass::linked");
+        public static final int being_initialized = JVM.intConstant("InstanceKlass::being_initialized");
+        public static final int fully_initialized = JVM.intConstant("InstanceKlass::fully_initialized");
+        public static final int initialization_error = JVM.intConstant("InstanceKlass::initialization_error");
     }
 
-    public boolean isLinked() {
-        return this.getInitState() >= classState_linked;
-    }
-
-    public boolean isInitialized() {
-        return this.getInitState() == classState_fully_initialized;
-    }
-
-    public boolean isNotInitialized() {
-        return this.getInitState() < classState_being_initialized;
-    }
-
-    public boolean isBeingInitialized() {
-        return this.getInitState() == classState_being_initialized;
-    }
-
-    public boolean isInErrorState() {
-        return this.getInitState() == classState_initialization_error;
-    }
+    public boolean is_loaded()                   { return init_state() >= loaded; }
+    public boolean is_linked()                   { return init_state() >= linked; }
+    public boolean is_initialized()              { return init_state() == fully_initialized; }
+    public boolean is_not_initialized()          { return init_state() <  being_initialized; }
+    public boolean is_being_initialized()        { return init_state() == being_initialized; }
+    public boolean is_in_error_state()           { return init_state() == initialization_error; }
 
     public ReferenceType getReferenceType(){
         return ReferenceType.of(unsafe.getByte(this.address+REFERENCE_TYPE_OFFSET)&0xff);
@@ -491,6 +487,14 @@ public class InstanceKlass extends Klass {
         unsafe.putAddress(this.address+INIT_THREAD_OFFSET,thread==null?0L:thread.address);
     }
 
+
+    public OopMapCache oop_map_cache(){
+        return new OopMapCache(unsafe.getAddress(this.address+OOP_MAP_CACHE_OFFSET));
+    }
+    public void set_oop_map_cache(OopMapCache cache){
+        unsafe.putAddress(this.address+OOP_MAP_CACHE_OFFSET,cache==null?0L:cache.address);
+    }
+
     @Nullable
     public NMethod getOsrNMethodHead() {
         long addr = unsafe.getAddress(this.address + OSR_NMETHOD_HEAD_OFFSET);
@@ -530,57 +534,6 @@ public class InstanceKlass extends Klass {
 //        }
 //    }
 
-    public boolean removeOsrNMethod(NMethod n) {
-        if (!n.isOsrMethod()) {
-            throw new IllegalArgumentException("wrong kind of nmethod");
-        }
-        NMethod last = null;
-        NMethod cur = this.getOsrNMethodHead();
-        int max_level = CompLevel.NONE.id;
-        Method m = n.getMethod();
-        boolean found = false;
-        while (cur != null && !cur.equals(n)) {
-            if (Objects.equals(m, cur.getMethod())) {
-                max_level = Math.max(max_level, cur.getCompLevel().id);
-            }
-            last = cur;
-            cur = cur.getNext();
-        }
-        NMethod next = null;
-        if (Objects.equals(cur, n)) {
-            found = true;
-            next = cur.getNext();
-            if (last == null) {
-                this.setOsrNMethodHead(next);
-            } else {
-                last.setNext(next);
-            }
-        }
-        n.setNext(null);
-        cur = next;
-        while (cur != null) {
-            if (Objects.equals(m, cur.getMethod())) {
-                max_level = Math.max(max_level, cur.getCompLevel().id);
-            }
-            cur = cur.getNext();
-        }
-        m.set_highest_osr_comp_level((max_level));
-        return found;
-    }
-
-    public int markOsrNMethods(Method m) {
-        NMethod osr = this.getOsrNMethodHead();
-        int found = 0;
-        while (osr != null) {
-            if (JVMObject.isEqual(osr.getMethod(), m.address)) {
-                osr.markForDeoptimization(true);
-                found++;
-            }
-            osr = osr.getNext();
-        }
-        return found;
-    }
-
 //    public NMethod lookup_osr_nmethod(Method m, int bci, CompLevel comp_level, boolean match_level){
 //        NMethod osr = this.getOsrNMethodHead();
 //        NMethod best = null;
@@ -614,14 +567,14 @@ public class InstanceKlass extends Klass {
     public Method getMethod(String name, String desc) {
         ConstMethod tmp;
         for (Method method : this.getMethods()) {
-            tmp = method.getConstMethod();
+            tmp = method.constMethod();
             if (tmp.getName().toString().equals(name) && tmp.getSignature().toString().equals(desc)) {
                 return method;
             }
         }
         if (this.getDefaultMethods() != null) {
             for (Method method : this.getMethods()) {
-                tmp = method.getConstMethod();
+                tmp = method.constMethod();
                 if (tmp.getName().toString().equals(name) && tmp.getSignature().toString().equals(desc)) {
                     return method;
                 }
@@ -636,7 +589,7 @@ public class InstanceKlass extends Klass {
         if (idnum < methods.length()) {
             m = methods.get(idnum);
         }
-        if (m == null || m.getConstMethod().getMethodIdnum() != idnum) {
+        if (m == null || m.constMethod().getMethodIdnum() != idnum) {
 //            for (int index = 0; index < methods()->length(); ++index) {
 //                m = methods()->at(index);
 //                if (m->method_idnum() == idnum) {
@@ -644,7 +597,7 @@ public class InstanceKlass extends Klass {
 //                }
 //            }
             for (Method method : methods) {
-                if (method.getConstMethod().getMethodIdnum() == idnum) {
+                if (method.constMethod().getMethodIdnum() == idnum) {
                     return method;
                 }
             }
@@ -674,31 +627,27 @@ public class InstanceKlass extends Klass {
         return this.defaultMethodsCache;
     }
 
-    public VMTypeArray<InstanceKlass> getLocalInterfaces() {
+    public VMTypeArray<InstanceKlass> local_interfaces() {
         long addr = unsafe.getAddress(this.address + LOCAL_INTERFACES_OFFSET);
+        if (addr==0L){
+            return null;
+        }
         if (!JVMObject.isEqual(this.localInterfacesCache, addr)) {
             this.localInterfacesCache = new VMTypeArray<>(addr, InstanceKlass.class, InstanceKlass::getOrCreate);
         }
         return this.localInterfacesCache;
     }
 
-    public void setLocalInterfaces(VMTypeArray<InstanceKlass> localInterfaces) {
-        this.localInterfacesCache = null;
-        unsafe.putAddress(this.address+LOCAL_INTERFACES_OFFSET,localInterfaces.address);
-    }
-
     //All interfaces
     public VMTypeArray<InstanceKlass> getTransitiveInterfaces() {
         long addr = unsafe.getAddress(this.address + TRANSITIVE_INTERFACES_OFFSET);
+        if (addr==0L){
+            return null;
+        }
         if (!JVMObject.isEqual(this.transitiveInterfacesCache, addr)) {
             this.transitiveInterfacesCache = new VMTypeArray<>(addr, InstanceKlass.class, InstanceKlass::getOrCreate);
         }
         return this.transitiveInterfacesCache;
-    }
-
-    public void setTransitiveInterfaces(VMTypeArray<InstanceKlass> transitiveInterfaces) {
-        this.transitiveInterfacesCache = null;
-        unsafe.putAddress(this.address+TRANSITIVE_INTERFACES_OFFSET,transitiveInterfaces.address);
     }
 
     public U2Array getFields() {
@@ -726,14 +675,10 @@ public class InstanceKlass extends Klass {
         unsafe.putAddress(this.address+METHOD_ORDERING_OFFSET,methodOrdering.address);
     }
 
-    public FieldInfo getField(int index){
-        return FieldInfo.from_field_array(this.getFields(), index);
-    }
-
-    public int     getFieldOffset      (int index) { return getField(index).getOffset(); }
-    public AccessFlags     getFieldAccessFlags(int index) { return getField(index).getAccessFlags(); }
-    public Symbol getFieldName        (int index) { return getField(index).getName(this.getConstantPool()); }
-    public Symbol getFieldSignature   (int index) { return getField(index).getSignature(this.getConstantPool()); }
+    public int     getFieldOffset      (int index) { return field(index).offset(); }
+    public AccessFlags     getFieldAccessFlags(int index) { return field(index).getAccessFlags(); }
+    public Symbol getFieldName        (int index) { return field(index).name(this.getConstantPool()); }
+    public Symbol getFieldSignature   (int index) { return field(index).signature(this.getConstantPool()); }
 
 
     @Override
@@ -807,10 +752,474 @@ public class InstanceKlass extends Klass {
         return (long) this.getSizeHelper() * oopSize;
     }
 
+    public static int linear_search(VMTypeArray<Method> methods,
+                          Symbol name,
+                          Symbol signature) {
+        final int len = methods.length();
+        for (int index = 0; index < len; index++) {
+            final Method m = methods.get(index);
+            if (m.signature().equals(signature) && m.name().equals(name)){
+                return index;
+            }
+        }
+        return -1;
+    }
+
+    public static int linear_search(VMTypeArray<Method> methods, Symbol name) {
+        int len = methods.length();
+        int l = 0;
+        int h = len - 1;
+        while (l <= h) {
+            Method m = methods.get(l);
+            if (m.name().equals(name)){
+                return l;
+            }
+            l++;
+        }
+        return -1;
+    }
+    public static int quick_search(VMTypeArray<Method> methods, Symbol name) {
+
+        if (true/*_disable_method_binary_search*/) {
+            //assert(DynamicDumpSharedSpaces, "must be");
+            // At the final stage of dynamic dumping, the methods array may not be sorted
+            // by ascending addresses of their names, so we can't use binary search anymore.
+            // However, methods with the same name are still laid out consecutively inside the
+            // methods array, so let's look for the first one that matches.
+            return linear_search(methods, name);
+        }
+        throw new RuntimeException("How did you get here?");
+//        int len = methods.length();
+//        int l = 0;
+//        int h = len - 1;
+//
+//        // methods are sorted by ascending addresses of their names, so do binary search
+//        while (l <= h) {
+//            int mid = (l + h) >> 1;
+//            Method m = methods.get(mid);
+//            //assert(m->is_method(), "must be method");
+//            int res = m.name().fast_compare(name);
+//            if (res == 0) {
+//                return mid;
+//            } else if (res < 0) {
+//                l = mid + 1;
+//            } else {
+//                h = mid - 1;
+//            }
+//        }
+//        return -1;
+    }
+
+    public int find_method_by_name(Symbol name, int[] end) {
+        return find_method_by_name(this.getMethods(), name, end);
+    }
+
+    public static int find_method_by_name(VMTypeArray<Method> methods,
+                                       final Symbol name,
+                                           int[] end_ptr) {
+        if (end_ptr==null){
+            throw new IllegalArgumentException("just checking");
+        }
+        int start = quick_search(methods, name);
+        int end = start + 1;
+        if (start != -1) {
+            while (start - 1 >= 0 && (methods.get(start - 1)).name() == name) --start;
+            while (end < methods.length() && (methods.get(end)).name() == name) ++end;
+            end_ptr[0] = end;
+            return start;
+        }
+        return -1;
+    }
+
+    public Method find_method(final Symbol name,final Symbol signature) {
+        return find_method_impl(name, signature,
+                OverpassLookupMode.find,
+                StaticLookupMode.find,
+                PrivateLookupMode.find);
+    }
+
+    // Find looks up the name/signature in the local methods array
+    // and filters on the overpass, static and private flags
+    // This returns the first one found
+    // note that the local methods array can have up to one overpass, one static
+    // and one instance (private or not) with the same name/signature
+    public Method find_local_method(Symbol name,
+                             Symbol signature,
+                                             @RawCType("OverpassLookupMode")int overpass_mode,
+                                             @RawCType("StaticLookupMode")int static_mode,
+                                             @RawCType("PrivateLookupMode")int private_mode){
+        return InstanceKlass.find_method_impl(this.getMethods(),
+                name,
+                signature,
+                overpass_mode,
+                static_mode,
+                private_mode);
+    }
+
+    // Find looks up the name/signature in the local methods array
+    // and filters on the overpass, static and private flags
+    // This returns the first one found
+    // note that the local methods array can have up to one overpass, one static
+    // and one instance (private or not) with the same name/signature
+    public static Method find_local_method(VMTypeArray<Method> methods,
+                                          Symbol name,
+                                          Symbol signature,
+                                             @RawCType("OverpassLookupMode")int overpass_mode,
+                                             @RawCType("StaticLookupMode")int static_mode,
+                                             @RawCType("PrivateLookupMode")int private_mode) {
+        return InstanceKlass.find_method_impl(methods,
+                name,
+                signature,
+                overpass_mode,
+                static_mode,
+                private_mode);
+    }
+
+    public static Method find_method(VMTypeArray<Method> methods,
+                                    Symbol name,
+                                    Symbol signature) {
+        return InstanceKlass.find_method_impl(methods,
+                name,
+                signature,
+                OverpassLookupMode.find,
+                StaticLookupMode.find,
+                PrivateLookupMode.find);
+    }
+
+
+    public Method find_method_impl(final Symbol name,
+                                   final Symbol signature,
+                                   @RawCType("OverpassLookupMode")int overpass_mode,
+                                   @RawCType("StaticLookupMode")int static_mode,
+                                   @RawCType("PrivateLookupMode")int private_mode){
+        return InstanceKlass.find_method_impl(this.getMethods(),
+                name,
+                signature,
+                overpass_mode,
+                static_mode,
+                private_mode);
+    }
+
+    public static Method find_method_impl(VMTypeArray<Method> methods,
+                                        final Symbol name,
+                                        final Symbol signature,
+                                          @RawCType("OverpassLookupMode")int overpass_mode,
+                                          @RawCType("StaticLookupMode")int static_mode,
+                                          @RawCType("PrivateLookupMode")int private_mode) {
+        int hit = find_method_index(methods, name, signature, overpass_mode, static_mode, private_mode);
+        return hit >= 0 ? methods.get(hit): null;
+    }
+
+    // Used directly for default_methods to find the index into the
+// default_vtable_indices, and indirectly by find_method
+// find_method_index looks in the local methods array to return the index
+// of the matching name/signature. If, overpass methods are being ignored,
+// the search continues to find a potential non-overpass match.  This capability
+// is important during method resolution to prefer a static method, for example,
+// over an overpass method.
+// There is the possibility in any _method's array to have the same name/signature
+// for a static method, an overpass method and a local instance method
+// To correctly catch a given method, the search criteria may need
+// to explicitly skip the other two. For local instance methods, it
+// is often necessary to skip private methods
+    public static int find_method_index(VMTypeArray<Method> methods, final Symbol name, final Symbol signature, @RawCType("OverpassLookupMode")int overpass_mode, @RawCType("StaticLookupMode")int static_mode, @RawCType("PrivateLookupMode")int private_mode) {
+        final boolean skipping_overpass = (overpass_mode == OverpassLookupMode.skip);
+        final boolean skipping_static = (static_mode == StaticLookupMode.skip);
+        final boolean skipping_private = (private_mode == PrivateLookupMode.skip);
+        final int hit = quick_search(methods, name);
+        if (hit != -1) {
+            Method m = methods.get(hit);
+
+            // Do linear search to find matching signature.  First, quick check
+            // for common case, ignoring overpasses if requested.
+            if (method_matches(m, signature, skipping_overpass, skipping_static, skipping_private)) {
+                return hit;
+            }
+
+            // search downwards through overloaded methods
+            int i;
+            for (i = hit - 1; i >= 0; --i) {
+                 m = methods.get(i);
+                if (!m.name().equals(name)) {
+                    break;
+                }
+                if (method_matches(m, signature, skipping_overpass, skipping_static, skipping_private)) {
+                    return i;
+                }
+            }
+            // search upwards
+            for (i = hit + 1; i < methods.length(); ++i) {
+                m = methods.get(i);
+                if (!m.name().equals(name)){
+                    break;
+                }
+                if (method_matches(m, signature, skipping_overpass, skipping_static, skipping_private)) {
+                    return i;
+                }
+            }
+            // not found
+            if (JVM.ENABLE_EXTRA_CHECK){
+                final int index = (skipping_overpass || skipping_static || skipping_private) ? -1 :
+                        linear_search(methods, name, signature);
+                if (!(-1 == index)){
+                    throw new RuntimeException("binary search should have found entry "+index);
+                }
+            }
+        }
+        return -1;
+    }
+
+    // true if method matches signature and conforms to skipping_X conditions.
+    public static boolean method_matches( Method m, Symbol signature,
+                               boolean skipping_overpass,
+                               boolean skipping_static,
+                               boolean skipping_private) {
+        return ((m.signature().equals(signature)) &&
+                (!skipping_overpass || !m.is_overpass()) &&
+                (!skipping_static || !m.is_static()) &&
+                (!skipping_private || !m.is_private()));
+    }
+
+    @Override
+    public String internal_name() {
+        return this.external_name();
+    }
+    public void oop_print_value_on(OopDesc obj, PrintStream st) {
+        st.print("a ");
+        name().print_value_on(st);
+        obj.print_address_on(st);
+//        if (this.asClass() == String.class
+//                && (obj.getObject()!=null)) {
+//            int len = ((String)obj.getObject()).length();
+//            int plen = (len < 24 ? len : 12);
+//            //char* str = java_lang_String::as_utf8_string(obj, 0, plen);
+//            st.printf(" = \"%s\"", ((String)obj.getObject()));
+//            if (len > plen)
+//                st.printf("...[%d]", len);
+//        } else if (this.asClass() == Class.class) {
+//            Klass k = Klass.asKlass(obj.getObject());
+//            st.print(" = ");
+//            if (k != null) {
+//                k.print_value_on(st);
+//            } else {
+//                String tname = JVM.type2name(JavaClasses.Class.primitive_type(obj));
+//                st.printf("%s", tname!=null ? tname : "type?");
+//            }
+//        } else if (this.asClass() == MethodType.class) {
+//            st.print(" = ");
+//            java_lang_invoke_MethodType::print_signature(obj, st);
+//        } else if (java_lang_boxing_object::is_instance(obj)) {
+//            st->print(" = ");
+//            java_lang_boxing_object::print(obj, st);
+//        } else if (this == vmClasses::LambdaForm_klass()) {
+//            oop vmentry = java_lang_invoke_LambdaForm::vmentry(obj);
+//            if (vmentry != NULL) {
+//                st->print(" => ");
+//                vmentry->print_value_on(st);
+//            }
+//        } else if (this == vmClasses::MemberName_klass()) {
+//            Metadata* vmtarget = java_lang_invoke_MemberName::vmtarget(obj);
+//            if (vmtarget != NULL) {
+//                st->print(" = ");
+//                vmtarget->print_value_on(st);
+//            } else {
+//                oop clazz = java_lang_invoke_MemberName::clazz(obj);
+//                oop name  = java_lang_invoke_MemberName::name(obj);
+//                if (clazz != NULL) {
+//                    clazz->print_value_on(st);
+//                } else {
+//                    st->print("NULL");
+//                }
+//                st->print(".");
+//                if (name != null) {
+//                    name.print_value_on(st);
+//                } else {
+//                    st.print("NULL");
+//                }
+//            }
+//        }
+    }
+
+    public void print_value_on(PrintStream st){
+        if (JVM.getFlag("Verbose").getBool()  || JVM.getFlag("WizardMode").getBool()) {
+            getAccessFlags().print_on(st);
+        }
+        name().print_value_on(st);
+    }
+
+
     @Override
     public String toString() {
         return "Instance" + super.toString();
     }
+
+    public FieldInfo field(int index){
+        return FieldInfo.from_field_array(this.getFields(), index);
+    }
+    public boolean is_record(){
+        return asClass().isRecord();
+    }
+
+    public @RawCType("AnnotationArray*")U1Array class_annotations() {
+        return (annotations() != null) ? annotations().classAnnotations() : null;
+    }
+    public @RawCType("Array<AnnotationArray*>*")VMTypeArray<U1Array> fields_annotations() {
+        return (annotations() != null) ? annotations().fieldsAnnotations() : null;
+    }
+    public @RawCType("AnnotationArray*")U1Array class_type_annotations() {
+        return (annotations() != null) ? annotations().classTypeAnnotations() : null;
+    }
+    public @RawCType("Array<AnnotationArray*>*")VMTypeArray<U1Array> fields_type_annotations() {
+        return (annotations() != null) ? annotations().fieldsTypeAnnotations() : null;
+    }
+
+    public Klass find_field(Symbol name, Symbol sig, fieldDescriptor fd) {
+        // search order according to newest JVM spec (5.4.3.2, p.167).
+        // 1) search for field in current klass
+        if (find_local_field(name, sig, fd)) {
+            return (this);
+        }
+        // 2) search for field recursively in direct superinterfaces
+        {
+            Klass intf = find_interface_field(name, sig, fd);
+            if (intf != null) return intf;
+        }
+        // 3) apply field lookup recursively if superclass exists
+        {
+            Klass supr = getSuperKlass();
+            if (supr != null)
+                return (supr.asInstanceKlass()).find_field(name, sig, fd);
+        }
+        // 4) otherwise field lookup fails
+        return null;
+    }
+
+
+    public Klass find_field(Symbol name, Symbol sig, boolean is_static, fieldDescriptor fd) {
+        // search order according to newest JVM spec (5.4.3.2, p.167).
+        // 1) search for field in current klass
+        if (find_local_field(name, sig, fd)) {
+            if (fd.is_static() == is_static)
+                return (this);
+        }
+        // 2) search for field recursively in direct superinterfaces
+        if (is_static) {
+            Klass intf = find_interface_field(name, sig, fd);
+            if (intf != null) return intf;
+        }
+        // 3) apply field lookup recursively if superclass exists
+        {
+            Klass supr = getSuperKlass();
+            if (supr != null)
+                return supr.asInstanceKlass().find_field(name, sig, is_static, fd);
+        }
+        // 4) otherwise field lookup fails
+        return null;
+    }
+
+    public boolean find_local_field(Symbol name, Symbol sig, fieldDescriptor fd){
+        for (JavaFieldStream fs=new JavaFieldStream (this); !fs.done(); fs.next()) {
+            Symbol f_name = fs.name();
+            Symbol f_sig  = fs.signature();
+            if (f_name.equals(name)&& f_sig.equals(sig)) {
+                fd.reinitialize((this), fs.index());
+                return true;
+            }
+        }
+        return false;
+    }
+    public Klass find_interface_field(Symbol name, Symbol sig, fieldDescriptor fd){
+        final int n = local_interfaces().length();
+        for (int i = 0; i < n; i++) {
+            Klass intf1 = local_interfaces().get(i);
+            if (JVM.ENABLE_EXTRA_CHECK&&!(intf1.isInterface())){
+                throw new RuntimeException("just checking type");
+            }
+            // search for field in current interface
+            if ((intf1.asInstanceKlass()).find_local_field(name, sig, fd)){
+                if (!(fd.is_static())){
+                    throw new RuntimeException("interface field must be static");
+                }
+                return intf1;
+            }
+            // search for field in direct superinterfaces
+            Klass intf2 = (intf1.asInstanceKlass()).find_interface_field(name, sig, fd);
+            if (intf2 != null) return intf2;
+        }
+        // otherwise field lookup fails
+        return null;
+    }
+
+    // minor and major version numbers of class file
+    public @RawCType("u2")int minor_version(){ return getConstantPool().minor_version(); }
+    public void set_minor_version(@RawCType("u2")int minor_version) { getConstantPool().set_minor_version(minor_version); }
+    public @RawCType("u2")int major_version(){ return getConstantPool().major_version(); }
+    public void set_major_version(@RawCType("u2")int major_version) { getConstantPool().set_major_version(major_version); }
+
+    public boolean is_reentrant_initialization(Thread thread){
+        return (thread==null?0L:thread.address) == unsafe.getAddress(this.address+INIT_THREAD_OFFSET);
+    }
+
+    public boolean verify_itable_index(int i) {
+        if (!JVM.ENABLE_EXTRA_CHECK){
+            return true;
+        }
+        int method_count = KlassItable.method_count_for_interface(this);
+        if (!(i >= 0 && i < method_count)){
+            throw new IndexOutOfBoundsException("index out of bounds");
+        }
+        return true;
+    }
+
+    // default method vtable_indices
+    public IntArray default_vtable_indices(){
+        long addr=unsafe.getAddress(this.address+DEFAULT_VTABLE_INDICES_OFFSET);
+        if (addr==0L){
+            return null;
+        }
+        return new IntArray(addr);
+    }
+    public void set_default_vtable_indices(IntArray v) {
+        unsafe.putAddress(this.address+DEFAULT_VTABLE_INDICES_OFFSET,v==null?0L:v.address);
+    }
+    //public Array<int>* create_new_default_vtable_indices(int len, TRAPS);
+
+    public int vtable_index_of_interface_method(Method intf_method) {
+        if (!(is_linked())){
+            throw new RuntimeException("required");
+        }
+        if (!(intf_method.method_holder().isInterface())){
+            throw new RuntimeException("not an interface method");
+        }
+        //assert(is_subtype_of(intf_method.method_holder()), "interface not implemented");
+
+        int vtable_index = Method.VtableIndexFlag.invalid_vtable_index;
+        Symbol name = intf_method.name();
+        Symbol signature = intf_method.signature();
+
+        // First check in default method array
+        if (!intf_method.is_abstract() && this.getDefaultMethods() != null) {
+            int index = find_method_index(this.getDefaultMethods(),
+                    name, signature,
+                    Klass.OverpassLookupMode.find,
+            Klass.StaticLookupMode.find,
+                    Klass.PrivateLookupMode.find);
+            if (index >= 0) {
+                vtable_index = this.default_vtable_indices().get(index);
+            }
+        }
+        if (vtable_index == Method.VtableIndexFlag.invalid_vtable_index) {
+            // get vtable_index for miranda methods
+            KlassVtable vt = vtable();
+            vtable_index = vt.index_of_miranda(name, signature);
+        }
+        return vtable_index;
+    }
+
+    public void set_has_resolved_methods() {
+        this.setMiscFlags(this.getMiscFlags()|MiscFlags.HAS_RESOLVED_METHODS);
+    }
+
 
     public static final class MiscFlags {
         public static final int REWRITTEN = JVM.intConstant("InstanceKlass::_misc_rewritten");

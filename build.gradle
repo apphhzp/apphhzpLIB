@@ -3,7 +3,7 @@ plugins {
 }
 
 group = 'apphhzp.lib'
-version = '1.0.8.1'
+version = '1.0.9'
 repositories {
     mavenCentral()
 }
@@ -25,9 +25,19 @@ dependencies {
     implementation 'net.java.dev.jna:jna:5.12.1'
     implementation 'net.java.dev.jna:jna-platform:5.12.1'
 }
+jar {
+    manifest {
+        attributes "Manifest-Version": 1.0
+        attributes "MixinConfigs": "apphhzpLIB.mixins.json"
+    }
+}
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
     options.compilerArgs<<"--add-exports"
     options.compilerArgs<<'java.base/jdk.internal.misc=ALL-UNNAMED'
+    options.compilerArgs<<"--add-exports"
+    options.compilerArgs<<'java.base/jdk.internal.access=ALL-UNNAMED'
+    options.compilerArgs<<"--add-exports"
+    options.compilerArgs<<'java.base/jdk.internal.reflect=ALL-UNNAMED'
 }

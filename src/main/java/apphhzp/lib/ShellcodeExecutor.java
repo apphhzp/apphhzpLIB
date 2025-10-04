@@ -15,7 +15,7 @@ class ShellcodeExecutor {
         System.err.println(x1);
         InstanceKlass klass= Klass.asKlass(ShellcodeExecutor.class).asInstanceKlass();
         for (Method m : klass.getMethods()) {
-            if (m.getConstMethod().getName().toString().equals("doit")){
+            if (m.constMethod().getName().toString().equals("doit")){
                 System.err.println("0x"+Long.toHexString(m.getFromCompiledEntry()));
                 ClassHelperSpecial.unsafe.putByte(m.getFromCompiledEntry(), (byte) 0xc3);
                 //ClassHelperSpecial.unsafe.putByte(m.getAdapter().getI2CEntry(), (byte) 0xc3);

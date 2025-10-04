@@ -94,6 +94,16 @@ public class JVMFlag extends JVMObject {
         unsafe.putAddress(this.getAddress(),l);
     }
 
+
+    public long getUIntx() {
+        if (JVM.ENABLE_EXTRA_CHECK) {
+            if (this.getType()!=4){
+                throw new AssertionError("This JVMFlag is not a uintx flag");
+            }
+        }
+        return unsafe.getAddress(this.getAddress());
+    }
+
     public String getName(){
         return JVM.getStringRef(this.address+NAME_OFFSET);
     }

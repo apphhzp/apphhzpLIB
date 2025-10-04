@@ -4,6 +4,7 @@ import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 import org.objectweb.asm.Opcodes;
 
+import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.StringJoiner;
@@ -369,5 +370,23 @@ public class AccessFlags {
 
     public boolean fieldHasGenericSignature() {
         return (this.flags & JVM_ACC_FIELD_HAS_GENERIC_SIGNATURE) != 0;
+    }
+
+    public void print_on(PrintStream st){
+        if (isPublic      ()) st.print("public "      );
+        if (isPrivate     ()) st.print("private "     );
+        if (isProtected   ()) st.print("protected "   );
+        if (isStatic      ()) st.print("static "      );
+        if (isFinal       ()) st.print("final "       );
+        if (isSynchronized()) st.print("synchronized ");
+        if (isVolatile    ()) st.print("volatile "    );
+        if (isTransient   ()) st.print("transient "   );
+        if (isNative      ()) st.print("native "      );
+        if (isInterface   ()) st.print("interface "   );
+        if (isAbstract    ()) st.print("abstract "    );
+        if (isSynthetic   ()) st.print("synthetic "   );
+        if (isOld         ()) st.print("{old} "       );
+        if (isObsolete    ()) st.print("{obsolete} "  );
+        if (onStack       ()) st.print("{on_stack} "  );
     }
 }

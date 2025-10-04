@@ -13,6 +13,13 @@ import static apphhzp.lib.ClassHelperSpecial.unsafe;
 public class U2Array extends JVMObject implements Iterable<Integer>{
     public static final Type TYPE= JVM.type("Array<u2>");
     public static final long DATA_OFFSET=TYPE.offset("_data");
+    public static U2Array create(int len){
+        long addr=unsafe.allocateMemory(DATA_OFFSET+len*2L);
+        unsafe.setMemory(addr, DATA_OFFSET+len*2L, (byte)0);
+        U2Array array=new U2Array(addr);
+        unsafe.putInt(addr,len);
+        return array;
+    }
     public U2Array(long addr) {
         super(addr);
     }
@@ -20,6 +27,10 @@ public class U2Array extends JVMObject implements Iterable<Integer>{
     public short get(int index) {
         checkBound(index);
         return unsafe.getShort(this.address+DATA_OFFSET+ 2L *index);
+    }
+    public long adr_at(int index){
+        checkBound(index);
+        return this.address+DATA_OFFSET+ 2L*index;
     }
 
     public void set(int index, short val) {

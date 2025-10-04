@@ -72,7 +72,7 @@ public class StubQueue<T extends Stub> extends JVMObject implements Iterable<T> 
     }
 
     public long codeEnd() {
-        return this.getQueueBegin() + this.getBufferLimit();
+        return this.codeStart() + this.getBufferLimit();
     }
 
     public boolean isEmpty() {
@@ -123,7 +123,7 @@ public class StubQueue<T extends Stub> extends JVMObject implements Iterable<T> 
 
     public T first(){ return this.getNumberOfStubs() > 0 ? stubAt(this.getQueueBegin()) : null; }
     public T next(T s){
-        int i = indexOf(s) + (s.getSize());
+        int i = indexOf(s) + (s.size());
         // Only wrap around in the non-contiguous case (see stubss.cpp)
         if (i == this.getBufferLimit() && this.getQueueEnd() < this.getBufferLimit()){
             i = 0;
@@ -135,7 +135,7 @@ public class StubQueue<T extends Stub> extends JVMObject implements Iterable<T> 
         if (this.getNumberOfStubs()== 0) return;
         T s = first();
         s.c_finalize();
-        this.setQueueBegin(this.getQueueBegin()+s.getSize());
+        this.setQueueBegin(this.getQueueBegin()+s.size());
         if (this.getQueueBegin()>this.getBufferLimit()){
             throw new RuntimeException("sanity check");
         }

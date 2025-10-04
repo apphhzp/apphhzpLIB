@@ -55,7 +55,7 @@ public class ObjectHeap {
                     OopDesc obj;
 
                     obj = OopDesc.of(handle);
-                    if (obj==OopDesc.NULL) {
+                    if (obj==null) {
                         throw new RuntimeException();
                     }
                     if (of == null || of.canInclude(obj)) {
@@ -115,7 +115,6 @@ public class ObjectHeap {
         LiveRegionsCollector lrc = new LiveRegionsCollector(liveRegions);
         CollectedHeap heap = Universe.getCollectedHeap();
         heap.liveRegionsIterate(lrc);
-
         // If UseTLAB is enabled, snip out regions associated with TLABs'
         // dead regions. Note that TLABs can be present in any generation.
 

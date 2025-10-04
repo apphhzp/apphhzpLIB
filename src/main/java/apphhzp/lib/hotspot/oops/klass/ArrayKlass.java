@@ -5,6 +5,7 @@ import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.JVMObject;
 
 import javax.annotation.Nullable;
+import java.io.PrintStream;
 
 import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
@@ -55,6 +56,20 @@ public class ArrayKlass extends Klass {
     public int getArrayHeaderInBytes() {
         return (this.getLayout() >> LayoutHelper._lh_header_size_shift) & 0xff;
     }
+
+    public void print_value_on(PrintStream st){
+        for(int index = 0; index < getDimension(); index++) {
+            st.print("[]");
+        }
+    }
+
+//    public void oop_print_on(OopDesc obj, PrintStream st){
+//        if (!obj.getObject().getClass().isArray()){
+//            throw new IllegalArgumentException("must be array");
+//        }
+//        super.oop_print_on(obj, st);
+//        st->print_cr(" - length: %d", arrayOop(obj)->length());
+//    }
 
     @Override
     public String toString() {

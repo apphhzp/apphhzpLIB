@@ -97,16 +97,17 @@ public class Annotations extends JVMObject {
     }
 
     public static byte[] makeJavaArray(U1Array annotations) {
-        if (annotations != null) {
-            int length = annotations.length();
-            byte[] copy =new byte[length];
-            for (int i = 0; i< length; i++) {
-                copy[i]=annotations.get(i);
-            }
-            return copy;
-        } else {
-            return null;
-        }
+        return annotations==null?null:annotations.toByteArray();
+//        if (annotations != null) {
+//            int length = annotations.length();
+//            byte[] copy =new byte[length];
+//            for (int i = 0; i< length; i++) {
+//                copy[i]=annotations.get(i);
+//            }
+//            return copy;
+//        } else {
+//            return null;
+//        }
     }
 
     @Override

@@ -9,6 +9,7 @@ import apphhzp.lib.hotspot.JVMObject;
 import apphhzp.lib.hotspot.oops.constant.ConstantPool;
 import apphhzp.lib.hotspot.oops.constant.Utf8Constant;
 import apphhzp.lib.hotspot.oops.klass.Klass;
+import apphhzp.lib.hotspot.util.CString;
 import apphhzp.lib.hotspot.util.RawCType;
 import com.sun.jna.Function;
 import com.sun.jna.Pointer;
@@ -22,6 +23,7 @@ import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 
 import java.io.InputStream;
+import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.NoSuchElementException;
@@ -216,6 +218,7 @@ public class Symbol extends JVMObject {
         return vmSymbols.get(s);
     }
 
+
     public static Symbol of(long addr){
         if (addr==0L){
             throw new NullPointerException();
@@ -224,6 +227,90 @@ public class Symbol extends JVMObject {
         cache.put(re.toString().hashCode(),re);
         return re;
     }
+
+
+    public static int compare_symbol(Symbol a,Symbol b) {
+        if (a == b)  return 0;
+        // follow the natural address order:
+        return a.address > b.address ? +1 : -1;
+    }
+    private static int mid_hint = FIRST_SID+1;
+    public static @RawCType("vmSymbolID")int find_sid(final Symbol symbol) {
+
+        // Handle the majority of misses by a bounds check.
+        // Then, use a binary search over the index.
+        // Expected trip count is less than log2_SID_LIMIT, about eight.
+        // This is slow but acceptable, given that calls are not
+        // dynamically common.  (Method*::intrinsic_id has a cache.)
+        int min = FIRST_SID, max = SID_LIMIT - 1;
+        int sid = 0/*vmSymbolID::NO_SID*/, sid1;
+        int cmp1;
+        sid1 =min;// vm_symbol_index[min]
+        cmp1 = compare_symbol(symbol, Symbol.getVMSymbol(sid1));
+        if (cmp1 <= 0) {              // before the first
+            if (cmp1 == 0)  sid = sid1;
+        } else {
+            sid1 = max;//vm_symbol_index[max]
+            cmp1 = compare_symbol(symbol, Symbol.getVMSymbol(sid1));
+            if (cmp1 >= 0) {            // after the last
+                if (cmp1 == 0)  sid = sid1;
+            } else {
+                // After checking the extremes, do a binary search.
+                ++min; --max;             // endpoints are done
+                int mid = mid_hint;       // start at previous success
+                while (max >= min) {
+                    if (!(mid >= min && mid <= max)){
+                        throw new RuntimeException();
+                    }
+                    sid1 = mid;
+                    cmp1 = compare_symbol(symbol, Symbol.getVMSymbol(sid1));
+                    if (cmp1 == 0) {
+                        mid_hint = mid;
+                        sid = sid1;
+                        break;
+                    }
+                    if (cmp1 < 0)
+                        max = mid - 1;        // symbol < symbol_at(sid)
+                    else
+                        min = mid + 1;
+
+                    // Pick a new probe point:
+                    mid = (max + min) / 2;
+                }
+            }
+        }
+
+//#ifdef ASSERT
+//        if (sid == vmSymbolID::NO_SID) {
+//            return sid;
+//        }
+//
+//        // Perform the exhaustive self-check the first 1000 calls,
+//        // and every 100 calls thereafter.
+//        static int find_sid_check_count = -2000;
+//        if ((uint)++find_sid_check_count > (uint)100) {
+//            if (find_sid_check_count > 0)  find_sid_check_count = 0;
+//
+//            // Make sure this is the right answer, using linear search.
+//            // (We have already proven that there are no duplicates in the list.)
+//            vmSymbolID sid2 = vmSymbolID::NO_SID;
+//            for (auto index : EnumRange<vmSymbolID>{}) {
+//                Symbol* sym2 = symbol_at(index);
+//                if (sym2 == symbol) {
+//                    sid2 = index;
+//                    break;
+//                }
+//            }
+//            // Unless it's a duplicate, assert that the sids are the same.
+//            if (Symbol::_vm_symbols[as_int(sid)] != Symbol::_vm_symbols[as_int(sid2)]) {
+//                assert(sid == sid2, "binary same as linear search");
+//            }
+//        }
+//#endif //ASSERT
+
+        return sid;
+    }
+
 
     private Symbol(long addr){
         super(addr);
@@ -306,5 +393,66 @@ public class Symbol extends JVMObject {
             }
         }
         return true;
+    }
+
+    // Three-way compare for sorting; returns -1/0/1 if receiver is </==/> than arg
+    // note that the ordering is not alfabetical
+    //Note: this comparison is used for vtable sorting only; it doesn't matter
+    // what order it defines, as long as it is a total, time-invariant order
+    // Since Symbol*s are in C_HEAP, their relative order in memory never changes,
+    // so use address comparison for speed
+    public int fast_compare(Symbol other){
+        return Long.compare(this.address, other.address);
+    }
+
+    public byte[] as_C_string(byte[] buf, int size){
+        if (size > 0) {
+            int len = Math.min(size - 1, this.getLength());
+            for (int i = 0; i < len; i++) {
+                buf[i] = (byte) char_at(i);
+            }
+            buf[len] = '\0';
+        }
+        return buf;
+    }
+    public byte[] as_C_string(){
+        int len = getLength();
+        return as_C_string(new byte[len+1], len + 1);
+    }
+
+
+    public String as_klass_external_name(byte[] buf, int size){
+        if (size > 0) {
+            byte[] str    = as_C_string(buf, size);
+            int   length =  CString.strlen(str);
+            // Turn all '/'s into '.'s (also for array klasses)
+            for (int index = 0; index < length; index++) {
+                if (str[index] == '/') {
+                    str[index] = '.';
+                }
+            }
+            return CString.toString(str);
+        } else {
+            return CString.toString(buf);
+        }
+    }
+
+    public String as_klass_external_name(){
+        byte[] str    = as_C_string();
+        int   length = CString.strlen(str);
+        // Turn all '/'s into '.'s (also for array klasses)
+        for (int index = 0; index < length; index++) {
+            if (str[index] == '/') {
+                str[index] = '.';
+            }
+        }
+        return CString.toString(str);
+    }
+
+
+    public void print_value_on(PrintStream st){
+        st.print("'");
+        st.print(this);
+        st.print("'");
     }
 }

@@ -1,6 +1,8 @@
 package apphhzp.lib;
 
 
+import static apphhzp.lib.ClassHelperSpecial.internalUnsafe;
+
 public class PlatformInfo {
 
     private static final String os,cpu;
@@ -56,5 +58,20 @@ public class PlatformInfo {
 
     public static boolean isX86_64(){
         return cpu.equals("amd64");
+    }
+
+    public static boolean isBigEndian(){
+        return internalUnsafe.isBigEndian();
+    }
+    public static boolean isAArch64(){
+        return cpu.equals("aarch64");
+    }
+
+    public static boolean isPPC64(){
+        return cpu.equals("ppc64");
+    }
+
+    public static boolean isLittleEndian(){
+        return !internalUnsafe.isBigEndian();
     }
 }

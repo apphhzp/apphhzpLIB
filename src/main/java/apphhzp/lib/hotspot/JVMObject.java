@@ -18,6 +18,9 @@ public class JVMObject {
     }
 
     public static boolean isEqual(JVMObject object,long addr){
+        if (addr==0L){
+            throw new RuntimeException("addr==null");
+        }
         if (object==null){
             return false;
         }
@@ -26,6 +29,6 @@ public class JVMObject {
 
     @Override
     public String toString() {
-        return this.getClass().getName()+"@0x"+Long.toHexString(this.address);
+        return this.getClass().getName().substring(this.getClass().getName().lastIndexOf('.')+1)+"@0x"+Long.toHexString(this.address);
     }
 }

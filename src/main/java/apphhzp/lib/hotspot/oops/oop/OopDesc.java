@@ -6,8 +6,10 @@ import apphhzp.lib.hotspot.JVMObject;
 import apphhzp.lib.hotspot.oops.klass.Klass;
 
 import javax.annotation.Nullable;
+import java.io.PrintStream;
 
-import static apphhzp.lib.ClassHelperSpecial.*;
+import static apphhzp.lib.ClassHelperSpecial.is64BitJVM;
+import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 //OopHandle is oopDesc(jobject)**
 //typedef class oopDesc* oop;
@@ -17,17 +19,17 @@ public class OopDesc extends JVMObject {
     public static final Type COMPRESSED=JVM.type("CompressedOops");
     public static final Type COMPRESSED_KLASS=JVM.type("CompressedKlassPointers");
     public static final long DESC_KLASS_OFFSET= TYPE.offset("_metadata._klass");
-    public static final long narrow_oop_base= unsafe.getLong(COMPRESSED.global("_narrow_oop._base"));
+    public static final long narrow_oop_base= unsafe.getAddress(COMPRESSED.global("_narrow_oop._base"));
     public static final long narrow_oop_shift= unsafe.getInt(COMPRESSED.global("_narrow_oop._shift"))&0xffffffffL;
     public static final boolean narrow_oop_use_implicit_null_checks= unsafe.getByte(COMPRESSED.global("_narrow_oop._use_implicit_null_checks"))!=0;
-    public static final long narrow_klass_base=unsafe.getLong(COMPRESSED_KLASS.global("_narrow_klass._base"));
+    public static final long narrow_klass_base=unsafe.getAddress(COMPRESSED_KLASS.global("_narrow_klass._base"));
     public static final long narrow_klass_shift=unsafe.getInt(COMPRESSED_KLASS.global("_narrow_klass._shift"))&0xffffffffL;
     private long narrowOop;
     private Object object;
     public static final OopDesc NULL=new OopDesc(0);
     public static OopDesc of(long addr){
         if (addr==0L){
-            return NULL;
+            return null;
         }
 
         Klass klass=getKlassForOopHandle(addr);
@@ -204,6 +206,19 @@ public class OopDesc extends JVMObject {
     @Override
     public String toString() {
         return "oopDesc@0x"+Long.toHexString(this.address);
+    }
+
+    public void print_value_on(PrintStream st){
+        if (object instanceof String str){
+            st.print(str);
+            print_address_on(st);
+        } else {
+            getKlass().oop_print_value_on(this, st);
+        }
+    }
+
+    public void print_address_on(PrintStream st){
+        st.print("{"+"0x"+Long.toHexString(this.address)+"}");
     }
 
     private static class TransformHelper {

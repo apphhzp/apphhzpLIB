@@ -1,5 +1,6 @@
 package apphhzp.lib.hotspot.runtime;
 
+import apphhzp.lib.PlatformInfo;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 
@@ -125,5 +126,15 @@ public final class VMVersion{
 
     public static void setVMMinorVersion(int version){
         unsafe.putInt(VM_MINOR_VERSION_ADDRESS,version);
+    }
+    public static boolean supports_fast_class_init_checks(){
+        if (PlatformInfo.isX86()){
+            return JVM.isLP64;
+        }else if (PlatformInfo.isAArch64()){
+            return true;
+        }else if (PlatformInfo.isPPC64()){
+            return true;
+        }
+        return false;
     }
 }

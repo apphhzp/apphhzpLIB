@@ -6,6 +6,7 @@ import apphhzp.lib.hotspot.JVMObject;
 
 import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
+/**Utility class describing elements in checked exceptions table inlined in Method*.*/
 public class CheckedExceptionElement extends JVMObject {
     public static final Type TYPE= JVM.type("CheckedExceptionElement");
     public static final int SIZE=TYPE.size;
@@ -15,11 +16,16 @@ public class CheckedExceptionElement extends JVMObject {
     }
 
     //Class index in the ConstantPool
-    public int getClassCPIndex(){
+    public int class_cp_index(){
         return unsafe.getShort(this.address+CLASS_CP_INDEX_OFFSET)&0xffff;
     }
 
-    public void setClassCPIndex(int index){
+    public void set_class_cp_index(int index){
         unsafe.putShort(this.address+CLASS_CP_INDEX_OFFSET, (short) (index&0xffff));
+    }
+
+    @Override
+    public String toString() {
+        return "CheckedExceptionElement@0x"+Long.toHexString(this.address);
     }
 }

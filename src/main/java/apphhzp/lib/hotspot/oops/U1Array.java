@@ -22,12 +22,15 @@ public class U1Array extends JVMObject implements Iterable<Byte>{
     }
     public U1Array(byte[] arr) {
         super(unsafe.allocateMemory(arr.length+TYPE.size+1));
-
+        unsafe.putInt(this.address,arr.length);
+        for (int i=0;i<arr.length;i++){
+            unsafe.putByte(this.address+DATA_OFFSET+i,arr[i]);
+        }
     }
 
     public byte get(int index) {
         checkBound(index);
-        return unsafe.getByte(this.address+DATA_OFFSET+ index);
+        return unsafe.getByte(this.address+DATA_OFFSET+index);
     }
 
 
@@ -63,6 +66,9 @@ public class U1Array extends JVMObject implements Iterable<Byte>{
 
     public U1Array copy(int expand){
         int len=this.length();
+        if (len+expand<0){
+            throw new IllegalArgumentException();
+        }
         long addr=unsafe.allocateMemory(DATA_OFFSET+len+expand);
         unsafe.copyMemory(this.address,addr,DATA_OFFSET+Math.min(len,len+expand));
         unsafe.putInt(addr,len+expand);

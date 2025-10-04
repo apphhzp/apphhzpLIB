@@ -4,8 +4,11 @@ import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.JVMObject;
 import apphhzp.lib.hotspot.oops.method.Method;
+import apphhzp.lib.hotspot.util.CString;
 
 import javax.annotation.Nullable;
+
+import java.io.PrintStream;
 
 import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
@@ -36,6 +39,18 @@ public class VTableEntry extends JVMObject {
     public void clear(){
         unsafe.putAddress(this.address+METHOD_OFFSET,0);
     }
+
+    public void print(PrintStream tty) {
+        tty.print("vtableEntry "+ CString.toString(method().name().as_C_string())+": ");
+        if (JVM.getFlag("Verbose").getBool()) {
+            tty.print("m 0x"+Long.toHexString(method().address)+ " ");
+        }
+    }
+
+    // size in words
+    public static int size()          { return SIZE / JVM.wordSize; }
+    public static int size_in_bytes() { return SIZE; }
+
 
     @Override
     public String toString() {

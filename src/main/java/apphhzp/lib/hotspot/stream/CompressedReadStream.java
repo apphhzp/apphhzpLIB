@@ -17,7 +17,7 @@ public class CompressedReadStream extends CompressedStream{
     }
 
     public char readChar() {
-        return (char) readInt();
+        return (char) read_int();
     }
 
     public short readShort() {
@@ -25,10 +25,10 @@ public class CompressedReadStream extends CompressedStream{
     }
 
     public int readSignedInt() {
-        return decodeSign(readInt());
+        return decodeSign(read_int());
     }
 
-    public int readInt() {
+    public int read_int() {
         int b0 = read();
         if (b0 < L) {
             return b0;
@@ -39,12 +39,12 @@ public class CompressedReadStream extends CompressedStream{
 
 
     public float readFloat() {
-        return Float.intBitsToFloat(reverseInt(readInt()));
+        return Float.intBitsToFloat(reverseInt(read_int()));
     }
 
     public double readDouble() {
-        int rh = readInt();
-        int rl = readInt();
+        int rh = read_int();
+        int rl = read_int();
         int h = reverseInt(rh);
         int l = reverseInt(rl);
         return Double.longBitsToDouble(((long)h << 32) | ((long)l & 0x00000000FFFFFFFFL));

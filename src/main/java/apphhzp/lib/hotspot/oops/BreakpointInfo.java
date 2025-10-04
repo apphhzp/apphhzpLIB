@@ -85,7 +85,7 @@ public class BreakpointInfo extends JVMObject {
     }
 
     public boolean match(Method method){
-        ConstMethod constMethod=method.getConstMethod();
+        ConstMethod constMethod=method.constMethod();
         return constMethod.getNameIndex()==this.getNameIndex()&&constMethod.getSignatureIndex()==this.getSignatureIndex();
     }
 

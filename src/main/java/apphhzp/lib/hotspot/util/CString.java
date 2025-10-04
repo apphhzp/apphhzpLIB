@@ -19,6 +19,9 @@ public class CString {
         }
         return 0;
     }
+    public static boolean isprint(char ch){
+        return ch >= 32 && ch <= 126;
+    }
 
     public static int memcmp(long buf1,long buf2,long count){
         if (buf1==0||buf2==0){
@@ -78,5 +81,25 @@ public class CString {
             }
         }
         return 0;
+    }
+
+    public static int strlen(byte[] str){
+        int re=0;
+        while (str[re]!=0){
+            re++;
+        }
+        return  re;
+    }
+    public static String toString(byte[] str){
+        if (str==null){
+            return null;
+        }
+        if (str.length==0){
+            return "";
+        }
+        if (str[str.length-1]==0){
+            return new String(str,0,str.length-1,StandardCharsets.UTF_8);
+        }
+        return new String(str,StandardCharsets.UTF_8);
     }
 }

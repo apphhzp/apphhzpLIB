@@ -140,7 +140,7 @@ public class HeapRegion extends JVMObject implements LiveRegionsProvider {
 //        return p < top();
 //    }
 //
-//    public void objectIterate(ObjectClosure blk) {
+//    public void objectIterate(OopClosure blk) {
 //        long p = bottom();
 //        while (p < this.top()) {
 //            if (this.blockIsObj(p)) {

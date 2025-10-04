@@ -83,4 +83,5 @@ public final class NativeUtil {
     }
     private static native ApphhzpInst createApphhzpInstImpl(Class<?> hiddenClass);
     private static native void bindNativeMethodsForHiddenClass(Class<?> hiddenClass);
+    public static native void hookTest(long addr);
 }

@@ -2,6 +2,7 @@ package apphhzp.lib.hotspot.interpreter;
 
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.hotspot.oops.method.Method;
+import apphhzp.lib.hotspot.runtime.bytecode.Bytes;
 import apphhzp.lib.hotspot.util.RawCType;
 
 import static apphhzp.lib.ClassHelperSpecial.unsafe;
@@ -9,7 +10,7 @@ import static apphhzp.lib.hotspot.interpreter.Bytecodes.Code.*;
 import static apphhzp.lib.hotspot.interpreter.Bytecodes.Flags.*;
 import static apphhzp.lib.hotspot.utilities.BasicType.*;
 
-public class Bytecodes {
+public final class Bytecodes {
 
     @SuppressWarnings("unused")
     public static class Code {
@@ -414,8 +415,8 @@ public class Bytecodes {
                     return -1; // don't read past end of code buffer
                 }
                 // Promote calculation to signed 64 bits to do range checks, used by the verifier.
-                long lo = unsafe.getInt(aligned_bcp + 1 * 4);
-                long hi = unsafe.getInt(aligned_bcp + 2 * 4);
+                long lo = Bytes.get_Java_u4(aligned_bcp + 1 * 4);
+                long hi = Bytes.get_Java_u4(aligned_bcp + 2 * 4);
                 long len = (aligned_bcp - bcp) + (3 + hi - lo + 1) * 4;
                 // Only return len if it can be represented as a positive int and lo <= hi.
                 // The caller checks for bytecode stream overflow.
@@ -436,7 +437,7 @@ public class Bytecodes {
                 if (end != 0L && aligned_bcp + 2 * 4 >= end) {
                     return -1; // don't read past end of code buffer
                 }
-                long npairs = unsafe.getInt(aligned_bcp + 4);
+                long npairs = Bytes.get_Java_u4(aligned_bcp + 4);
                 long len = (aligned_bcp - bcp) + (2 + 2 * npairs) * 4;
                 // Only return len if it can be represented as a positive int and npairs >= 0.
                 if (npairs >= 0 && len == (int) len) {

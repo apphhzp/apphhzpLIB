@@ -6,6 +6,7 @@ import apphhzp.lib.hotspot.JVMObject;
 
 public class CompressedStream extends JVMObject {
     public static final Type TYPE= JVM.type("CompressedStream");
+    public static final int SIZE=TYPE.size;
     public static final long BUFFER_OFFSET=TYPE.offset("_buffer");
     public static final long POSITION_OFFSET=TYPE.offset("_position");
     public static final int LogBitsPerByte = 3;

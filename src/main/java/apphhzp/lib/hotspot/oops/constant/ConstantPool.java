@@ -1,21 +1,30 @@
 package apphhzp.lib.hotspot.oops.constant;
 
+import apphhzp.lib.ClassHelperSpecial;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.classfile.JavaClasses;
+import apphhzp.lib.hotspot.classfile.SystemDictionary;
+import apphhzp.lib.hotspot.interpreter.BootstrapInfo;
 import apphhzp.lib.hotspot.oops.*;
 import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
 import apphhzp.lib.hotspot.oops.klass.Klass;
-import apphhzp.lib.hotspot.runtime.JavaThread;
+import apphhzp.lib.hotspot.oops.oop.OopDesc;
+import apphhzp.lib.hotspot.runtime.signature.Signature;
+import apphhzp.lib.hotspot.util.Atomic;
+import apphhzp.lib.hotspot.util.ConstantPoolHelper;
 import apphhzp.lib.hotspot.util.RawCType;
+import apphhzp.lib.hotspot.utilities.BasicType;
+import it.unimi.dsi.fastutil.ints.IntList;
 
 import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
+import java.security.ProtectionDomain;
 import java.util.HashMap;
 import java.util.NoSuchElementException;
 import java.util.function.Predicate;
 
-import static apphhzp.lib.ClassHelperSpecial.unsafe;
+import static apphhzp.lib.ClassHelperSpecial.*;
 import static apphhzp.lib.helfy.JVM.*;
 import static apphhzp.lib.hotspot.oops.constant.ConstantTag.*;
 
@@ -33,7 +42,9 @@ public class ConstantPool extends Metadata {
     public static final long SOURCE_FILE_NAME_OFFSET = TYPE.offset("_source_file_name_index");
     public static final long FLAGS_OFFSET = JVM.includeJVMCI ? TYPE.offset("_flags") : SOURCE_FILE_NAME_OFFSET + 2;
     public static final long LENGTH_OFFSET = TYPE.offset("_length");
+    public static final int CPCACHE_INDEX_TAG= intConstant("ConstantPool::CPCACHE_INDEX_TAG");
     private static final HashMap<Long, ConstantPool> CACHE = new HashMap<>();
+
     private U1Array tagsCache;
     private ConstantPoolCache cacheCache;
     private U2Array operandsCache;
@@ -48,6 +59,7 @@ public class ConstantPool extends Metadata {
             return re;
         }
         CACHE.put(addr, re = new ConstantPool(addr));
+
         return re;
     }
 
@@ -80,6 +92,16 @@ public class ConstantPool extends Metadata {
         synchronized (CACHE) {
             CACHE.clear();
         }
+    }
+    public static int decode_cpcache_index(int raw_index) {
+        return decode_cpcache_index(raw_index,false);
+    }
+
+    public static int decode_cpcache_index(int raw_index, boolean invokedynamic_ok) {
+        if (invokedynamic_ok && is_invokedynamic_index(raw_index))
+            return decode_invokedynamic_index(raw_index);
+        else
+            return raw_index - CPCACHE_INDEX_TAG;
     }
 
     private ConstantPool(long addr) {
@@ -197,8 +219,17 @@ public class ConstantPool extends Metadata {
         return this.cacheCache;
     }
 
-    public InstanceKlass getHolder() {
-        return (InstanceKlass) Klass.getOrCreate(unsafe.getAddress(this.address + HOLDER_OFFSET));
+    public void set_cache(ConstantPoolCache cache) {
+        this.cacheCache=null;
+        unsafe.putAddress(this.address+CACHE_OFFSET,cache==null?0L: cache.address);
+    }
+
+    public InstanceKlass pool_holder() {
+        long addr=unsafe.getAddress(this.address + HOLDER_OFFSET);
+        if (addr==0L){
+            return null;
+        }
+        return (InstanceKlass) Klass.getOrCreate(addr);
     }
 
     public void setHolder(InstanceKlass klass) {
@@ -221,54 +252,57 @@ public class ConstantPool extends Metadata {
     }
 
     public Klass getResolvedKlass(int index) {
-        return Klass.getOrCreate(this.getResolvedKlasses().getAddress(index));
+        return Klass.getOrCreate(this.resolved_klasses().getAddress(index));
     }
 
-    public VMTypeArray<Klass> getResolvedKlasses() {
+    public VMTypeArray<Klass> resolved_klasses() {
         long addr = unsafe.getAddress(address + KLASSES_OFFSET);
+        if (addr==0L){
+            return null;
+        }
         if (!isEqual(this.resolvedKlassesCache, addr)) {
             this.resolvedKlassesCache = new VMTypeArray<>(addr, Klass.class, Klass::getOrCreate);
         }
         return this.resolvedKlassesCache;
     }
 
-    public void setResolvedKlasses(VMTypeArray<Klass> val) {
-        unsafe.putAddress(address + KLASSES_OFFSET, val.address);
+    public void set_resolved_klasses(VMTypeArray<Klass> val) {
+        unsafe.putAddress(address + KLASSES_OFFSET,val==null?0L:val.address);
     }
 
-    public int getMajorVer() {
+    public int major_version() {
         return unsafe.getShort(this.address + MAJOR_VER_OFFSET) & 0xffff;
     }
 
-    public void setMajorVer(int version) {
+    public void set_major_version(int version) {
         unsafe.putShort(this.address + MAJOR_VER_OFFSET, (short) (version & 0xffff));
     }
 
-    public int getMinorVer() {
+    public int minor_version() {
         return unsafe.getShort(this.address + MINOR_VER_OFFSET) & 0xffff;
     }
 
-    public void setMinorVer(int version) {
+    public void set_minor_version(int version) {
         unsafe.putShort(this.address + MINOR_VER_OFFSET, (short) (version & 0xffff));
     }
 
-    public int getGenericSigIndex() {
+    public int generic_signature_index() {
         return unsafe.getShort(this.address + GENERIC_SIGNATURE_OFFSET) & 0xffff;
     }
 
-    public void setGenericSigIndex(int index) {
+    public void set_generic_signature_index(int index) {
         unsafe.putShort(this.address + GENERIC_SIGNATURE_OFFSET, (short) (index & 0xffff));
     }
 
-    public int getSourceFileNameIndex() {
+    public int source_file_name_index() {
         return unsafe.getShort(this.address + SOURCE_FILE_NAME_OFFSET) & 0xffff;
     }
 
-    public void setSourceFileNameIndex(int index) {
+    public void set_source_file_name_index(int index) {
         unsafe.putShort(this.address + SOURCE_FILE_NAME_OFFSET, (short) (index & 0xffff));
     }
 
-    public int getLength() {
+    public int length() {
         return unsafe.getInt(address + LENGTH_OFFSET);
     }
 
@@ -342,17 +376,17 @@ public class ConstantPool extends Metadata {
         return this.address + SIZE;
     }
 
-    public byte tag_at(int which) {
-        return this.getTags().get(which);
+    public int tag_at(int which) {
+        return this.getTags().get(which)&0xff;
     }
 
-    public void tag_at_put(int which, byte t) {
-        this.getTags().set(which, t);
+    public void tag_at_put(int which, int t) {
+        this.getTags().set(which, (byte) (t&0xff));
     }
 
     public CPSlot slot_at(int which) {
         checkBound(which);
-        byte tag = tag_at(which);
+        int tag = tag_at(which);
         if (!(tag != UnresolvedClass && tag != UnresolvedClassInError)) {
             throw new IllegalArgumentException("Corrupted constant pool");
         }
@@ -378,7 +412,7 @@ public class ConstantPool extends Metadata {
     }
 
     public CPKlassSlot klass_slot_at(int which) {
-        byte tag = tag_at(which);
+        int tag = tag_at(which);
         if (tag != UnresolvedClass && tag != Class) {
             throw new IllegalArgumentException("Corrupted constant pool");
         }
@@ -407,7 +441,7 @@ public class ConstantPool extends Metadata {
             throw new RuntimeException("sanity");
         }
         //@RawCType("Klass**") long adr = ;
-        return this.getResolvedKlasses().get(kslot.resolved_klass_index());
+        return this.resolved_klasses().get(kslot.resolved_klass_index());
     }
 
     public Symbol klass_at_noresolve(int which) {
@@ -525,9 +559,17 @@ public class ConstantPool extends Metadata {
         return klass_at_impl(this, which);
     }
 
-    public Klass klass_at_impl(ConstantPool this_cp, int which) {
-        JavaThread javaThread = JavaClasses.Thread.thread(Thread.currentThread());
 
+    public static Klass klass_at_impl(ConstantPool this_cp, int which) {
+        {
+            int oldTag=this_cp.tag_at(which);
+            boolean[] flg=new boolean[]{false};
+            Klass klass= ConstantPoolHelper.getClassAt(this_cp,which,flg);
+            if (!flg[0]){
+                return klass;
+            }
+            this_cp.tag_at_put(which,oldTag);
+        }
         // A resolved constantPool entry will contain a Klass*, otherwise a Symbol*.
         // It is not safe to rely on the tag bit's here, since we don't have a lock, and
         // the entry and tag is not updated atomicly.
@@ -541,7 +583,7 @@ public class ConstantPool extends Metadata {
         // The tag must be JVM_CONSTANT_Class in order to read the correct value from
         // the unresolved_klasses() array.
         if (this_cp.tag_at(which) == Class) {
-            Klass klass = this_cp.getResolvedKlasses().get(resolved_klass_index);
+            Klass klass = this_cp.resolved_klasses().get(resolved_klass_index);
             if (klass != null) {
                 return klass;
             }
@@ -557,66 +599,111 @@ public class ConstantPool extends Metadata {
             // or any internal exception fields such as cause or stacktrace.  But since the
             // detail message is often a class name or other literal string, we will repeat it
             // if we can find it in the symbol table.
-            throw new RuntimeException();
+            throw new RuntimeException(java.lang.Integer.toString(which));
 //            throw_resolution_error(this_cp, which, CHECK_NULL);
 //            ShouldNotReachHere();
         }
-        throw new UnsupportedOperationException("Could not resolve klass in Java");
-//        Oop mirror_handle;
-//        Symbol name = this_cp.symbol_at(name_index);
-//        ClassLoader loader=this_cp.getHolder().getClassLoaderData().getClassLoader();
-//        ProtectionDomain protection_domain= (this_cp.getHolder().asClass().getProtectionDomain());
-//
-//        Klass* k;
-//        {
-//            // Turn off the single stepping while doing class resolution
-//            JvmtiHideSingleStepping jhss(javaThread);
-//            k = SystemDictionary::resolve_or_fail(name, loader, protection_domain, true, THREAD);
-//        } //  JvmtiHideSingleStepping jhss(javaThread);
-//
+
+        Class<?> mirror_handle;
+        Symbol name = this_cp.symbol_at(name_index);
+        ClassLoader loader=this_cp.pool_holder().getClassLoaderData().getClassLoader();
+        ProtectionDomain protection_domain= (this_cp.pool_holder().asClass().getProtectionDomain());
+
+        Klass k;
+        {
+            // Turn off the single stepping while doing class resolution
+            try {
+                k = Klass.asKlass(java.lang.Class.forName(name.toString().replace('/','.'),true,loader));
+            }catch (Throwable t){
+                // Failed to resolve class. We must record the errors so that subsequent attempts
+                // to resolve this constant pool entry fail with the same error (JVMS 5.4.3).
+//                if (HAS_PENDING_EXCEPTION) {
+//                    save_and_throw_exception(this_cp, which, constantTag(JVM_CONSTANT_UnresolvedClass), CHECK_NULL);
+//                }
+                // If CHECK_NULL above doesn't return the exception, that means that
+                // some other thread has beaten us and has resolved the class.
+                // To preserve old behavior, we return the resolved class.
+                Klass klass = this_cp.resolved_klasses().get(resolved_klass_index);
+                if (klass!=null){
+                    return klass;
+                }
+                throwOriginalException(t);
+                throw new RuntimeException(t);
+            }
+        } //  JvmtiHideSingleStepping jhss(javaThread);
+
 //        if (!HAS_PENDING_EXCEPTION) {
 //            // preserve the resolved klass from unloading
 //            mirror_handle = Handle(THREAD, k->java_mirror());
 //            // Do access check for klasses
 //            verify_constant_pool_resolve(this_cp, k, THREAD);
 //        }
-//
-//        // Failed to resolve class. We must record the errors so that subsequent attempts
-//        // to resolve this constant pool entry fail with the same error (JVMS 5.4.3).
-//        if (HAS_PENDING_EXCEPTION) {
-//            save_and_throw_exception(this_cp, which, constantTag(JVM_CONSTANT_UnresolvedClass), CHECK_NULL);
-//            // If CHECK_NULL above doesn't return the exception, that means that
-//            // some other thread has beaten us and has resolved the class.
-//            // To preserve old behavior, we return the resolved class.
-//            Klass* klass = this_cp->resolved_klasses()->at(resolved_klass_index);
-//            assert(klass != NULL, "must be resolved if exception was cleared");
-//            return klass;
-//        }
-//
-//        // logging for class+resolve.
+
+
+
+        // logging for class+resolve.
 //        if (log_is_enabled(Debug, class, resolve)){
 //            trace_class_resolution(this_cp, k);
 //        }
-//
+
 //        Klass** adr = this_cp->resolved_klasses()->adr_at(resolved_klass_index);
 //        Atomic::release_store(adr, k);
-//        // The interpreter assumes when the tag is stored, the klass is resolved
-//        // and the Klass* stored in _resolved_klasses is non-NULL, so we need
-//        // hardware store ordering here.
-//        // We also need to CAS to not overwrite an error from a racing thread.
-//
-//        jbyte old_tag = Atomic::cmpxchg((jbyte*)this_cp->tag_addr_at(which),
+        this_cp.resolved_klasses().set(resolved_klass_index,k);
+        // The interpreter assumes when the tag is stored, the klass is resolved
+        // and the Klass* stored in _resolved_klasses is non-NULL, so we need
+        // hardware store ordering here.
+        // We also need to CAS to not overwrite an error from a racing thread.
+
+        int old_tag = this_cp.tag_at(which);
+        this_cp.tag_at_put(which,Class);
+//        Atomic::cmpxchg((jbyte*)this_cp->tag_addr_at(),
 //                (jbyte)JVM_CONSTANT_UnresolvedClass,
 //                (jbyte)JVM_CONSTANT_Class);
-//
-//        // We need to recheck exceptions from racing thread and return the same.
-//        if (old_tag == JVM_CONSTANT_UnresolvedClassInError) {
-//            // Remove klass.
-//            this_cp->resolved_klasses()->at_put(resolved_klass_index, NULL);
-//            throw_resolution_error(this_cp, which, CHECK_NULL);
-//        }
-//
-//        return k;
+
+        // We need to recheck exceptions from racing thread and return the same.
+        if (old_tag == UnresolvedClassInError) {
+            // Remove klass.
+            this_cp.resolved_klasses().set(resolved_klass_index, null);
+            //throw_resolution_error(this_cp, which, CHECK_NULL);
+            throw new RuntimeException(java.lang.Integer.toString(which));
+        }
+
+        return k;
+    }
+
+    /** Does not update ConstantPool* - to avoid any exception throwing.
+     *  Used by compiler and exception handling.
+     *  Also used to avoid classloads for instanceof operations.
+     *  Returns NULL if the class has not been loaded or if the verification of constant pool failed*/
+    public static Klass klass_at_if_loaded(ConstantPool this_cp, int which) {
+        {
+            boolean[] flg=new boolean[]{false};
+            Klass re=ConstantPoolHelper.getClassAtIfLoaded(this_cp,which,flg);
+            if (!flg[0]){
+                return re;
+            }
+        }
+        CPKlassSlot kslot = this_cp.klass_slot_at(which);
+        int resolved_klass_index = kslot.resolved_klass_index();
+        int name_index = kslot.name_index();
+        if (this_cp.tag_at(name_index)!=Utf8){
+            throw new RuntimeException("sanity");
+        }
+        if (this_cp.tag_at(which)==Class) {
+            Klass k = this_cp.resolved_klasses().get(resolved_klass_index);
+            if (k==null){
+                throw new RuntimeException("should be resolved");
+            }
+            return k;
+        } else if (this_cp.tag_at(which)==UnresolvedClassInError) {
+            return null;
+        } else {
+            Symbol name = this_cp.symbol_at(name_index);
+            ClassLoader loader = this_cp.pool_holder().getClassLoaderData().getClassLoader();
+            java.lang.Class<?> cls=ClassHelperSpecial.findLoadedClass(loader,name.toString().replace('/','.'));
+            Klass k = cls==null?null:Klass.asKlass(cls);
+            return k;
+        }
     }
 
 
@@ -705,7 +792,7 @@ public class ConstantPool extends Metadata {
     }
 
     public static void resolve_string_constants_impl(ConstantPool this_cp) {
-        for (int index = 1, length = this_cp.getLength(); index < length; index++) { // Index 0 is unused
+        for (int index = 1, length = this_cp.length(); index < length; index++) { // Index 0 is unused
             if (this_cp.tag_at(index) == String) {
                 this_cp.string_at(index);
             }
@@ -721,7 +808,7 @@ public class ConstantPool extends Metadata {
     }
 
     public int method_handle_ref_kind_at(int which) {
-        byte tag = tag_at(which);
+        int tag = tag_at(which);
         if (tag != MethodHandle && tag != MethodHandleInError) {
             throw new IllegalArgumentException("Corrupted constant pool");
         }
@@ -729,7 +816,7 @@ public class ConstantPool extends Metadata {
     }
 
     public int method_handle_index_at(int which) {
-        byte tag = tag_at(which);
+        int tag = tag_at(which);
         if (tag != MethodHandle && tag != MethodHandleInError) {
             throw new IllegalArgumentException("Corrupted constant pool");
         }
@@ -737,12 +824,15 @@ public class ConstantPool extends Metadata {
     }
 
     public int method_type_index_at(int which) {
-        byte tag = tag_at(which);
+        int tag = tag_at(which);
         if (tag != MethodType && tag != MethodTypeInError) {
             throw new IllegalArgumentException("Corrupted constant pool");
         }
         return unsafe.getInt(this.base() + (long) which * oopSize);
     }
+
+    public Symbol name_ref_at(int which)                { return impl_name_ref_at(which, false); }
+    public Symbol signature_ref_at(int which)           { return impl_signature_ref_at(which, false); }
 
     // Derived queries:
     public Symbol method_handle_name_ref_at(int which) {
@@ -779,7 +869,7 @@ public class ConstantPool extends Metadata {
             }
         }
         {
-            byte tag = tag_at(i);
+            int tag = tag_at(i);
             if (!(tag == Methodref || tag == InterfaceMethodref || tag == Fieldref)) {
                 throw new RuntimeException("Corrupted constant pool");
             }
@@ -819,14 +909,14 @@ public class ConstantPool extends Metadata {
     public ConstantPoolCacheEntry invokedynamic_cp_cache_entry_at(int indy_index) {
         // decode index that invokedynamic points to.
         int cp_cache_index = invokedynamic_cp_cache_index(indy_index);
-        return this.getCache().getEntry(cp_cache_index);
+        return this.getCache().entry_at(cp_cache_index);
     }
 
     // Given the per-instruction index of an indy instruction, report the
     // main constant pool entry for its bootstrap specifier.
     // From there, uncached_name/signature_ref_at will get the name/type.
     public int invokedynamic_bootstrap_ref_index_at(int indy_index) {
-        return invokedynamic_cp_cache_entry_at(indy_index).getConstantPoolIndex();
+        return invokedynamic_cp_cache_entry_at(indy_index).constant_pool_index();
     }
 
     public int name_ref_index_at(int which_nt) {
@@ -953,7 +1043,7 @@ public class ConstantPool extends Metadata {
             i = remap_instruction_operand_from_cache(which);
         }
         {
-            byte tag = tag_at(i);
+            int tag = tag_at(i);
             if (!(tag == Methodref || tag == Fieldref || tag == InterfaceMethodref)) {
                 throw new RuntimeException("Corrupted constant pool");
             }
@@ -963,8 +1053,46 @@ public class ConstantPool extends Metadata {
     }
 
 
+    public void set_resolved_references(OopDesc s){
+        getCache().setResolvedReferences(s);
+    }
+
+    @Nullable
+    public U2Array reference_map(){
+        ConstantPoolCache cache=this.getCache();
+        return cache==null?null:cache.getReferenceMap();
+    }
+
+    public void set_reference_map(U2Array o){
+        getCache().set_reference_map(o);
+    }
+
+    public int object_to_cp_index(int index)         { return this.getCache().getReferenceMap().get(index); }
+    public int cp_to_object_index(int cp_index) {
+        // this is harder don't do this so much.
+        int i = reference_map().find((short) (cp_index&0xffff));
+        // We might not find the index for jsr292 call.
+        return (i < 0) ? -1 : i;
+    }
+
+    public Object[] resolved_references() {
+        return this.getCache().getResolvedReferences();
+    }
+
+    public @RawCType("BasicType")int basic_type_for_constant_at(int which) {
+        int tag = tag_at(which);
+        if (tag==ConstantTag.Dynamic ||
+                tag==ConstantTag.DynamicInError) {
+            // have to look at the signature for this one
+            Symbol constant_type = uncached_signature_ref_at(which);
+            return Signature.basic_type(constant_type);
+        }
+        return ConstantTag.basic_type(tag);
+    }
+
+
     public int remap_instruction_operand_from_cache(int operand) {
-        return this.getCache().getEntry(operand).getConstantPoolIndex();
+        return this.getCache().entry_at(operand).constant_pool_index();
     }
 
     public int uncached_klass_ref_index_at(int which) {
@@ -1007,13 +1135,392 @@ public class ConstantPool extends Metadata {
         int resolved_klass_index = kslot.resolved_klass_index();
 //        Klass** adr = resolved_klasses()->adr_at(resolved_klass_index);
 //        Atomic::release_store(adr, k);
-        this.getResolvedKlasses().set(resolved_klass_index,k);
+        this.resolved_klasses().set(resolved_klass_index,k);
         // The interpreter assumes when the tag is stored, the klass is resolved
         // and the Klass* non-NULL, so we need hardware store ordering here.
         //      ^
         //      |
         //Not implemented
         tag_at_put(class_index, Class);
+    }
+
+    public void copy_bootstrap_arguments_at(int index,
+                                     int start_arg, int end_arg,
+                                     Object[] info, int pos,
+                                     boolean must_resolve, @RawCType("Handle")Object if_not_available) {
+        copy_bootstrap_arguments_at_impl(this, index, start_arg, end_arg,
+                info, pos, must_resolve, if_not_available);
+    }
+
+    public static void copy_bootstrap_arguments_at_impl(ConstantPool this_cp, int index,
+                                                        int start_arg, int end_arg,
+                                                        Object[] info, int pos,
+                                                        boolean must_resolve, @RawCType("Handle")Object if_not_available) {
+        int argc;
+        int limit = pos + end_arg - start_arg;
+        // checks: index in range [0..this_cp->length),
+        // tag at index, start..end in range [0..argc],
+        // info array non-null, pos..limit in [0..info.length]
+        if ((0 >= index    || index >= this_cp.length())  ||
+                !( this_cp.tag_at(index)==InvokeDynamic    ||
+                        this_cp.tag_at(index)==Dynamic) ||
+                (0 > start_arg || start_arg > end_arg) ||
+                (end_arg > (argc = this_cp.bootstrap_argument_count_at(index))) ||
+                (0 > pos       || pos > limit)         ||
+                (info==null || limit > info.length)) {
+            // An index or something else went wrong; throw an error.
+            // Since this is an internal API, we don't expect this,
+            // so we don't bother to craft a nice message.
+            throw new LinkageError("bad BSM argument access");
+        }
+        // now we can loop safely
+        int info_i = pos;
+        for (int i = start_arg; i < end_arg; i++) {
+            int arg_index = this_cp.bootstrap_argument_index_at(index, i);
+            Object arg_oop;
+            if (must_resolve) {
+                arg_oop = this_cp.resolve_possibly_cached_constant_at(arg_index);
+            } else {
+                boolean[] found_it = new boolean[]{false};
+                arg_oop = this_cp.find_cached_constant_at(arg_index, found_it);
+                if (!found_it[0])  arg_oop = if_not_available;
+            }
+            info[info_i++]=arg_oop;
+        }
+    }
+
+    public Object resolve_constant_at(int index) {
+        return resolve_constant_at_impl(this, index, _no_index_sentinel, null);
+    }
+
+    public Object resolve_cached_constant_at(int cache_index) {
+        return resolve_constant_at_impl(this, _no_index_sentinel, cache_index, null);
+    }
+
+    public Object resolve_possibly_cached_constant_at(int pool_index) {
+        return resolve_constant_at_impl(this, pool_index, _possible_index_sentinel, null);
+    }
+
+    public Object find_cached_constant_at(int pool_index,boolean[] found_it) {
+        return resolve_constant_at_impl(this, pool_index, _possible_index_sentinel, found_it);
+    }
+
+    private static final int _no_index_sentinel = -1, _possible_index_sentinel = -2;
+    // Called to resolve constants in the constant pool and return an oop.
+// Some constant pool entries cache their resolved oop. This is also
+// called to create oops from constants to use in arguments for invokedynamic
+    public static Object resolve_constant_at_impl(ConstantPool this_cp,
+                                               int index, int cache_index,
+                                               @RawCType("bool*")boolean[] status_return) {
+        Object result_oop = null;
+        //Handle throw_exception;
+
+        if (cache_index == _possible_index_sentinel) {
+            // It is possible that this constant is one which is cached in the objects.
+            // We'll do a linear search.  This should be OK because this usage is rare.
+            // FIXME: If bootstrap specifiers stress this code, consider putting in
+            // a reverse index.  Binary search over a short array should do it.
+            if (index<=0){
+                throw new RuntimeException("valid index");
+            }
+            cache_index = this_cp.cp_to_object_index(index);
+        }
+        if (!(cache_index == _no_index_sentinel || cache_index >= 0)){
+            throw new RuntimeException();
+        }
+        if (!(index == _no_index_sentinel || index >= 0)){
+            throw new RuntimeException();
+        }
+
+        if (cache_index >= 0) {
+            result_oop = this_cp.resolved_references()[(cache_index)];
+            if (result_oop != null) {
+//                if (result_oop == Universe::the_null_sentinel()) {
+//                    DEBUG_ONLY(int temp_index = (index >= 0 ? index : this_cp->object_to_cp_index(cache_index)));
+//                    assert(this_cp->tag_at(temp_index).is_dynamic_constant(), "only condy uses the null sentinel");
+//                    result_oop = null;
+//                }
+                if (status_return != null)  status_return[0] = true;
+                return result_oop;
+                // That was easy...
+            }
+            index = this_cp.object_to_cp_index(cache_index);
+        }
+
+        int tag = this_cp.tag_at(index);
+
+        if (status_return != null) {
+            // don't trigger resolution if the constant might need it
+            switch (tag&0xff) {
+                case Class:
+                {
+                    CPKlassSlot kslot = this_cp.klass_slot_at(index);
+                    int resolved_klass_index = kslot.resolved_klass_index();
+                    if (this_cp.resolved_klasses().get(resolved_klass_index) == null) {
+                        status_return[0] = false;
+                        return null;
+                    }
+                    // the klass is waiting in the CP; go get it
+                    break;
+                }
+                case String:
+                case Integer:
+                case Float:
+                case Long:
+                case Double:
+                    // these guys trigger OOM at worst
+                    break;
+                default:
+                    status_return[0] = false;
+                    return null;
+            }
+            // from now on there is either success or an OOME
+            status_return[0] = true;
+        }
+
+        switch (tag&0xff) {
+
+            case UnresolvedClass:
+            case Class: {
+                if (!(cache_index == _no_index_sentinel)){
+                    throw new RuntimeException("should not have been set");
+                }
+                Klass resolved = klass_at_impl(this_cp, index);
+                // ldc wants the java mirror.
+                result_oop = resolved.asClass();
+                break;
+            }
+
+            case Dynamic:
+            {
+
+                // Resolve the Dynamically-Computed constant to invoke the BSM in order to obtain the resulting oop.
+                BootstrapInfo bootstrap_specifier=new BootstrapInfo(this_cp, index);
+
+                // The initial step in resolving an unresolved symbolic reference to a
+                // dynamically-computed constant is to resolve the symbolic reference to a
+                // method handle which will be the bootstrap method for the dynamically-computed
+                // constant. If resolution of the java.lang.invoke.MethodHandle for the bootstrap
+                // method fails, then a MethodHandleInError is stored at the corresponding
+                // bootstrap method's CP index for the CONSTANT_MethodHandle_info. No need to
+                // set a DynamicConstantInError here since any subsequent use of this
+                // bootstrap method will encounter the resolution of MethodHandleInError.
+                // Both the first, (resolution of the BSM and its static arguments), and the second tasks,
+                // (invocation of the BSM), of JVMS Section 5.4.3.6 occur within invoke_bootstrap_method()
+                // for the bootstrap_specifier created above.
+                SystemDictionary.invoke_bootstrap_method(bootstrap_specifier);
+//                Exceptions::wrap_dynamic_exception(/* is_indy */ false, THREAD);
+//                if (HAS_PENDING_EXCEPTION) {
+//                    // Resolution failure of the dynamically-computed constant, save_and_throw_exception
+//                    // will check for a LinkageError and store a DynamicConstantInError.
+//                    save_and_throw_exception(this_cp, index, tag, CHECK_NULL);
+//                }
+                result_oop = bootstrap_specifier.resolved_value();
+                @RawCType("BasicType")int type = Signature.basic_type(bootstrap_specifier.signature());
+                if (!BasicType.is_reference_type(type)) {
+                    // Make sure the primitive value is properly boxed.
+                    // This is a JDK responsibility.
+                    String fail = null;
+                    if (result_oop == null) {
+                        fail = "null result instead of box";
+                    } else if (!BasicType.is_java_primitive(type)) {
+                        // FIXME: support value types via unboxing
+                        fail = "can only handle references and primitives";
+                    } else if (!JavaClasses.BoxingObject.is_instance(result_oop, type)) {
+                        fail = "primitive is not properly boxed";
+                    }
+                    if (fail != null) {
+                        // Since this exception is not a LinkageError, throw exception
+                        // but do not save a DynamicInError resolution result.
+                        // See section 5.4.3 of the VM spec.
+                        throw new InternalError(fail);
+                    }
+                }
+
+//                LogTarget(Debug, methodhandles, condy) lt_condy;
+//                if (lt_condy.is_enabled()) {
+//                    LogStream ls(lt_condy);
+//                    bootstrap_specifier.print_msg_on(&ls, "resolve_constant_at_impl");
+//                }
+                break;
+            }
+
+            case String:
+                if (cache_index == _no_index_sentinel){
+                    throw new RuntimeException("should have been set");
+                }
+                result_oop = string_at_impl(this_cp, index, cache_index);
+                break;
+
+            case MethodHandle:
+            {
+                int ref_kind                 = this_cp.method_handle_ref_kind_at(index);
+                int callee_index             = this_cp.method_handle_klass_index_at(index);
+                Symbol  name =      this_cp.method_handle_name_ref_at(index);
+                Symbol  signature = this_cp.method_handle_signature_ref_at(index);
+                @RawCType("constantTag")int m_tag  = this_cp.tag_at(this_cp.method_handle_index_at(index));
+                {
+//                    ResourceMark rm(THREAD);
+//                    log_debug(class, resolve)("resolve JVM_CONSTANT_MethodHandle:%d [%d/%d/%d] %s.%s",
+//                        ref_kind, index, this_cp->method_handle_index_at(index),
+//                        callee_index, name->as_C_string(), signature->as_C_string());
+                }
+
+                Klass callee = klass_at_impl(this_cp, callee_index);
+//                if (HAS_PENDING_EXCEPTION) {
+//                    save_and_throw_exception(this_cp, index, tag, CHECK_NULL);
+//                }
+
+                // Check constant pool method consistency
+                if ((callee.getAccessFlags().isInterface() && m_tag==Methodref) ||
+                        (!callee.getAccessFlags().isInterface() && m_tag==InterfaceMethodref)) {
+                    throw new IncompatibleClassChangeError();
+//                    ResourceMark rm(THREAD);
+//                    stringStream ss;
+//                    ss.print("Inconsistent constant pool data in classfile for class %s. "
+//                            "Method '", callee->name()->as_C_string());
+//                    signature->print_as_signature_external_return_type(&ss);
+//                    ss.print(" %s(", name->as_C_string());
+//                    signature->print_as_signature_external_parameters(&ss);
+//                    ss.print(")' at index %d is %s and should be %s",
+//                            index,
+//                            callee->is_interface() ? "CONSTANT_MethodRef" : "CONSTANT_InterfaceMethodRef",
+//                            callee->is_interface() ? "CONSTANT_InterfaceMethodRef" : "CONSTANT_MethodRef");
+//                    Exceptions::fthrow(THREAD_AND_LOCATION, vmSymbols::java_lang_IncompatibleClassChangeError(), "%s", ss.as_string());
+//                    save_and_throw_exception(this_cp, index, tag, CHECK_NULL);
+                }
+
+                Klass klass = this_cp.pool_holder();
+                result_oop = SystemDictionary.link_method_handle_constant(klass, ref_kind,
+                        callee, name, signature);
+                break;
+            }
+
+            case MethodType:
+            {
+                Symbol  signature = this_cp.method_type_signature_at(index);
+//                {
+//                    ResourceMark rm(THREAD);
+//                    log_debug(class, resolve)("resolve JVM_CONSTANT_MethodType [%d/%d] %s",
+//                        index, this_cp->method_type_index_at(index),
+//                        signature->as_C_string());
+//                }
+                Klass klass = this_cp.pool_holder();
+                result_oop = SystemDictionary.find_method_handle_type(signature, klass);
+//                if (HAS_PENDING_EXCEPTION) {
+//                    save_and_throw_exception(this_cp, index, tag, CHECK_NULL);
+//                }
+                break;
+            }
+
+            case Integer:
+                if (cache_index != _no_index_sentinel){
+                    throw new RuntimeException("should not have been set");
+                }
+                result_oop = this_cp.int_at(index);
+                break;
+
+            case Float:
+                if (cache_index != _no_index_sentinel){
+                    throw new RuntimeException("should not have been set");
+                }
+                result_oop = this_cp.float_at(index);
+                break;
+
+            case Long:
+                if (cache_index != _no_index_sentinel){
+                    throw new RuntimeException("should not have been set");
+                }
+                result_oop = this_cp.long_at(index);
+                break;
+
+            case Double:
+                if (cache_index != _no_index_sentinel){
+                    throw new RuntimeException("should not have been set");
+                }
+                result_oop = this_cp.double_at(index);
+                break;
+
+            case UnresolvedClassInError:
+            case DynamicInError:
+            case MethodHandleInError:
+            case MethodTypeInError:
+                throw new RuntimeException("resolution_error "+this_cp+" index:"+index);
+
+            default:
+                throw new RuntimeException(java.lang.String.format("unexpected constant tag at CP 0x"+ java.lang.Long.toHexString(this_cp.address) +"[%d/%d] = %d", index, cache_index, tag&0xff));
+        }
+
+        if (cache_index >= 0) {
+            // Benign race condition:  resolved_references may already be filled in.
+            // The important thing here is that all threads pick up the same result.
+            // It doesn't matter which racing thread wins, as long as only one
+            // result is used by all threads, and all future queries.
+            Object old_result =  Atomic.atomic_compare_exchange_oop(this_cp.resolved_references(),cache_index, (result_oop),null);
+            if (old_result == null) {
+                return result_oop;  // was installed
+            } else {
+                // Return the winning thread's result.  This can be different than
+                // the result here for MethodHandles.
+                return old_result;
+            }
+        } else {
+            if (result_oop == null){
+                throw new RuntimeException();
+            }
+            return result_oop;
+        }
+    }
+
+
+    public int bootstrap_method_ref_index_at(int which) {
+        if (!ConstantTag.has_bootstrap(tag_at(which))){
+            throw new IllegalArgumentException("Corrupted constant pool");
+        }
+        int op_base = bootstrap_operand_base(which);
+        return this.getOperands().get(op_base + _indy_bsm_offset)&0xffff;
+    }
+    public int bootstrap_argument_count_at(int which) {
+        if (!ConstantTag.has_bootstrap(tag_at(which))){
+            throw new IllegalArgumentException("Corrupted constant pool");
+        }
+        int op_base = bootstrap_operand_base(which);
+        int argc = this.getOperands().get(op_base + _indy_argc_offset);
+        if (ENABLE_EXTRA_CHECK){
+            int end_offset = op_base + _indy_argv_offset + argc;
+            int next_offset = bootstrap_operand_limit(which);
+            if (end_offset != next_offset){
+                throw new RuntimeException("matched ending");
+            }
+        }
+        return argc;
+    }
+    public static int operand_limit_at(U2Array operands, int bsms_attribute_index) {
+        if (!ENABLE_EXTRA_CHECK){
+            throw new RuntimeException();
+        }
+        int nextidx = bsms_attribute_index + 1;
+        if (nextidx == operand_array_length(operands))
+            return operands.length();
+        else
+            return operand_offset_at(operands, nextidx);
+    }
+    public int bootstrap_operand_limit(int which) {
+        if (!ENABLE_EXTRA_CHECK){
+            throw new RuntimeException();
+        }
+        int bsms_attribute_index = bootstrap_methods_attribute_index(which);
+        return operand_limit_at(this.getOperands(), bsms_attribute_index);
+    }
+    public int bootstrap_argument_index_at(int which, int j) {
+        int op_base = bootstrap_operand_base(which);
+        if (ENABLE_EXTRA_CHECK){
+            int argc = this.getOperands().get(op_base + _indy_argc_offset);
+            if (!((j&0xffffffffL)<(argc&0xffffffffL))){
+                throw new RuntimeException("oob");
+            }
+        }
+        return this.getOperands().get(op_base + _indy_argv_offset + j);
     }
     //---
 
@@ -1022,9 +1529,9 @@ public class ConstantPool extends Metadata {
         if (expand < 0) {
             throw new IllegalArgumentException("Extension length less than 0:" + expand);
         }
-        int newLen = this.getLength() + expand;
+        int newLen = this.length() + expand;
         long addr = unsafe.allocateMemory(SIZE + (long) oopSize * (newLen + 1));
-        unsafe.copyMemory(this.address, addr, SIZE + (long) oopSize * (this.getLength() + 1));
+        unsafe.copyMemory(this.address, addr, SIZE + (long) oopSize * (this.length() + 1));
         ConstantPool re = getOrCreate(addr);
         re.setLength(newLen);
         re.setTags(this.getTags().copy(expand));
@@ -1043,7 +1550,338 @@ public class ConstantPool extends Metadata {
      * In words
      */
     public int size() {
-        return size(this.getLength());
+        return size(this.length());
+    }
+
+    // For temporary use while constructing constant pool
+    public void klass_index_at_put(int which, int name_index) {
+        tag_at_put(which, ClassIndex);
+        unsafe.putInt(this.base()+ (long) which * oopSize,name_index);
+    }
+
+    public void copy_cp_to(int start_i, int end_i, ConstantPool to_cp, int to_i) {
+        copy_cp_to_impl(this, start_i, end_i, to_cp, to_i);
+    }
+    public static final class Flags {
+        public static final int
+        _has_preresolution    = 1,       // Flags
+                _on_stack             = 2,
+                _is_shared            = 4,
+                _has_dynamic_constant = 8;
+    };
+
+    public boolean has_dynamic_constant(){
+        return (unsafe.getShort(this.address+FLAGS_OFFSET)&0xffff & Flags._has_dynamic_constant) != 0;
+    }
+    public void set_has_dynamic_constant(){
+        unsafe.putShort(this.address+FLAGS_OFFSET, (short) ((unsafe.getShort(this.address+FLAGS_OFFSET)&0xffff)|Flags._has_dynamic_constant));
+    }
+
+    public void copy_fields(ConstantPool orig) {
+        // Preserve dynamic constant information from the original pool
+        if (orig.has_dynamic_constant()) {
+            set_has_dynamic_constant();
+        }
+        set_major_version(orig.major_version());
+        set_minor_version(orig.minor_version());
+        set_source_file_name_index(orig.source_file_name_index());
+        set_generic_signature_index(orig.generic_signature_index());
+    }
+
+
+    // Copy this constant pool's entries at start_i to end_i (inclusive)
+    // to the constant pool to_cp's entries starting at to_i. A total of
+    // (end_i - start_i) + 1 entries are copied.
+    public static void copy_cp_to_impl(ConstantPool from_cp, int start_i, int end_i, ConstantPool to_cp, int to_i){
+        int dest_i = to_i;  // leave original alone for debug purposes
+
+        for (int src_i = start_i; src_i <= end_i; /* see loop bottom */ ) {
+            copy_entry_to(from_cp, src_i, to_cp, dest_i);
+            switch (from_cp.tag_at(src_i)) {
+                case Double:
+                case Long:
+                    // double and long take two constant pool entries
+                    src_i += 2;
+                    dest_i += 2;
+                    break;
+
+                default:
+                    // all others take one constant pool entry
+                    src_i++;
+                    dest_i++;
+                    break;
+            }
+        }
+        copy_operands(from_cp, to_cp);
+    }
+
+    // Copy this constant pool's entry at from_i to the constant pool
+    // to_cp's entry at to_i.
+    public static void copy_entry_to(ConstantPool from_cp, int from_i,
+                              ConstantPool to_cp, int to_i) {
+
+        int tag = from_cp.tag_at(from_i);
+        switch (tag) {
+            case ClassIndex:
+            {
+                int ki = from_cp.klass_index_at(from_i);
+                to_cp.klass_index_at_put(to_i, ki);
+            } break;
+
+            case Double:
+            {
+                double d = from_cp.double_at(from_i);
+                to_cp.double_at_put(to_i, d);
+                // double takes two constant pool entries so init second entry's tag
+                to_cp.tag_at_put(to_i + 1, Invalid);
+            } break;
+
+            case Fieldref:
+            {
+                int class_index = from_cp.uncached_klass_ref_index_at(from_i);
+                int name_and_type_index = from_cp.uncached_name_and_type_ref_index_at(from_i);
+                to_cp.field_at_put(to_i, class_index, name_and_type_index);
+            } break;
+
+            case Float:
+            {
+                float f = from_cp.float_at(from_i);
+                to_cp.float_at_put(to_i, f);
+            } break;
+
+            case Integer:
+            {
+                int i = from_cp.int_at(from_i);
+                to_cp.int_at_put(to_i, i);
+            } break;
+
+            case InterfaceMethodref:
+            {
+                int class_index = from_cp.uncached_klass_ref_index_at(from_i);
+                int name_and_type_index = from_cp.uncached_name_and_type_ref_index_at(from_i);
+                to_cp.interface_method_at_put(to_i, class_index, name_and_type_index);
+            } break;
+
+            case Long:
+            {
+                long l = from_cp.long_at(from_i);
+                to_cp.long_at_put(to_i, l);
+                // long takes two constant pool entries so init second entry's tag
+                to_cp.tag_at_put(to_i + 1, Invalid);
+            } break;
+
+            case Methodref:
+            {
+                int class_index = from_cp.uncached_klass_ref_index_at(from_i);
+                int name_and_type_index = from_cp.uncached_name_and_type_ref_index_at(from_i);
+                to_cp.method_at_put(to_i, class_index, name_and_type_index);
+            } break;
+
+            case NameAndType:
+            {
+                int name_ref_index = from_cp.name_ref_index_at(from_i);
+                int signature_ref_index = from_cp.signature_ref_index_at(from_i);
+                to_cp.name_and_type_at_put(to_i, name_ref_index, signature_ref_index);
+            } break;
+
+            case StringIndex:
+            {
+                int si = from_cp.string_index_at(from_i);
+                to_cp.string_index_at_put(to_i, si);
+            } break;
+
+            case Class:
+            case UnresolvedClass:
+            case UnresolvedClassInError:
+            {
+                // Revert to JVM_CONSTANT_ClassIndex
+                int name_index = from_cp.klass_slot_at(from_i).name_index();
+                if (!(from_cp.tag_at(name_index)==Utf8)){
+                    throw new RuntimeException("sanity");
+                }
+                to_cp.klass_index_at_put(to_i, name_index);
+            } break;
+
+            case String:
+            {
+                Symbol s = from_cp.unresolved_string_at(from_i);
+                to_cp.unresolved_string_at_put(to_i, s);
+            } break;
+
+            case Utf8:
+            {
+                Symbol s = from_cp.symbol_at(from_i);
+                // Need to increase refcount, the old one will be thrown away and deferenced
+                s.incrementRefCount();
+                to_cp.symbol_at_put(to_i, s);
+            } break;
+
+            case MethodType:
+            case MethodTypeInError:
+            {
+                int k = from_cp.method_type_index_at(from_i);
+                to_cp.method_type_index_at_put(to_i, k);
+            } break;
+
+            case MethodHandle:
+            case MethodHandleInError:
+            {
+                int k1 = from_cp.method_handle_ref_kind_at(from_i);
+                int k2 = from_cp.method_handle_index_at(from_i);
+                to_cp.method_handle_index_at_put(to_i, k1, k2);
+            } break;
+
+            case Dynamic:
+            case DynamicInError:
+            {
+                int k1 = from_cp.bootstrap_methods_attribute_index(from_i);
+                int k2 = from_cp.bootstrap_name_and_type_ref_index_at(from_i);
+                k1 += operand_array_length(to_cp.getOperands());  // to_cp might already have operands
+                to_cp.dynamic_constant_at_put(to_i, k1, k2);
+            } break;
+
+            case InvokeDynamic:
+            {
+                int k1 = from_cp.bootstrap_methods_attribute_index(from_i);
+                int k2 = from_cp.bootstrap_name_and_type_ref_index_at(from_i);
+                k1 += operand_array_length(to_cp.getOperands());  // to_cp might already have operands
+                to_cp.invoke_dynamic_at_put(to_i, k1, k2);
+            } break;
+
+            // Invalid is used as the tag for the second constant pool entry
+            // occupied by JVM_CONSTANT_Double or JVM_CONSTANT_Long. It should
+            // not be seen by itself.
+            case Invalid: // fall through
+            default: {
+                throw new RuntimeException("ShouldNotReachHere()");
+            }
+        }
+    } // end copy_entry_to()
+
+    public static void copy_operands(ConstantPool from_cp,
+                                     ConstantPool to_cp) {
+
+        int from_oplen = operand_array_length(from_cp.getOperands());
+        int old_oplen  = operand_array_length(to_cp.getOperands());
+        if (from_oplen != 0) {
+            // append my operands to the target's operands array
+            if (old_oplen == 0) {
+                // Can't just reuse from_cp's operand list because of deallocation issues
+                int len = from_cp.getOperands().length();
+                U2Array new_ops = from_cp.getOperands().copy(0);
+                to_cp.setOperands(new_ops);
+            } else {
+                int old_len  = to_cp.getOperands().length();
+                int from_len = from_cp.getOperands().length();
+                int old_off  = old_oplen * 2;
+                int from_off = from_oplen * 2;
+                // Use the metaspace for the destination constant pool
+                U2Array new_operands = U2Array.create(old_len + from_len);
+                int fillp = 0, len = 0;
+                // first part of dest
+                unsafe.copyMemory(to_cp.getOperands().adr_at(0),new_operands.adr_at(fillp),(len = old_off) *2L);
+                fillp += len;
+                // first part of src
+                unsafe.copyMemory(from_cp.getOperands().adr_at(0),
+                        new_operands.adr_at(fillp),
+                        (len = from_off) *2L);
+                fillp += len;
+                // second part of dest
+                unsafe.copyMemory(to_cp.getOperands().adr_at(old_off),
+                        new_operands.adr_at(fillp),
+                        (len = old_len - old_off) * 2L);
+                fillp += len;
+                // second part of src
+                unsafe.copyMemory(from_cp.getOperands().adr_at(from_off),
+                        new_operands.adr_at(fillp),
+                        (len = from_len - from_off) * 2L);
+                fillp += len;
+                if (!(fillp == new_operands.length())){
+                    throw new RuntimeException();
+                }
+
+                // Adjust indexes in the first part of the copied operands array.
+                for (int j = 0; j < from_oplen; j++) {
+                    int offset = operand_offset_at(new_operands, old_oplen + j);
+                    if (!(offset == operand_offset_at(from_cp.getOperands(), j))){
+                        throw new RuntimeException("correct copy");
+                    }
+                    offset += old_len;  // every new tuple is preceded by old_len extra u2's
+                    operand_offset_at_put(new_operands, old_oplen + j, offset);
+                }
+
+                // replace target operands array with combined array
+                to_cp.setOperands(new_operands);
+            }
+        }
+    } // end copy_operands()
+
+    public void initialize_unresolved_klasses(ClassLoaderData loader_data) {
+        int len = this.length();
+        int num_klasses = 0;
+        for (int i = 1; i <len; i++) {
+            //noinspection SwitchStatementWithTooFewBranches
+            switch (tag_at(i)) {
+                case ClassIndex:
+                {
+                    final int class_index = klass_index_at(i);
+                    unresolved_klass_at_put(i, class_index, num_klasses++);
+                }
+                break;
+//#ifndef PRODUCT
+//                case Class:
+//                case UnresolvedClass:
+//                case UnresolvedClassInError:
+//                    // All of these should have been reverted back to ClassIndex before calling
+//                    // this function.
+//                    ShouldNotReachHere();
+//#endif
+            }
+        }
+        allocate_resolved_klasses(loader_data, num_klasses);
+    }
+    public void allocate_resolved_klasses(ClassLoaderData loader_data, int num_klasses) {
+        // A ConstantPool can't possibly have 0xffff valid class entries,
+        // because entry #0 must be CONSTANT_Invalid, and each class entry must refer to a UTF8
+        // entry for the class's name. So at most we will have 0xfffe class entries.
+        // This allows us to use 0xffff (ConstantPool::_temp_resolved_klass_index) to indicate
+        // UnresolvedKlass entries that are temporarily created during class redefinition.
+        if (!(num_klasses < CPKlassSlot._temp_resolved_klass_index)){
+            throw new RuntimeException("sanity");
+        }
+        if (this.resolved_klasses()!=null){
+            throw new RuntimeException("sanity");
+        }
+        VMTypeArray<Klass> rk = VMTypeArray.create(num_klasses,Klass.class,Klass::getOrCreate);
+        set_resolved_klasses(rk);
+    }
+    // Create object cache in the constant pool
+    public void initialize_resolved_references(@RawCType("intStack&") IntList reference_map,
+                                        int constant_pool_map_length){
+        // Initialized the resolved object cache.
+        int map_length = reference_map.size();
+        if (map_length > 0) {
+            // Only need mapping back to constant pool entries.  The map isn't used for
+            // invokedynamic resolved_reference entries.  For invokedynamic entries,
+            // the constant pool cache index has the mapping back to both the constant
+            // pool and to the resolved reference index.
+            if (constant_pool_map_length > 0) {
+                U2Array om = U2Array.create(constant_pool_map_length);
+                for (int i = 0; i < constant_pool_map_length; i++) {
+                    int x = reference_map.getInt(i);
+                    if (!(x == (x&0xffff))){
+                        throw new RuntimeException("klass index is too big");
+                    }
+                    om.set(i, (short) (x&0xffff));
+                }
+                this.set_reference_map(om);
+            }
+
+            // Create Java array for holding resolved strings, methodHandles,
+            // methodTypes, invokedynamic and invokehandle appendix objects, etc.
+            Object[] stom = new Object[map_length];
+            this.set_resolved_references(OopDesc.of(stom));
+        }
     }
 
     @Override

@@ -18,7 +18,7 @@ public class Runtime1 {
         limit=val;
     }
     public static long entryFor(int id) {
-        return blobFor(id).codeBegin();
+        return blobFor(id).code_begin();
     }
 
 

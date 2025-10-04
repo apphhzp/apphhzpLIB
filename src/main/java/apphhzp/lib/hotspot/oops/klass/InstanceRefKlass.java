@@ -12,6 +12,6 @@ public class InstanceRefKlass extends InstanceKlass{
 
     @Override
     public String toString() {
-        return "InstanceRefKlass("+this.getName()+")@0x"+Long.toHexString(this.address);
+        return "InstanceRefKlass("+this.name()+")@0x"+Long.toHexString(this.address);
     }
 }

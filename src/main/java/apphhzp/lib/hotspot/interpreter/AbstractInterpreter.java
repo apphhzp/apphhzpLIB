@@ -5,6 +5,7 @@ import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.JVMObject;
 import apphhzp.lib.hotspot.code.InterpreterCodelet;
 import apphhzp.lib.hotspot.code.StubQueue;
+import apphhzp.lib.hotspot.runtime.Frame;
 
 import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
@@ -20,5 +21,15 @@ public class AbstractInterpreter {
             queueCache=new StubQueue<>(addr,InterpreterCodelet::new);
         }
         return queueCache;
+    }
+
+    // Interpreter helpers
+    public static final int stackElementWords   = 1;
+    public static final int stackElementSize    = stackElementWords * JVM.wordSize;
+    public static final int logStackElementSize = JVM.LogBytesPerWord;
+
+    // Local values relative to locals[n]
+    public static int  local_offset_in_bytes(int n) {
+        return ((Frame.interpreter_frame_expression_stack_direction() * n) * stackElementSize);
     }
 }

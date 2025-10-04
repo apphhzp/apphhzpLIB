@@ -21,6 +21,11 @@ public class TypeArrayKlass extends ArrayKlass{
     }
 
     @Override
+    public String internal_name() {
+        return this.external_name();
+    }
+
+    @Override
     public String toString() {
         return "Type"+super.toString();
     }

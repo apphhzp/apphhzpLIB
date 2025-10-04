@@ -10,7 +10,7 @@ class Pranks {
         Dictionary dictionary=data.getDictionary();
         data.klassesDo((klass)->{
             if (klass.isInstanceKlass()){
-                DictionaryEntry entry=dictionary.getEntry(klass.getName());
+                DictionaryEntry entry=dictionary.getEntry(klass.name());
                 if (entry!=null){
                     dictionary.freeEntry(entry);
                 }

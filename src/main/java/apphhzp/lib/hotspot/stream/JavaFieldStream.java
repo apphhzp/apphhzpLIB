@@ -4,14 +4,14 @@ import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
 
 public class JavaFieldStream extends FieldStreamBase {
     public JavaFieldStream(InstanceKlass k) {
-        super(k.getFields(), k.getConstantPool(), 0, k.getFieldsCount());
+        super(k.getFields(), k.getConstantPool(), 0, k.java_fields_count());
     }
 
     public int nameIndex() {
         if (field().isInternal()) {
             throw new IllegalStateException("regular only");
         }
-        return field().getNameIndex();
+        return field().name_index();
     }
 
     public void setNameIndex(int index) {
@@ -25,7 +25,7 @@ public class JavaFieldStream extends FieldStreamBase {
         if (field().isInternal()) {
             throw new IllegalStateException("regular only");
         }
-        return field().getSignatureIndex();
+        return field().signature_index();
     }
 
     public void setSignatureIndex(int index) {
@@ -65,7 +65,7 @@ public class JavaFieldStream extends FieldStreamBase {
         if (field().isInternal()) {
             throw new IllegalStateException("regular only");
         }
-        return field().getInitialValueIndex();
+        return field().initval_index();
     }
 
     public void setInitvalIndex(int index) {

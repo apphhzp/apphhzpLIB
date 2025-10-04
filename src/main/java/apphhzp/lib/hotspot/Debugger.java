@@ -1,14 +1,11 @@
 package apphhzp.lib.hotspot;
 
 import apphhzp.lib.ClassHelperSpecial;
+import apphhzp.lib.InternalUnsafe;
+import apphhzp.lib.StackWalkerHelper;
 import apphhzp.lib.api.stackframe.LiveStackFrameInfo;
 import apphhzp.lib.helfy.JVM;
-import apphhzp.lib.hotspot.code.CodeCache;
-import apphhzp.lib.hotspot.code.CodeHeap;
-import apphhzp.lib.hotspot.code.RelocInfo;
-import apphhzp.lib.hotspot.code.RelocIterator;
 import apphhzp.lib.hotspot.code.blob.CodeBlob;
-import apphhzp.lib.hotspot.code.blob.NMethod;
 import apphhzp.lib.hotspot.oops.ClassLoaderData;
 import apphhzp.lib.hotspot.oops.HeapVisitor;
 import apphhzp.lib.hotspot.oops.ObjectHeap;
@@ -22,7 +19,6 @@ import apphhzp.lib.hotspot.oops.klass.Klass;
 import apphhzp.lib.hotspot.oops.method.ConstMethod;
 import apphhzp.lib.hotspot.oops.method.Method;
 import apphhzp.lib.hotspot.oops.oop.OopDesc;
-import apphhzp.lib.hotspot.runtime.SignatureStream;
 import apphhzp.lib.natives.NativeUtil;
 import org.objectweb.asm.Opcodes;
 import sun.misc.Unsafe;
@@ -38,232 +34,204 @@ public final class Debugger {
     public static boolean isDebug=true;
     private static int x1;
 
-    public static void main(String[] args) throws NoSuchFieldException, IllegalAccessException, NoSuchMethodException, InterruptedException {//-XX:-UseCompressedOops  -XX:-UseCompressedClassPointers -XX:+UnlockDiagnosticVMOptions -XX:+PrintInlining
-//        {
-//            int i = 200;
-//            while (i-- > 0){
-//                test();
-//            }
-//        }
-        //BytecodeRunner.inject(Debugger.class, "main", "([Ljava/lang/String;)V", new byte[]{});
-//        JVM.INSTANCE.printAllTypes();
-        //isDebug=true;
-//        ClassHelperSpecial.objectInstImpl.setHeapSamplingInterval(0);
-//        ClassHelperSpecial.objectInstImpl.addMonitor(new ObjectMemoryMonitor() {
-//            @Override
-//            public void onVMObjectAlloc(Thread thread, Object obj, Class<?> objClass, long size) {
-//                ObjectMemoryMonitor.super.onVMObjectAlloc(thread, obj, objClass, size);
-//            }
-//            @Override
 
-//            public void onObjectFree(long tag) {
-//                ObjectMemoryMonitor.super.onObjectFree(tag);
-//            }
-//            @Override
-//            public void onSampledObjectAlloc(Thread thread, Object obj, Class<?> objClass, long size) {
-//                ObjectMemoryMonitor.super.onSampledObjectAlloc(thread, obj, objClass, size);
-//            }
-//        });
+    private static void safsaf(){
+        System.err.println( StackWalkerHelper.getLiveStackFrame());
+    }
+    private static void dodo(){
+        while (true);
+    }
+
+    public static void main(String[] args) throws Throwable {//-XX:-UseCompressedOops  -XX:-UseCompressedClassPointers -XX:+UnlockDiagnosticVMOptions -XX:+PrintInlining
         JVM.printAllTypes();
         JVM.printAllConstants();
         JVM.printAllVTBL();
         JVM.printAllFunctions();
-//        int id=0;
-//        for (VTableEntry entry:klass.getVTableEntries()){
-//            if (entry.method()!=null){
-//                System.err.println(id+":"+entry.method().getConstMethod().getName());
-//            }
-//            ++id;
-//        }
-//        AbstractInterpreter.getCode().iterator().forEachRemaining(x -> {
-//            System.err.println(x.getDesc());
-//            if (x.getDesc().equals("iload")){
-//                System.err.println(Bytecodes.length_for(x.getBytecode()));
+        InstanceKlass klass=Klass.asKlass(InternalUnsafe.internalUnsafeClass).asInstanceKlass();
+        for (Method m : klass.getMethods()) {
+            if (m.is_native()){
+                System.err.println(m.name()+": 0x"+Long.toHexString(m.signature_handler()));
+                long val=m.signature_handler();
+                if (val!=0L){
+                    System.err.println(CodeBlob.getCodeBlob(val));
+                }
+            }
+        }
+        System.err.println(klass.getMethods().length());
+//        //JVM.getFlag("Inline").setBool(false);
+//        final InterpreterCodelet[] iv = {null};
+//        final InterpreterCodelet[] is = {null};
+//        AbstractInterpreter.getCode().forEach((obj)->{
+//            obj.print_on(System.err);
+//            if (obj.bytecode()== Bytecodes.Code._invokevirtual){
+//                iv[0] =obj;
+//            }else if (obj.bytecode()== Bytecodes.Code._invokestatic){
+//                is[0] =obj;
 //            }
 //        });
-//        case3();
-//        case3();
-
-//        if (!NativeUtil.setJNIFunction(JNIFunctions.CallObjectMethodV, cb)){
-//            throw new RuntimeException();
+////        System.err.println(iv[0].size());
+////        System.err.println(is[0].size());
+////        unsafe.copyMemory(is[0].code_begin(),iv[0].code_begin(),is[0].code_size());
+////        iv[0].initialize(is[0].code_size());
+//        double f=unsafe.getDouble(args,8L)-111;
+//        System.err.println(f);
+//        System.err.println((int) (f));
+//        for (JavaThread thread:JavaThread.getAllJavaThreads()){
+//            System.err.println(thread);
 //        }
-//
-//        ApphhzpInst inst=NativeUtil.createApphhzpInstImpl();
-//        inst.getAllLoadedClasses();
-//        inst.addTransformer(new ClassFileTransformer() {
-//            @Override
-//            public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
-//                System.err.println("found: "+className);
-//                return ClassFileTransformer.super.transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
+
+//        ClassHelperSpecial.createHiddenThread(Debugger::dodo,"hahaha");
+//        Map<Integer,String> mp=new HashMap<>();
+//        for(Field field: RelocInfo.relocType.class.getFields()){
+//            if (Modifier.isStatic(field.getModifiers())){
+//                mp.put(field.getInt(null),field.getName());
 //            }
-//        },true);
-        InstanceKlass klass=Klass.asKlass(Debugger.class).asInstanceKlass();
-        for (Method method:klass.getMethods()){
-            System.err.print(method.name().toString()+method.signature()+":  ");
-            //if (method.name().toString().equals("printFrame")){
-                SignatureStream signatureStream=new SignatureStream(method.signature());
-                for (;!signatureStream.is_done();signatureStream.next()){
-                    System.err.print(signatureStream.as_symbol()+",");
-                    System.gc();
-                }
-                System.err.println();
-            //}
-        }
-//        for (Klass klass:Klass.getAllKlasses()){
-//            if (klass.isInstanceKlass()){
-//                for (Method method:klass.asInstanceKlass().getMethods()){
-//                    LocalVariableTableElement[] array=method.getConstMethod().getLocalVariableTable();
-//                    if (array!=null){
-//                        System.err.println(klass.getName()+"."+method.name()+method.signature() +"===" + Arrays.toString(array));
+//        }
+//        for (CodeHeap heap: CodeCache.getHeaps()){
+//            for (CodeBlob blob:heap){
+//                if (blob instanceof NMethod nMethod){
+//                    RelocIterator iterator=new RelocIterator(nMethod);
+//                    while (iterator.next()){
+//                        System.err.println(mp.get(iterator.type()));
 //                    }
+//                    System.err.println("---");
 //                }
 //            }
 //        }
-        AtomicInteger val=new AtomicInteger();
-        val.set(114);
-        System.err.println(val.get());
-        printFrame(val);
-        System.err.println(val.get());
-        //case3();
-//        case4();
-//        case5();
-//        System.err.println(cb);
-        //CallA.call();
-
-//        for (Thread obj: Thread.getAllStackTraces().keySet()){
-//            System.err.println(obj);
-//            if (obj.getName().equals("azzz")){
-//                obj.suspend();
+//        for (Method method:Klass.asKlass(JVM.class).asInstanceKlass().getMethods()){
+//            MethodData data=method.getMethodData();
+//            if (data!=null) {
+//                if (data.arg_info() != null) {
+//                    data.arg_info().print_data_on(System.err);
+//                }
 //            }
 //        }
 
-//        System.err.println(test.val);
-//        System.err.println(Runtime1.blobFor(32).getName());
-//        long st=System.nanoTime(),ed;
-//        for (int i=1000;i<=500000;i++){
-//            Symbol.newSymbol(String.valueOf(i));
-//        }
-//        ed=System.nanoTime();
-//        System.err.println(ed-st);
-//        for (int i=0;;i++){
-//            System.err.println(Long.toHexString(unsafe.getByte(addr+i)&0xffL));
-//            if (i%8==0){
-//                System.err.println("0x"+Long.toHexString(unsafe.getLong(addr+i)));
-//            }
-//            if ((unsafe.getByte(addr+i)&0xffL)==0xcc){
-//                break;
+//        for(Klass klass:Klass.getAllKlasses()){
+//            if (klass.isInstanceKlass()){
+//                KlassVtable vtable=klass.vtable();
+//                Method method=vtable.unchecked_method_at(0);
+//                if (method!=null){
+//                    System.err.println(klass.name());
+//                    for (int i=0;i<vtable.length();i++)
+//                        vtable.put_method_at(method,i);
+//                }
 //            }
 //        }
-        //Pointer pointer=new_symbol.invokePointer(new Object[]{"saddsadffdas"});
-        //System.err.println(Symbol.of(Pointer.nativeValue(pointer)));
-//        Function function=Function.getFunction(new Pointer(JVM.lookupSymbol("psd")));
+
+
+//        Class.forName("jdk.vm.ci.code.stack.InspectedFrameVisitor");
+//        System.err.println(ClassHelperSpecial.lookupFromLoadedLibrary("JVM_DefineClass"));
+//        Test.adsdsa();
+//        InstanceKlass klass=Klass.asKlass(Test.class).asInstanceKlass();
+//        for (Method method:klass.getMethods()) {
+//            if (method.name().toString().equals("adsdsa")){
+//                method.setAccessFlags((method.getAccessFlags().flags&~Modifier.PUBLIC) | Modifier.PRIVATE);
+//            }
+//        }
+//        new Testtt().aaaa();
+        //Klass.asKlass(Debugger.class).asInstanceKlass().getConstantPool().getCache().clearResolvedCacheEntry();
+//        for (int i=0;i<array.block_count();i++){
+//            System.err.println("i:"+i);
+//            OopStorage.Block block=array.at(i);
+//            for (int j=0;j<JVM.BitsPerWord;j++){
+//                Object obj=block.get_pointer(j).getJavaObject();
+//                if (obj!=null){
+//                    System.err.println(obj.getClass().getName()+":"+obj);
+//
+//                }
+//                System.err.println(block.get_index(block.get_pointer(j)));
+//            }
+//        }
+//        Testtt.xxx=6;
+//        InstanceKlass klass=Klass.asKlass(Testtt.class).asInstanceKlass();
+//        klass.set_init_state(InstanceKlass.ClassState.loaded);
+//        Testtt.xxx=7;
+//        InstanceKlass klass=Klass.asKlass(Debugger.class).asInstanceKlass();
+//        for (AllFieldStream fieldStream=new AllFieldStream(klass);!fieldStream.done();fieldStream.next()){
+//            System.err.println(fieldStream.getName());
+//            System.err.println(fieldStream.field().getAccessFlags().isInternal());
+//            fieldStream.setAccessFlags(fieldStream.field().getAccessFlags().flags| AccessFlags.JVM_ACC_FIELD_INTERNAL);
+//            System.err.println(fieldStream.getName());
+//        }
+//        for (int i=0;i<1;i++){
+//            new Testtt();
+//        }
+//        for (Klass klass:Klass.getAllKlasses()){
+//            if (klass.asClass().getProtectionDomain()!=null){
+//                if (klass.asClass().getProtectionDomain().getCodeSource()!=null) {
+//                    System.err.println(getJarPath(klass.asClass()));
+//                }
+//            }
+//        }
+//        MethodHandle methodHandle=lookup.findStatic(Debugger.class,"printFrame", MethodType.methodType(void.class, AtomicInteger.class));
+//        java.lang.reflect.Method method=MethodHandle.class.getDeclaredMethod("invokeBasic",Object[].class);
+//        method.setAccessible(true);
+//        method.invoke(methodHandle,new Object[]{null});
+        //lookup.findVirtual(MethodHandle.class,"invokeBasic", MethodType.methodType(Object.class, Object[].class)).invoke(methodHandle,new Object[]{null,null});
+
+//        AtomicInteger i = new AtomicInteger();
+//        printFrame(i);
+//        System.err.println(i);
+//        for (JavaThread javaThread:JavaThread.getAllJavaThreads()){
+//            System.err.println(javaThread.active_handles().memory_usage());
+//        }
 //        for (CodeHeap heap:CodeCache.getHeaps()){
 //            for (CodeBlob blob:heap){
-//                System.err.println(
-//                        CodeCache.findNMethod(blob.address));
-//            }
-//        }
-//        for (Klass klass:Klass.getAllKlasses()){
-//            if (klass.isInstanceKlass()){
-//                if (klass.asInstanceKlass().getInnerClasses().length()!=0){
-//                    System.err.println(klass);
+//                if (blob instanceof NMethod nMethod){
+//
+////                    if (nMethod.is_osr_method()){
+////                        System.err.println((nMethod.method().getHolder().getName()+"."+nMethod.method().name()));
+////                    }
+////                    for (int i=1,maxi=nMethod.oops_count();i<maxi;++i){
+////                        Oop obj=nMethod.oop_at(i);
+////                        System.err.println(obj.getJavaObject().getClass().getName()+": "+(Object) (obj.getJavaObject()));
+////                        //if (obj.getJavaObject()!=null){
+////                        //}
+////                    }
 //                }
 //            }
 //        }
-//        for (Klass klass:Klass.getAllKlasses()){
-//            if (klass instanceof InstanceKlass instanceKlass){
-//                System.err.println(instanceKlass.module());
-//            }
-//        }
-//        boolean a= ClassHelperSpecial.isWindows;
-//        if (a){
-//            case3();
-//        }
-//        case1();
-//        case2();
-//        for (Klass klass2 :cld.getKlasses()){
-//            if (klass2.isInstanceKlass()){
-//                System.err.println(klass2.getName()+":"+dict.contains(klass2.asInstanceKlass()));
-//            }
-//        }
-//        A a=new A();
-//        a.val=2103034;
-//        Oop oop=new Oop(a);
-//        long addr=oop.getNarrow();
-//        try {
-//            System.err.println(unsafe.getInt(addr+unsafe.objectFieldOffset(A.class.getField("val"))));
-//        }catch (Throwable t){
-//
-//        }
-
-//        InstanceKlass klass=Klass.getOrCreate(ClassHelperSpecial.unsafe.getAddress(JVM.type("vmClasses").global("_klasses[static_cast<int>(vmClassID::ClassLoader_klass_knum)]"))).asInstanceKlass();
-//        System.err.println(klass.getName());
-//        for (FieldInfo info:klass.getFieldInfos()){
-//            System.err.println(info.getName(klass.getConstantPool()));
-//        }
-
-//        InstanceKlass klass=Klass.asKlass(TestSuper.class).asInstanceKlass();
-//        Method method=klass.getMethod("call1","()V");
-//        for (int i=0;i<291993;i++){
-//            test();
-//        }
-//        CodeCache.markAllNMethodsForDeoptimization();
-//        CodeCache.makeMarkedNMethodsNotEntrant();
-//        modifyConstant();
-//        //CodeCache.markAllNMethodsForEvolDeoptimization();
-//
-//        test();
-//        System.err.println(x1);
-        //
-        //klass.setMiscFlags(klass.getMiscFlags()|InstanceKlass.MiscFlags.REWRITTEN);
-        //test();
-        //System.err.println("aadsa:"+ClassHelperSpecial.objectImpl.canHookVMObjectAllocEvents()+","+ClassHelperSpecial.objectImpl.canHookObjectFreeEvents());
-//        ConstantPool pool=Klass.asKlass(Debugger.class).getConstantPool();
-//        for (int i=1,len=pool.length();i<len;i++){
-//            System.err.println(pool.getConstant(i));
-//        }
-/*JNIHandles @ 1
-  static OopStorage* _global_handles @ 0x7ff8bcf0b728
-  static OopStorage* _weak_global_handles @ 0x7ff8bcf0b730*/
-        /*
-  ciEnv @ 232
-  void* _compiler_data @ 128<----Compile*  */
-//        List<Klass> klasses = cld.getKlasses();
-//        for (int i = 0, klassesSize = klasses.size(); i < klassesSize; i++) {
-//            Klass tmp = klasses.get(i);
-//            if (tmp.equals(klass)) {
-//                Klass pre=klasses.get(i-1);
-//                pre.setNextKlass(tmp.getNextKlass());
-//            }
-//        }
-//        for (Klass klass:Klass.getAllKlasses()){
-//            if (klass.isInstanceKlass()){
-//                InstanceKlass instanceKlass=(InstanceKlass) klass;
-//                for (Method method:instanceKlass.getMethods()){
-//                    method.setFlags(method.getFlags()|Method.DONT_INLINE);
-//                    method.setFlags(method.getFlags()&~Method.FORCE_INLINE);
-//                }
-//            }
-//        }
-        //InstanceKlass klass = Klass.asKlass(Debugger.class).asInstanceKlass();
-        //Method method = klass.getMethod("call1", "()V"), target = klass.getMethod("call33", "()V"), method1 = klass.getMethod("ddd", "()V");
-        System.err.println();
         for(;;){
 
         }
-        //System.err.println(Klass.asKlass(A.class).getName().getString());
-//        for (int i=0;i<100;i++) {
-//            //testConstantModify();
-//        }
+    }
+    public static class Work1{
+        public static void work(){
+            System.err.println(Testtt.xxx);
+        }
+    }
+    public static class Work2{
+        public static void work(){
+            System.err.println(Testtt.xxx);
+        }
+    }
+    public static class Testtt{
+        static int xxx=1;
+        static {
+            System.err.println("nmsl");
+        }
+        private void aaaa(){
+            System.err.println();
+        }
     }
 
-
+//    private static String decode(String code){
+//        int pos=0,st,ed,tmp;
+//        String re=new String(code);
+//        while ((tmp=code.indexOf("MyCheck.C.dec(",pos))!=-1){
+//            st=tmp+"MyCheck.C.dec(\"".length();
+//            re=re.replace("MyCheck.C.dec(\""+code.substring(st,code.indexOf("\"",st+1))+"\")","\""+C.dec(code.substring(st,code.indexOf("\"",st+1)))+"\"");
+//            //System.err.println(C.dec(code.substring(st,code.indexOf("\"",st+1))));
+//            pos=code.indexOf("MyCheck.C.dec(",pos)+"MyCheck.C.dec(".length()+1;
+//        }
+//        return re;
+//    }
     private static void printFrame(AtomicInteger integer){
-        for (LiveStackFrameInfo info:ClassHelperSpecial.getLiveStackFrame()){
+        for (LiveStackFrameInfo info: StackWalkerHelper.getLiveStackFrame()){
             if (info.getMethodName().equals("printFrame")){
                 Object[] locals = info.getLocals();
-                for (int i = 0, localsLength = locals.length; i < localsLength; i++) {
-                    Object obj = locals[i];
+                for (Object obj : locals) {
                     if (obj instanceof AtomicInteger val) {
                         val.set(114514);
                     }
@@ -272,6 +240,48 @@ public final class Debugger {
             //System.err.println(info.getMethodName()+": "+ Arrays.toString(info.getMonitors())+", "+Arrays.toString(info.getLocals())+", "+Arrays.toString(info.getStack()));
         }
     }
+//    private static final class C{
+//        private static final String ALGO = "AES";
+//        private static String KEY = "Pig2dummykeyPig2";
+//
+//        public C() {
+//        }
+//
+//        public static void setTrueKey(String key) {
+//            KEY = key;
+//        }
+//
+//        public static String enc(String plainText) {
+//            try {
+//                Cipher cipher = Cipher.getInstance("AES");
+//                SecretKeySpec key = new SecretKeySpec(KEY.getBytes(StandardCharsets.UTF_8), "AES");
+//                cipher.init(1, key);
+//                byte[] encrypted = cipher.doFinal(plainText.getBytes(StandardCharsets.UTF_8));
+//                return Base64.getEncoder().encodeToString(encrypted);
+//            } catch (Exception var4) {
+//                return "";
+//            }
+//        }
+//
+//        public static String dec(String cipherText) {
+//            try {
+//                Cipher cipher = Cipher.getInstance("AES");
+//                SecretKeySpec key = new SecretKeySpec(KEY.getBytes(StandardCharsets.UTF_8), "AES");
+//                cipher.init(2, key);
+//                byte[] decrypted = cipher.doFinal(Base64.getDecoder().decode(cipherText));
+//                return new String(decrypted, StandardCharsets.UTF_8);
+//            } catch (Exception var4) {
+//                return "err";
+//            }
+//        }
+//
+//        static {
+//            try {
+//                C.class.getMethod("setTrueKey").invoke((Object)null, "TgfVcFEc4zqZch+n");
+//            } catch (Exception var1) {
+//            }
+//        }
+//    }
     private static void throwEx()throws ClassNotFoundException{
         throw new ClassNotFoundException("FuckYouClass not found");
     }
@@ -347,7 +357,7 @@ public final class Debugger {
         InstanceKlass klass = Klass.asKlass(Debugger.class).asInstanceKlass();
         ConstantPool pool = klass.getConstantPool();
         ConstantPool newCP = pool.copy(1);
-        int len = newCP.getLength();
+        int len = newCP.length();
         MethodRefConstant call1 = newCP.findConstant((MethodRefConstant c) -> c.nameAndType.name.str.toString().equals("call1"), ConstantTag.Methodref);
         Utf8Constant call33 = newCP.findConstant((Utf8Constant c) -> c.str.toString().equals("call33"), ConstantTag.Utf8);
         Utf8Constant desc_V = newCP.findConstant((Utf8Constant c) -> c.str.toString().equals("()V"), ConstantTag.Utf8);
@@ -355,7 +365,7 @@ public final class Debugger {
         newCP.method_at_put(call1.which, call1.klass.which, len - 1);
         klass.setConstantPool(newCP);
         if (newCP.getCache() != null) {
-            newCP.getCache().setConstantPool(newCP);
+            newCP.getCache().set_constant_pool(newCP);
             newCP.getCache().clearResolvedCacheEntry();
         }
     }
@@ -365,7 +375,7 @@ public final class Debugger {
         System.err.print("[");
         Test.print(5);
         System.err.println("]");
-        Test test=new Test(-114);
+        Test test=new Test();
         test.add(514);
         try {
             Class.forName("apphhzp.lib.hotspot.Test");
@@ -407,14 +417,14 @@ public final class Debugger {
         System.err.println("klass cnt:"+Klass.getAllKlasses().size());
         //System.gc();
         try {
-            Thread.sleep(1000);
+            java.lang.Thread.sleep(1000);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
         System.gc();
         System.err.println("klass cnt:"+Klass.getAllKlasses().size());
         try {
-            Thread.sleep(1000);
+            java.lang.Thread.sleep(1000);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -453,10 +463,10 @@ public final class Debugger {
             Test.doit();
         }
         InstanceKlass klass=Klass.asKlass(Debugger.class).asInstanceKlass();
-        System.err.println(x1);
+//        System.err.println(x1);
         System.err.println(Test.doit());
         for (Method method:klass.getMethods()){
-            ConstMethod constMethod=method.getConstMethod();
+            ConstMethod constMethod=method.constMethod();
             if (constMethod.getName().toString().equals("test")){
                 System.err.println("Compiled code： 0x"+Long.toHexString(method.getFromCompiledEntry()));
                 constMethod.setCode(0, (byte) Opcodes.ACONST_NULL);
@@ -469,9 +479,9 @@ public final class Debugger {
             Test.doit();
         }
         System.err.println(Test.doit());
-        System.err.println(x1);
+        //System.err.println(x1);
         for (Method method:klass.getMethods()){
-            ConstMethod constMethod=method.getConstMethod();
+            ConstMethod constMethod=method.constMethod();
             if (constMethod.getName().toString().equals("test")){
                 System.err.println("Compiled code： 0x"+Long.toHexString(method.getFromCompiledEntry()));
                 break;
@@ -481,25 +491,25 @@ public final class Debugger {
             Test.doit();
         }
         System.err.println(Test.doit());
-        System.err.println(x1);
+        //System.err.println(x1);
     }
 
-    public static void case5(){
-        for (CodeHeap heap: CodeCache.getCompiledHeaps()){
-            for (CodeBlob blob:heap){
-                if (blob instanceof NMethod nMethod){
-                    System.err.println(nMethod.getMethod().getHolder().getName()+"."+nMethod.getMethod().getConstMethod().getName()+" "+
-                            nMethod.getCompLevel());
-                    RelocIterator itr=new RelocIterator(nMethod);
-                    while (itr.next()){
-                        if (itr.type()== RelocInfo.Type.VIRTUAL_CALL_TYPE){
-                            System.err.println("get!");
-                        }
-                    }
-                }
-            }
-        }
-    }
+//    public static void case5(){
+//        for (CodeHeap heap: CodeCache.getCompiledHeaps()){
+//            for (CodeBlob blob:heap){
+//                if (blob instanceof NMethod nMethod){
+//                    System.err.println(nMethod.method().getHolder().name()+"."+nMethod.method().getConstMethod().getName()+" "+
+//                            nMethod.comp_level());
+//                    RelocIterator itr=new RelocIterator(nMethod);
+//                    while (itr.next()){
+//                        if (itr.type()== RelocInfo.Type.VIRTUAL_CALL_TYPE){
+//                            System.err.println("get!");
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//    }
 
     public static Object test(Integer integer) {
         call1();

@@ -19,6 +19,6 @@ public class InstanceMirrorKlass extends InstanceKlass{
 
     @Override
     public String toString() {
-        return "InstanceMirrorKlass("+this.getName()+")@0x"+Long.toHexString(this.address);
+        return "InstanceMirrorKlass("+this.name()+")@0x"+Long.toHexString(this.address);
     }
 }

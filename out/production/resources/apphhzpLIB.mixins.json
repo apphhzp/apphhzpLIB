@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "plugin": "apphhzp.lib.service.ApphhzpLibMixinPlugin",
+  "package": "apphhzp.lib.useless",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [],
+  "client": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

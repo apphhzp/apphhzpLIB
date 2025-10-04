@@ -1,9 +1,13 @@
 package apphhzp.lib.instrumentation;
 
+import apphhzp.lib.ClassHelperSpecial;
+import apphhzp.lib.ClassOption;
 import apphhzp.lib.api.ApphhzpInst;
 
 import java.lang.instrument.ClassDefinition;
 import java.lang.instrument.ClassFileTransformer;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodType;
 import java.security.ProtectionDomain;
 import java.util.jar.JarFile;
 
@@ -12,7 +16,7 @@ import static apphhzp.lib.ClassHelperSpecial.throwOriginalException;
 
 public class ApphhzpInstImpl implements ApphhzpInst {
     private final ApphhzpTransformerManager mTransformerManager;
-    private ApphhzpTransformerManager      mRetransfomableTransformerManager;
+    private ApphhzpTransformerManager mRetransfomableTransformerManager;
     // needs to store a native pointer, so use 64 bits
     private final     long                    mNativeAgent;
     private final     boolean                 mEnvironmentSupportsRedefineClasses;
@@ -20,9 +24,11 @@ public class ApphhzpInstImpl implements ApphhzpInst {
     private volatile  boolean                 mEnvironmentSupportsRetransformClasses;
     private final     boolean                 mEnvironmentSupportsNativeMethodPrefix;
     private static final Module UNNAMED_MODULE;
+    private static final MethodHandle managerConstructor;
     static {
         try {
             UNNAMED_MODULE= (Module) lookup.findStaticVarHandle(Class.forName("jdk.internal.loader.BootLoader"),"UNNAMED_MODULE", Module.class).get();
+            managerConstructor=lookup.findConstructor(ClassHelperSpecial.defineHiddenClass("apphhzp.lib.instrumentation.ApphhzpInstImpl$ApphhzpTransformerManagerImpl",ApphhzpInstImpl.class,true,ApphhzpInstImpl.class.getProtectionDomain(), ClassOption.STRONG,ClassOption.NESTMATE).lookupClass(), MethodType.methodType(void.class,boolean.class));
         }catch (Throwable t){
             throwOriginalException(t);
             throw new RuntimeException(t);
@@ -32,7 +38,12 @@ public class ApphhzpInstImpl implements ApphhzpInst {
     private ApphhzpInstImpl(long    nativeAgent,
                         boolean environmentSupportsRedefineClasses,
                         boolean environmentSupportsNativeMethodPrefix) {
-        mTransformerManager                    = new ApphhzpTransformerManager(false);
+        try {
+            mTransformerManager =(ApphhzpTransformerManager) managerConstructor.invoke(false);
+        } catch (Throwable e) {
+            throwOriginalException(e);
+            throw new RuntimeException(e);
+        }
         mRetransfomableTransformerManager      = null;
         mNativeAgent                           = nativeAgent;
         mEnvironmentSupportsRedefineClasses    = environmentSupportsRedefineClasses;
@@ -57,7 +68,12 @@ public class ApphhzpInstImpl implements ApphhzpInst {
                         "adding retransformable transformers is not supported in this environment");
             }
             if (mRetransfomableTransformerManager == null) {
-                mRetransfomableTransformerManager = new ApphhzpTransformerManager(true);
+                try {
+                    mRetransfomableTransformerManager = (ApphhzpTransformerManager) managerConstructor.invoke(true);
+                } catch (Throwable e) {
+                    throwOriginalException(e);
+                    throw new RuntimeException(e);
+                }
             }
             mRetransfomableTransformerManager.addTransformer(transformer);
             if (mRetransfomableTransformerManager.getTransformerCount() == 1) {
@@ -275,7 +291,7 @@ public class ApphhzpInstImpl implements ApphhzpInst {
         }
     }
 
-    public static class ApphhzpTransformerManager {
+    public static class ApphhzpTransformerManagerImpl implements ApphhzpTransformerManager{
         private static class TransformerInfo {
             final ClassFileTransformer mTransformer;
             String mPrefix;
@@ -304,12 +320,12 @@ public class ApphhzpInstImpl implements ApphhzpInst {
 
         private final boolean mIsRetransformable;
 
-        ApphhzpTransformerManager(boolean isRetransformable) {
+        ApphhzpTransformerManagerImpl(boolean isRetransformable) {
             mTransformerList = new TransformerInfo[0];
             mIsRetransformable = isRetransformable;
         }
 
-        boolean isRetransformable() {
+        public boolean isRetransformable() {
             return mIsRetransformable;
         }
 
@@ -326,7 +342,7 @@ public class ApphhzpInstImpl implements ApphhzpInst {
             mTransformerList = newList;
         }
 
-        synchronized boolean
+        public synchronized boolean
         includesTransformer(ClassFileTransformer transformer) {
             for (TransformerInfo info : mTransformerList) {
                 if (info.transformer() == transformer) {
@@ -337,8 +353,7 @@ public class ApphhzpInstImpl implements ApphhzpInst {
         }
 
 
-        public byte[]
-        transform(Module module,
+        public byte[] transform(Module module,
                   ClassLoader loader,
                   String classname,
                   Class<?> classBeingRedefined,
@@ -385,13 +400,13 @@ public class ApphhzpInstImpl implements ApphhzpInst {
         }
 
 
-        int
+        public int
         getTransformerCount() {
             TransformerInfo[] transformerList = mTransformerList;
             return transformerList.length;
         }
 
-        boolean
+        public boolean
         setNativeMethodPrefix(ClassFileTransformer transformer, String prefix) {
             TransformerInfo[] transformerList = mTransformerList;
 
@@ -406,7 +421,7 @@ public class ApphhzpInstImpl implements ApphhzpInst {
         }
 
 
-        String[]
+        public String[]
         getNativeMethodPrefixes() {
             TransformerInfo[] transformerList = mTransformerList;
             String[] prefixes = new String[transformerList.length];

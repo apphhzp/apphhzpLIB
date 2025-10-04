@@ -7,6 +7,9 @@ import apphhzp.lib.hotspot.memory.MetaspaceObj;
 import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
 import apphhzp.lib.hotspot.oops.klass.Klass;
 import apphhzp.lib.hotspot.oops.method.Method;
+import apphhzp.lib.hotspot.oops.method.data.MethodData;
+
+import java.io.PrintStream;
 
 public class Metadata extends JVMObject {
     public static final Type TYPE=JVM.type("Metadata");
@@ -35,5 +38,8 @@ public class Metadata extends JVMObject {
             return MetaspaceObj.isShared(this.address);
         }
         return false;
+    }
+    public void print_value_on(PrintStream ps){
+        throw new AbstractMethodError();
     }
 }

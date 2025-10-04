@@ -38,7 +38,7 @@ public class Dictionary extends Hashtable {
 
 
     public boolean contains(InstanceKlass c) {
-        long hash = computeHash(c.getName());
+        long hash = computeHash(c.name());
         int index = hashToIndex(hash);
         for (DictionaryEntry entry = bucket(index); entry != null; entry = entry.getNext()) {
             if (entry.getInstanceKlass().equals(c)) {
@@ -62,7 +62,7 @@ public class Dictionary extends Hashtable {
         if (obj==null){
             throw new NullPointerException("adding NULL obj");
         }
-        if (!class_name.equals(obj.getName())){
+        if (!class_name.equals(obj.name())){
             throw new IllegalArgumentException("sanity check on name");
         }
         DictionaryEntry entry = newEntry(hash, obj);

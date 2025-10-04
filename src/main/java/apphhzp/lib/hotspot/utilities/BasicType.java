@@ -129,4 +129,44 @@ public class BasicType {
     public static  boolean is_floating_point_type(@RawCType("BasicType")int t) {
         return (t == T_FLOAT || t == T_DOUBLE);
     }
+
+    private static final int[] type2size=new int[]{ -1, 0, 0, 0, 1, 1, 1, 2, 1, 1, 1, 2, 1, 1, 0, 1, 1, 1, 1, -1};
+    public static int parameter_type_word_count(@RawCType("BasicType")int t) {
+        if (is_double_word_type(t)){
+            return 2;
+        }
+        if (!(is_java_primitive(t) || is_reference_type(t))){
+            throw new RuntimeException("no goofy types here please");
+        }
+        if (type2size[t] != 1){
+            throw new RuntimeException("must be");
+        }
+        return 1;
+    }
+
+    public static Class<?> java_mirror(@RawCType("BasicType")int t){
+        if (is_reference_type(t)){
+            throw new IllegalArgumentException(getName(t));
+        }
+        if (t == T_BOOLEAN) {
+            return boolean.class;
+        } else if (t == T_CHAR) {
+            return char.class;
+        } else if (t == T_FLOAT) {
+            return float.class;
+        } else if (t == T_DOUBLE) {
+            return double.class;
+        } else if (t == T_BYTE) {
+            return byte.class;
+        } else if (t == T_SHORT) {
+            return short.class;
+        } else if (t == T_INT) {
+            return int.class;
+        } else if (t == T_LONG) {
+            return long.class;
+        }else if (t==T_VOID){
+            return void.class;
+        }
+        throw new RuntimeException("ShouldNotReachHere");
+    }
 }

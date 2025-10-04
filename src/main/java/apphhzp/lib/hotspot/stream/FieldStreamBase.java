@@ -22,7 +22,7 @@ public class FieldStreamBase {
         int skipped_generic_signature_slots = 0;
         FieldInfo fi;
         AccessFlags flags;
-    /* Scan from 0 to the current _index. Count the number of generic
+        /* Scan from 0 to the current _index. Count the number of generic
        signature slots for field[0] to field[_index - 1]. */
         for (int i = 0; i < _index; i++) {
             fi = FieldInfo.from_field_array (_fields, i);
@@ -71,7 +71,7 @@ public class FieldStreamBase {
         _fields = klass.getFields();
         _constants = klass.getConstantPool();
         _index = 0;
-        _limit = klass.getFieldsCount();
+        _limit = klass.java_fields_count();
         initGenericSignatureStartSlot();
         if (!klass.equals(getFieldHolder())) {
             throw new IllegalStateException();
@@ -84,7 +84,7 @@ public class FieldStreamBase {
     }
 
     public InstanceKlass getFieldHolder() {
-        return _constants.getHolder();
+        return _constants.pool_holder();
     }
 
     public void next() {
@@ -114,15 +114,15 @@ public class FieldStreamBase {
         setAccessFlags(flags.flags);
     }
 
-    public Symbol getName() {
-        return field().getName(this._constants);
+    public Symbol name() {
+        return field().name(this._constants);
     }
 
-    public Symbol getSignature() {
-        return field().getSignature(this._constants);
+    public Symbol signature() {
+        return field().signature(this._constants);
     }
 
-    public Symbol getGenericSignature() {
+    public Symbol generic_signature() {
         if (getAccessFlags().fieldHasGenericSignature()) {
             if (_generic_signature_slot >= _fields.length()) {
                 throw new IllegalStateException("out of bounds");
@@ -135,7 +135,7 @@ public class FieldStreamBase {
     }
 
     public int getOffset() {
-        return field().getOffset();
+        return field().offset();
     }
 
     public void setOffset(int offset) {

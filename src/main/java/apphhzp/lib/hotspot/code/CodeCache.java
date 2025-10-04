@@ -5,6 +5,8 @@ import apphhzp.lib.helfy.Type;
 import apphhzp.lib.hotspot.JVMObject;
 import apphhzp.lib.hotspot.code.blob.CodeBlob;
 import apphhzp.lib.hotspot.code.blob.CompiledMethod;
+import apphhzp.lib.hotspot.code.blob.NMethod;
+import apphhzp.lib.hotspot.util.RawCType;
 import apphhzp.lib.hotspot.utilities.VMTypeGrowableArray;
 
 import javax.annotation.Nullable;
@@ -61,12 +63,21 @@ public class CodeCache {
     }
 
     @Nullable
-    public static CodeBlob findBlob(long addr){
+    public static CodeBlob find_blob(long addr){
         CodeBlob re=findBlobUnsafe(addr);
-        if (re==null||re.isZombie()||re.isLockedByVM()){
+        if (re==null||re.is_zombie()||re.is_locked_by_vm()){
             return null;
         }
         return re;
+    }
+
+
+    public static CompiledMethod find_compiled(@RawCType("void*")long start) {
+        CodeBlob cb = find_blob(start);
+        if (!(cb == null || cb.is_compiled())){
+            throw new RuntimeException("did not find an compiled_method");
+        }
+        return (CompiledMethod)cb;
     }
 
     @Nullable
@@ -93,23 +104,23 @@ public class CodeCache {
 //        return new NMethod(Pointer.nativeValue(find_nmethod_function.invokePointer(new Object[]{addr})));
 //    }
 
-    public static void markAllNMethodsForEvolDeoptimization() {
-        if (JVM.includeJVMTI) {
-            for (CodeHeap heap:getCompiledHeaps()) {
-                for (CodeBlob blob : heap) {
-                    if (blob instanceof CompiledMethod compiledMethod) {
-                        if (!compiledMethod.getMethod().isMethodHandleIntrinsic()) {
-                            System.err.println(compiledMethod.getMethod().getConstMethod().getName());
-                            compiledMethod.markForDeoptimization(true);
-//                            if (nm -> has_evol_metadata()) {
-//                                add_to_old_table(nm);
-//                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+//    public static void markAllNMethodsForEvolDeoptimization() {
+//        if (JVM.includeJVMTI) {
+//            for (CodeHeap heap:getCompiledHeaps()) {
+//                for (CodeBlob blob : heap) {
+//                    if (blob instanceof CompiledMethod compiledMethod) {
+//                        if (!compiledMethod.getMethod().isMethodHandleIntrinsic()) {
+//                            System.err.println(compiledMethod.getMethod().getConstMethod().getName());
+//                            compiledMethod.markForDeoptimization(true);
+////                            if (nm -> has_evol_metadata()) {
+////                                add_to_old_table(nm);
+////                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//    }
 
     /*
     https://github.com/openjdk/jdk17u/blob/master/src/hotspot/share/code/codeCache.hpp#L275
@@ -122,28 +133,42 @@ public class CodeCache {
     static void unregister_old_nmethod(CompiledMethod* c) NOT_JVMTI_RETURN;
     * */
 
-    public static void markAllNMethodsForDeoptimization() {
+//    public static void markAllNMethodsForDeoptimization() {
+//
+//        for (CodeHeap heap : getCompiledHeaps()) {
+//            for (CodeBlob blob : heap) {
+//                if (blob instanceof CompiledMethod compiledMethod) {
+//                    if (!compiledMethod.getMethod().getAccessFlags().isNative()) {
+//                        compiledMethod.markForDeoptimization(true);
+//                    }
+//                }
+//            }
+//        }
+//    }
+//
+//    public static void makeMarkedNMethodsNotEntrant(){
+//        for (CodeHeap heap:getCompiledHeaps()) {//DeoptimizeMarkedClosure
+//            for (CodeBlob blob : heap) {
+//                if (blob instanceof CompiledMethod compiledMethod) {
+//                    if (!compiledMethod.isMarkedForDeoptimization()) {
+//                        compiledMethod.makeNotEntrant();
+//                    }
+//                }
+//            }
+//        }
+//    }
 
-        for (CodeHeap heap : getCompiledHeaps()) {
-            for (CodeBlob blob : heap) {
-                if (blob instanceof CompiledMethod compiledMethod) {
-                    if (!compiledMethod.getMethod().getAccessFlags().isNative()) {
-                        compiledMethod.markForDeoptimization(true);
-                    }
-                }
+    public static boolean contains(@RawCType("void*")long p) {
+        // It should be ok to call contains without holding a lock.
+        for (CodeHeap heap:getHeaps()){
+            if (heap.contains(p)){
+                return true;
             }
         }
+        return false;
     }
 
-    public static void makeMarkedNMethodsNotEntrant(){
-        for (CodeHeap heap:getCompiledHeaps()) {//DeoptimizeMarkedClosure
-            for (CodeBlob blob : heap) {
-                if (blob instanceof CompiledMethod compiledMethod) {
-                    if (!compiledMethod.isMarkedForDeoptimization()) {
-                        compiledMethod.makeNotEntrant();
-                    }
-                }
-            }
-        }
+    public static boolean contains(NMethod nm) {
+        return contains(nm.address);
     }
 }

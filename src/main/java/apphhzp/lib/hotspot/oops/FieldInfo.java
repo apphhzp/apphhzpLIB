@@ -41,14 +41,14 @@ public class FieldInfo extends JVMObject {
         unsafe.putShort(this.address + access_flags_offset * 2L, (short) (flags & 0xffff));
     }
 
-    public Symbol getName(ConstantPool pool) {
+    public Symbol name(ConstantPool pool) {
         if (this.isInternal()){
-            return Symbol.getVMSymbol(this.getNameIndex());
+            return Symbol.getVMSymbol(this.name_index());
         }
-        return ((Utf8Constant) pool.getConstant(this.getNameIndex())).str;
+        return ((Utf8Constant) pool.getConstant(this.name_index())).str;
     }
 
-    public int getNameIndex() {
+    public int name_index() {
         return unsafe.getShort(this.address + name_index_offset * 2L) & 0xffff;
     }
 
@@ -56,14 +56,14 @@ public class FieldInfo extends JVMObject {
         unsafe.putShort(this.address + name_index_offset * 2L, (short) (index & 0xffff));
     }
 
-    public Symbol getSignature(ConstantPool pool) {
+    public Symbol signature(ConstantPool pool) {
         if (this.isInternal()){
-            return Symbol.getVMSymbol(this.getSignatureIndex());
+            return Symbol.getVMSymbol(this.signature_index());
         }
-        return ((Utf8Constant) pool.getConstant(this.getSignatureIndex())).str;
+        return ((Utf8Constant) pool.getConstant(this.signature_index())).str;
     }
 
-    public int getSignatureIndex() {
+    public int signature_index() {
         return unsafe.getShort(this.address + signature_index_offset * 2L) & 0xffff;
     }
 
@@ -71,7 +71,7 @@ public class FieldInfo extends JVMObject {
         unsafe.putShort(this.address + signature_index_offset * 2L, (short) (index & 0xffff));
     }
 
-    public int getInitialValueIndex() {
+    public int initval_index() {
         return unsafe.getShort(this.address + initval_index_offset * 2L) & 0xffff;
     }
 
@@ -106,7 +106,7 @@ public class FieldInfo extends JVMObject {
     // Bit C indicates if the field is contended (C=1) or not (C=0)
     //       (if it is contended, the high packed field contains the contention group)
 
-    public int getOffset() {
+    public int offset() {
         if (!isOffsetSet()) {
             throw new IllegalStateException("Offset must have been set");
         }
@@ -133,7 +133,6 @@ public class FieldInfo extends JVMObject {
     public boolean isInternal() {
         return (unsafe.getShort(this.address + access_flags_offset * 2L) & 0xffff & JVM_ACC_FIELD_INTERNAL) != 0;
     }
-
     public boolean isStable()  {
         return (unsafe.getShort(this.address + access_flags_offset * 2L) & 0xffff & JVM_ACC_FIELD_STABLE) != 0;
     }

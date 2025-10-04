@@ -13,6 +13,7 @@ public class VMClasses {
     public static final long java_lang_Class_address=TYPE.global("_klasses[static_cast<int>(vmClassID::Class_klass_knum)]");
     public static final long java_lang_ClassLoader_address=TYPE.global("_klasses[static_cast<int>(vmClassID::ClassLoader_klass_knum)]");
     public static final long java_lang_Thread_address=TYPE.global("_klasses[static_cast<int>(vmClassID::Thread_klass_knum)]");
+    public static final long java_lang_invoke_MethodHandle_address=TYPE.global("_klasses[static_cast<int>(vmClassID::MethodHandle_klass_knum)]");
     public static InstanceKlass objectKlass(){
         return InstanceKlass.getOrCreate(unsafe.getAddress(java_lang_Object_address));
     }
@@ -31,5 +32,8 @@ public class VMClasses {
 
     public static InstanceKlass threadKlass(){
         return InstanceKlass.getOrCreate(unsafe.getAddress(java_lang_Thread_address));
+    }
+    public static InstanceKlass methodHandleKlass(){
+        return InstanceKlass.getOrCreate(unsafe.getAddress(java_lang_invoke_MethodHandle_address));
     }
 }

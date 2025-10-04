@@ -11,7 +11,7 @@ public class ClassConstant extends Constant{
     public ClassConstant(ConstantPool pool, int which) {
         super(pool, which,pool.getTags().get(which));
         resolvedKlassIndex=unsafe.getShort(this.address)&0xffff;
-        if (pool.getResolvedKlasses().getAddress(resolvedKlassIndex)!=0L) {
+        if (pool.resolved_klasses().getAddress(resolvedKlassIndex)!=0L) {
             resolved = pool.getResolvedKlass(resolvedKlassIndex);
         }else {
             resolved=null;
@@ -23,6 +23,6 @@ public class ClassConstant extends Constant{
     public String toString() {
         return super.toString()+
                 "\n\tname:"+name.str+
-                "\n\tresolvedKlass:"+(this.resolved==null?"null":resolved.getName()+"@0x"+Long.toHexString(resolved.address));
+                "\n\tresolvedKlass:"+(this.resolved==null?"null":resolved.name()+"@0x"+Long.toHexString(resolved.address));
     }
 }

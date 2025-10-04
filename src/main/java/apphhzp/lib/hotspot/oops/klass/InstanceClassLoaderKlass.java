@@ -12,6 +12,6 @@ public class InstanceClassLoaderKlass extends InstanceKlass{
 
     @Override
     public String toString() {
-        return "InstanceClassLoaderKlass("+this.getName()+")@0x"+Long.toHexString(this.address);
+        return "InstanceClassLoaderKlass("+this.name()+")@0x"+Long.toHexString(this.address);
     }
 }

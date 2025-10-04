@@ -4,6 +4,7 @@ import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.hotspot.JVMObject;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.lang.reflect.Array;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -17,8 +18,8 @@ public class VMTypeArray<T extends JVMObject> extends JVMObject implements Itera
     public final LongFunction<T> constructor;
 
     public static <T extends JVMObject> VMTypeArray<T> create(int length,Class<T> type,LongFunction<T> constructor) {
-        long addr=unsafe.allocateMemory(DATA_OFFSET+(length+1L)*JVM.oopSize);
-        unsafe.setMemory(addr,DATA_OFFSET+(length+1L)*JVM.oopSize, (byte) 0);
+        long addr=unsafe.allocateMemory(DATA_OFFSET+ (long) (length) *JVM.oopSize);
+        unsafe.setMemory(addr,DATA_OFFSET+ (long) (length) *JVM.oopSize, (byte) 0);
         unsafe.putInt(addr,length);
         return new VMTypeArray<>(addr, type, constructor);
     }
@@ -53,8 +54,8 @@ public class VMTypeArray<T extends JVMObject> extends JVMObject implements Itera
     }
 
 
-    public void set(int index, T val) {
-        setAddress(index,val.address);
+    public void set(int index,@Nullable T val) {
+        setAddress(index,val==null?0L:val.address);
     }
 
     public void setAddress(int index,long addr) {

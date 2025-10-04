@@ -5,13 +5,17 @@ import apphhzp.lib.hotspot.JVMUtil;
 import apphhzp.lib.hotspot.NativeLibrary;
 import apphhzp.lib.hotspot.cds.FileMapHeader;
 import apphhzp.lib.hotspot.cds.FileMapInfo;
+import apphhzp.lib.hotspot.code.InterpreterCodelet;
+import apphhzp.lib.hotspot.interpreter.AbstractInterpreter;
 import apphhzp.lib.hotspot.oops.constant.ConstantPool;
 import apphhzp.lib.hotspot.oops.klass.Klass;
 import apphhzp.lib.hotspot.oops.method.Method;
 import apphhzp.lib.hotspot.oops.oop.OopDesc;
-import apphhzp.lib.hotspot.runtime.*;
 import apphhzp.lib.hotspot.runtime.Thread;
-import com.sun.jna.*;
+import apphhzp.lib.hotspot.runtime.*;
+import apphhzp.lib.hotspot.util.RawCType;
+import com.sun.jna.Function;
+import com.sun.jna.Pointer;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import sun.misc.Unsafe;
@@ -21,6 +25,7 @@ import java.lang.management.ManagementFactory;
 import java.util.*;
 
 import static apphhzp.lib.ClassHelperSpecial.*;
+import static apphhzp.lib.hotspot.utilities.BasicType.T_ILLEGAL;
 
 public final class JVM {
     public static final boolean ENABLE_EXTRA_CHECK =true;
@@ -94,6 +99,7 @@ public final class JVM {
     public static final boolean includeAssert;
     public static final boolean usePerfData;
     public static final boolean specialAlignment;
+    public static final boolean isZERO;
     private JVM() {
     }
 
@@ -292,6 +298,9 @@ public final class JVM {
     }
 
     public static String getStringRef(long addr) {
+        if (addr==0L){
+            return null;
+        }
         return getString(unsafe.getAddress(addr));
     }
 
@@ -306,16 +315,25 @@ public final class JVM {
         unsafe.putAddress(addr, base);
     }
 
-    public static long getSymbol(String name) {
+    private static long getSymbol(String name) {
         long address = JVM.lookup(name);
         if (address == 0) {
-            throw new NoSuchElementException("No such symbol: " + name);
+            if (JVM.name().equals("libjvm.dylib")){
+                address=JVM.lookup("_"+name);
+            }
+            if (address==0L){
+                throw new NoSuchElementException("No such symbol: " + name);
+            }
         }
         return unsafe.getLong(address);
     }
 
     public static long lookupSymbol(String name) {
-        return JVM.lookup(name);
+        long re=JVM.lookup(name);
+        if (re==0&&JVM.name().equals("libjvm.dylib")){
+            re=JVM.lookup("_"+name);
+        }
+        return re;
     }
 
     public static Type type(String name) {
@@ -390,7 +408,6 @@ public final class JVM {
         for (Object2LongMap.Entry<String> entry : functions.object2LongEntrySet()) {
             System.err.println("&"+entry.getKey()+" = 0x"+Long.toHexString(entry.getLongValue()));
         }
-        System.err.println("over");
     }
 
     public static void putCLevelLong(long address,long val){
@@ -420,6 +437,21 @@ public final class JVM {
             return unsafe.getInt(address);
         }else {
             return unsafe.getLong(address);
+        }
+    }
+
+    public static long getAddress(Object obj,long offset){
+        if (oopSize==4){
+            return Integer.toUnsignedLong(unsafe.getInt(obj,offset));
+        }else {
+            return unsafe.getLong(obj,offset);
+        }
+    }
+    public static void putAddress(Object obj,long offset,long val){
+        if (oopSize==4){
+            unsafe.putInt(obj,offset, (int) val);
+        }else {
+            unsafe.putLong(obj,offset,val);
         }
     }
 
@@ -620,6 +652,59 @@ public final class JVM {
             }
             return null;
         });
+    }
+
+    public static boolean is_Java_byte_ordering_different() {
+        return PlatformInfo.isLittleEndian();
+    }
+    public static boolean is_odd(@RawCType("intx") long x){
+        return (x & 1)!=0;
+    }
+    public static boolean is_even(@RawCType("intx") long x){
+        return !is_odd(x);
+    }
+
+    private static final String[] type2name_tab =new String[]{
+        null, null, null, null,
+                "boolean",
+                "char",
+                "float",
+                "double",
+                "byte",
+                "short",
+                "int",
+                "long",
+                "object",
+                "array",
+                "void",
+                "*address*",
+                "*narrowoop*",
+                "*metadata*",
+                "*narrowklass*",
+                "*conflict*"
+    };
+    public static String type2name(@RawCType("BasicType") int t) {
+        if (t < (type2name_tab).length) {
+            return type2name_tab[t];
+        } else if (t == T_ILLEGAL) {
+            return "*illegal*";
+        } else {
+            return "invalid type";
+        }
+    }
+
+    public static Map<String,Integer> getIntConstants(){
+        Map<String,Integer> re=new LinkedHashMap<>();
+        for (Map.Entry<String, Number> entry:constants.entrySet()){
+            if (entry.getValue() instanceof Integer){
+                re.put(entry.getKey(), entry.getValue().intValue());
+            }
+        }
+        return re;
+    }
+
+    public static boolean is_aligned(long size, long alignment) {
+        return (size & (alignment-1)) == 0;
     }
 
     public static final class Functions{
@@ -943,6 +1028,14 @@ public final class JVM {
                 includeAssert=intConstant("ConstantPool::CPCACHE_INDEX_TAG")!=0;
                 usePerfData=getFlag("UsePerfData").getBool();
                 specialAlignment=type("Arguments").global("_num_jvm_flags")<type("Arguments").global("_jvm_flags_array");
+                boolean is0=true;//TODO
+                for (InterpreterCodelet codelet: AbstractInterpreter.getCode()){
+                    if (codelet.getDesc().contains("java_util_zip_CRC32_updateBytes")){
+                        is0=false;
+                        break;
+                    }
+                }
+                isZERO=is0;
 //                String cpu = getCPU();
 //                Class<?> machDescClass = Class.forName("sun.jvm.hotspot.debugger.MachineDescription");
 //                int pid=getPid();
@@ -970,7 +1063,7 @@ public final class JVM {
                 JVM = null;
                 codeEntryAlignment=0;
                 LogHeapWordsPerLong=LogHeapWordSize=WordAlignmentMask=BitsPerWord=LogBitsPerWord=BytesPerWord=LogBytesPerWord=unsignedSize=floatSize=doubleSize=diagnoseSyncOnValueBasedClasses=logMinObjAlignmentInBytes=objectAlignmentInBytes = intSize = size_tSize = oopSize =longSize= 0;
-                specialAlignment=usePerfData=includeAssert=product=classUnloading=includeJFR=includeCDSJavaHeap=includeCDS=bytecodeVerificationRemote=
+                isZERO=specialAlignment=usePerfData=includeAssert=product=classUnloading=includeJFR=includeCDSJavaHeap=includeCDS=bytecodeVerificationRemote=
                         bytecodeVerificationLocal=dumpSharedSpaces=includeG1GC= enableContended=restrictReservedStack=
                         restrictContended= includeJVMTI = usingClientCompiler = usingServerCompiler =
                         usingSharedSpaces = usingTLAB = includeJVMCI = false;

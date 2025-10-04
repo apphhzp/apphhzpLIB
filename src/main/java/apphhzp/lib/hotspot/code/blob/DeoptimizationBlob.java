@@ -5,12 +5,18 @@ import apphhzp.lib.helfy.Type;
 
 import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
-public class DeoptimizationBlob extends CodeBlob{
+/**Used for deoptimization*/
+public class DeoptimizationBlob extends SingletonBlob{
     public static final Type TYPE= JVM.type("DeoptimizationBlob");
     public static final int SIZE=TYPE.size;
     public static final long UNPACK_OFFSET_OFFSET=TYPE.offset("_unpack_offset");
     public DeoptimizationBlob(long addr) {
         super(addr,TYPE);
+    }
+
+    @Override
+    public boolean is_deoptimization_stub() {
+        return true;
     }
 
     public int getUnpackOffset(){

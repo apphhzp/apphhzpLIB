@@ -88,23 +88,26 @@ public class ConstMethod extends JVMObject {
     }
 
     public Symbol getName() {
-        return ((Utf8Constant) this.getConstantPool().getConstant(this.getNameIndex())).str;
+        return ((Utf8Constant) this.constants().getConstant(this.getNameIndex())).str;
     }
 
     public Symbol getSignature() {
-        return ((Utf8Constant) this.getConstantPool().getConstant(this.getSignatureIndex())).str;
+        return ((Utf8Constant) this.constants().getConstant(this.getSignatureIndex())).str;
     }
 
-    public ConstantPool getConstantPool() {
+    public ConstantPool constants() {
         long addr = unsafe.getAddress(this.address + CONSTANT_POOL_OFFSET);
+        if (addr==0L){
+            return null;
+        }
         if (!isEqual(this.constantPoolCache, addr)) {
             this.constantPoolCache = ConstantPool.getOrCreate(addr);
         }
         return this.constantPoolCache;
     }
 
-    public void setConstantPool(ConstantPool pool) {
-        unsafe.putAddress(this.address + CONSTANT_POOL_OFFSET, pool.address);
+    public void set_constants(ConstantPool pool) {
+        unsafe.putAddress(this.address + CONSTANT_POOL_OFFSET,pool==null?0L:pool.address);
     }
 
     /**constMethod size in <b>words<b/>*/
@@ -115,6 +118,20 @@ public class ConstMethod extends JVMObject {
     public void setConstMethodSize(int size) {
         unsafe.putInt(this.address + SIZE_OFFSET, size);
     }
+
+//    public static class Flags{
+//        public static final int _has_linenumber_table = 0x0001,
+//                _has_checked_exceptions = 0x0002,
+//                _has_localvariable_table = 0x0004,
+//                _has_exception_table = 0x0008,
+//                _has_generic_signature = 0x0010,
+//                _has_method_parameters = 0x0020,
+//                _is_overpass = 0x0040,
+//                _has_method_annotations = 0x0080,
+//                _has_parameter_annotations = 0x0100,
+//                _has_type_annotations = 0x0200,
+//                _has_default_annotations = 0x0400;
+//    }
 
     public int getFlags() {
         return unsafe.getShort(this.address + FLAGS_OFFSET) & 0xffff;
@@ -250,7 +267,7 @@ public class ConstMethod extends JVMObject {
     }
 
     public Method getMethod() {
-        return this.getConstantPool().getHolder().getMethods().get(this.getMethodIdnum());
+        return this.constants().pool_holder().getMethods().get(this.getMethodIdnum());
     }
 
     public int getMaxStack() {
@@ -307,6 +324,23 @@ public class ConstMethod extends JVMObject {
             re[i] = unsafe.getByte(base + i);
         }
         return re;
+    }
+
+    public static class MethodType {
+        public static final int NORMAL=0, OVERPASS=1;
+    } ;
+
+
+    public @RawCType("MethodType")int method_type(){
+        return ((this.getFlags() & IS_OVERPASS) == 0) ? MethodType.NORMAL : MethodType.OVERPASS;
+    }
+
+    void set_method_type(@RawCType("MethodType")int mt) {
+        if (mt == MethodType.NORMAL) {
+            this.setFlags(this.getFlags()&~IS_OVERPASS);
+        } else {
+            this.setFlags(this.getFlags()|IS_OVERPASS);
+        }
     }
 
 //    public ConstMethod copy(int expand,){
@@ -385,7 +419,7 @@ public class ConstMethod extends JVMObject {
 
     //[LineNumberTable]
     public long compressedLineNumberTableOffset() {
-        return SIZE + this.getCodeSize()+(this.getMethod().getAccessFlags().isNative()?2L*oopSize:0);
+        return SIZE + this.getCodeSize()+(this.getMethod().access_flags().isNative()?2L*oopSize:0);
     }
 
     public CompressedLineNumberReadStream getCompressedLineNumberReadStream() {
@@ -393,7 +427,7 @@ public class ConstMethod extends JVMObject {
     }
 
     public int getLineNumberFromBCI(int bci) {
-        if (this.getMethod().getAccessFlags().isNative()) {
+        if (this.getMethod().access_flags().isNative()) {
             return -1;
         }
         if (bci < 0 || bci >= this.getCodeSize()) {
@@ -499,6 +533,20 @@ public class ConstMethod extends JVMObject {
     public long checkedExceptionsOffset() {
         return this.checkedExceptionsLengthOffset() - (long) this.getCheckedExceptionsLength() * CheckedExceptionElement.SIZE;
     }
+
+    @Nullable
+    public CheckedExceptionElement[] getCheckedExceptionTable(){
+        if (!hasCheckedExceptions(this.getFlags())){
+            return null;
+        }
+        int len=this.getCheckedExceptionsLength();
+        long base=this.checkedExceptionsOffset()+this.address;
+        CheckedExceptionElement[] re=new CheckedExceptionElement[len];
+        for (int i=0;i<len;i++){
+            re[i]=new CheckedExceptionElement(base+ (long) i *CheckedExceptionElement.SIZE);
+        }
+        return re;
+    }
     //END
 
     //[MethodParameters]
@@ -512,6 +560,20 @@ public class ConstMethod extends JVMObject {
 
     public long methodParametersOffset() {
         return this.methodParametersLengthOffset() - (long) this.getMethodParametersLength() * MethodParametersElement.SIZE;
+    }
+
+    @Nullable
+    public MethodParametersElement[] getMethodParametersTable(){
+        if (!hasMethodParameters(this.getFlags())){
+            return null;
+        }
+        int len=this.getMethodParametersLength();
+        long base=this.methodParametersOffset()+this.address;
+        MethodParametersElement[] re=new MethodParametersElement[len];
+        for (int i=0;i<len;i++){
+            re[i]=new MethodParametersElement(base+ (long) i *MethodParametersElement.SIZE);
+        }
+        return re;
     }
     //END
 
@@ -586,6 +648,36 @@ public class ConstMethod extends JVMObject {
     }
 
 
+
+
+    public boolean has_generic_signature()
+    { return (this.getFlags() & HAS_GENERIC_SIGNATURE) != 0; }
+
+    public boolean has_linenumber_table()
+    { return (this.getFlags() & HAS_LINENUMBER_TABLE) != 0; }
+
+    public boolean has_checked_exceptions()
+    { return (this.getFlags() & HAS_CHECKED_EXCEPTIONS) != 0; }
+
+    public boolean has_localvariable_table()
+    { return (this.getFlags() & HAS_LOCALVARIABLE_TABLE) != 0; }
+
+    public boolean has_exception_handler()
+    { return (this.getFlags() & HAS_EXCEPTION_TABLE) != 0; }
+
+    public boolean has_method_parameters()
+    { return (this.getFlags() & HAS_METHOD_PARAMETERS) != 0; }
+
+
+
+    public @RawCType("u_char*")long compressed_linenumber_table(){
+        // Located immediately following the bytecodes.
+        if (!has_linenumber_table()){
+            throw new IllegalStateException("called only if table is present");
+        }
+        return code_end();
+    }
+
     public static boolean hasLineNumberTable(int flags) {
         return (flags & HAS_LINENUMBER_TABLE) != 0;
     }
@@ -599,7 +691,7 @@ public class ConstMethod extends JVMObject {
     }
 
     public static boolean hasExceptionTable(int flags) {
-        return (flags & HAS_EXCPETION_TABLE) != 0;
+        return (flags & HAS_EXCEPTION_TABLE) != 0;
     }
 
     public static boolean hasGenericSignature(int flags) {
@@ -630,9 +722,10 @@ public class ConstMethod extends JVMObject {
         public static final int HAS_LINENUMBER_TABLE = JVM.intConstant("ConstMethod::_has_linenumber_table");
         public static final int HAS_CHECKED_EXCEPTIONS = JVM.intConstant("ConstMethod::_has_checked_exceptions");
         public static final int HAS_LOCALVARIABLE_TABLE = JVM.intConstant("ConstMethod::_has_localvariable_table");
-        public static final int HAS_EXCPETION_TABLE = JVM.intConstant("ConstMethod::_has_exception_table");
+        public static final int HAS_EXCEPTION_TABLE = JVM.intConstant("ConstMethod::_has_exception_table");
         public static final int HAS_GENERIC_SIGNATURE = JVM.intConstant("ConstMethod::_has_generic_signature");
         public static final int HAS_METHOD_PARAMETERS = JVM.intConstant("ConstMethod::_has_method_parameters");
+        public static final int IS_OVERPASS=0x0040;
         public static final int HAS_METHOD_ANNOTATIONS = JVM.intConstant("ConstMethod::_has_method_annotations");
         public static final int HAS_PARAMETER_ANNOTATIONS = JVM.intConstant("ConstMethod::_has_parameter_annotations");
         public static final int HAS_DEFAULT_ANNOTATIONS = JVM.intConstant("ConstMethod::_has_default_annotations");

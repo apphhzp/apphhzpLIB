@@ -16,7 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static apphhzp.lib.ClassHelperSpecial.getUncompressedObject;
+import static apphhzp.lib.ClassHelperSpecial.internalUnsafe;
 import static apphhzp.lib.ClassHelperSpecial.unsafe;
 
 public class ClassLoaderData extends JVMObject {
@@ -244,11 +244,15 @@ public class ClassLoaderData extends JVMObject {
 
     @Nullable
     public ClassLoader getClassLoader() {
-        return getUncompressedObject(unsafe.getAddress(this.address+CLASS_LOADER_OFFSET));
+        return internalUnsafe.getUncompressedObject(unsafe.getAddress(this.address+CLASS_LOADER_OFFSET));
     }
 
     public Oop getClassLoaderOop() {
-        return new Oop(unsafe.getAddress(this.address+CLASS_LOADER_OFFSET));
+        long addr=unsafe.getAddress(this.address+CLASS_LOADER_OFFSET);
+        if (addr==0L){
+            return null;
+        }
+        return new Oop(addr);
     }
 
     /* If true, CLD is dedicated to one class and that class determines the CLDs lifecycle.

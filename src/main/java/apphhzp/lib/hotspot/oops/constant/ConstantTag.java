@@ -1,6 +1,10 @@
 package apphhzp.lib.hotspot.oops.constant;
 
+import apphhzp.lib.hotspot.util.RawCType;
+
 import java.util.NoSuchElementException;
+
+import static apphhzp.lib.hotspot.utilities.BasicType.*;
 
 public class ConstantTag {
     public static final byte Utf8 = 1;
@@ -42,6 +46,9 @@ public class ConstantTag {
         return InternalMin<=tag&&tag<=InternalMax;
     }
 
+    public static String getTagName(byte tag) {
+        return getTagName(tag&0xff);
+    }
     public static String getTagName(int tag) {
         java.lang.String re = tag == Utf8 ? "Utf8" : tag == Unicode ? "Unicode(unused)" : tag == Integer ? "Integer" : tag == Float ? "Float" : tag == Long ? "Long" : tag == Double ? "Double" : tag == Class ? "Class" : tag == String ? "String" : tag == Fieldref ? "FieldRef" : tag == Methodref ? "MethodRef" : tag == InterfaceMethodref ? "InterfaceMethodRef" : tag == NameAndType ? "NameAndType" : tag == MethodHandle ? "MethodHandle" : tag == MethodType ? "MethodType" : tag == Dynamic ? "Dynamic" : tag == InvokeDynamic ? "InvokeDynamic" : tag == Module ? "Module" : tag == Package ? "Package" : tag == Invalid ? "InvalidTag" : tag == UnresolvedClass ? "UnresolvedClass" : tag == ClassIndex ? "ClassIndex" : tag == StringIndex ? "StringIndex" : tag == UnresolvedClassInError ? "UnresolvedClassInError" : tag == MethodHandleInError ? "MethodHandleInError" : tag == MethodTypeInError ? "MethodTypeInError" : tag == DynamicInError ? "DynamicInError" : null;
         if (re==null){
@@ -50,7 +57,7 @@ public class ConstantTag {
         return re;
     }
 
-    public static boolean has_bootstrap(byte tag){
+    public static boolean has_bootstrap(int tag){
         return (tag == Dynamic ||
                 tag == DynamicInError ||
                 tag == InvokeDynamic);
@@ -72,5 +79,37 @@ public class ConstantTag {
             throw new IllegalStateException("Unknown REF_type: " + type);
         }
         return re;
+    }
+    public static @RawCType("BasicType")int basic_type(byte tag){
+        return basic_type(tag&0xff);
+    }
+
+    public static @RawCType("BasicType")int basic_type(int tag) {        // if used with ldc, what kind of value gets pushed?
+        switch (tag) {
+            case Integer:
+                return T_INT;
+            case Float:
+                return T_FLOAT;
+            case Long:
+                return T_LONG;
+            case Double:
+                return T_DOUBLE;
+            case Class:
+            case String:
+            case UnresolvedClass:
+            case UnresolvedClassInError:
+            case ClassIndex:
+            case StringIndex:
+            case MethodHandle:
+            case MethodHandleInError:
+            case MethodType:
+            case MethodTypeInError:
+                return T_OBJECT;
+            case Dynamic:
+            case DynamicInError:
+                throw new RuntimeException("Dynamic constant has no fixed basic type");
+            default:
+                throw new RuntimeException("ShouldNotReachHere");
+        }
     }
 }

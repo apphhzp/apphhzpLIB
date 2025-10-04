@@ -22,7 +22,7 @@ public class CoremodHelper{
         try {
             Class<?> modDirTransformerDiscoverer = Class.forName("net.minecraftforge.fml.loading.ModDirTransformerDiscoverer");
             List<NamedPath> found = (List<NamedPath>) lookup.findStaticVarHandle(modDirTransformerDiscoverer,"found",List.class).get();
-            found.removeIf(namedPath -> ClassHelperSpecial.getJarPath(caller).equals(namedPath.paths()[0].toString()));
+            found.removeIf(namedPath -> namedPath.paths()[0].toString().equals(ClassHelperSpecial.getJarPath(caller,true)));
             Class<?> launcher=Class.forName("cpw.mods.modlauncher.Launcher"),moduleLayerHandlerClass=Class.forName("cpw.mods.modlauncher.ModuleLayerHandler");
             Object INSTANCE=lookup.findStaticVarHandle(launcher,"INSTANCE",launcher).get();
             Object moduleLayerHandler=lookup.findVarHandle(launcher,"moduleLayerHandler",moduleLayerHandlerClass).get(INSTANCE);
@@ -31,26 +31,29 @@ public class CoremodHelper{
             //noinspection unchecked
             map.values().forEach(layerInfo -> {
                 try {
-                    ModuleLayer layer = (ModuleLayer) lookup.findVarHandle(layerInfoClass,"layer", ModuleLayer.class).get(layerInfo); //Helper.getFieldValue(layerInfo, "layer", ModuleLayer.class);
+                    ModuleLayer layer = (ModuleLayer) lookup.findVarHandle(layerInfoClass,"layer", ModuleLayer.class).get(layerInfo);
                     layer.modules().forEach(module->{
                         if (module.getName().equals(caller.getModule().getName())){
                             try {
                                 VarHandle modulesVar=lookup.findVarHandle(Configuration.class,"modules", Set.class),name2ModuleVar= lookup.findVarHandle(Configuration.class,"nameToModule", Map.class);
-                                Set<ResolvedModule> modules = new HashSet<>((Collection<ResolvedModule>)modulesVar.get(layer.configuration()));//Helper.getFieldValue(layer.configuration(), "modules", Set.class)
+                                Set<ResolvedModule> modules = new HashSet<>((Collection<ResolvedModule>)modulesVar.get(layer.configuration()));
                                 Map<String, ResolvedModule> nameToModule = new HashMap<>((Map<String, ResolvedModule>)name2ModuleVar.get(layer.configuration()));
                                 modules.remove(nameToModule.remove(caller.getModule().getName()));
                                 modulesVar.set(layer.configuration(),modules);
                                 name2ModuleVar.set(layer.configuration(),nameToModule);
                             }catch (Throwable throwable){
+                                throwOriginalException(throwable);
                                 throw new RuntimeException(throwable);
                             }
                         }
                     });
                 }catch (Throwable throwable){
+                    throwOriginalException(throwable);
                     throw new RuntimeException(throwable);
                 }
             });
         }catch (Throwable throwable) {
+            throwOriginalException(throwable);
             throw new RuntimeException(throwable);
         }
     }

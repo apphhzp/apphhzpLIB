@@ -31,7 +31,7 @@ public class DictionaryEntry extends HashtableEntry{
     }
 
     public boolean equals(Symbol className) {
-        return this.getInstanceKlass().getName().equals(className);
+        return this.getInstanceKlass().name().equals(className);
     }
 
     @Nullable

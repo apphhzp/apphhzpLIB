@@ -1,9 +1,7 @@
 package apphhzp.lib;
 
 
-import apphhzp.lib.api.ObjectInstrumentation;
-import apphhzp.lib.api.stackframe.LiveStackFrameInfo;
-import apphhzp.lib.api.stackframe.StackFrameInfo;
+import apphhzp.lib.api.ApphhzpRunnable;
 import apphhzp.lib.helfy.JVM;
 import apphhzp.lib.hotspot.NativeLibrary;
 import apphhzp.lib.hotspot.oops.AccessFlags;
@@ -13,26 +11,22 @@ import apphhzp.lib.hotspot.oops.klass.InstanceKlass;
 import apphhzp.lib.hotspot.oops.klass.Klass;
 import apphhzp.lib.hotspot.utilities.Dictionary;
 import apphhzp.lib.natives.Kernel32;
-import apphhzp.lib.natives.NativeUtil;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import sun.misc.Unsafe;
-import sun.reflect.ReflectionFactory;
 
-import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.instrument.Instrumentation;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.invoke.VarHandle;
 import java.lang.management.ManagementFactory;
-import java.lang.module.ModuleDescriptor;
 import java.lang.ref.Cleaner;
+import java.lang.ref.SoftReference;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -41,13 +35,11 @@ import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
-import java.util.stream.Stream;
 
-import static apphhzp.lib.ClassOption.optionsToFlag;
+import static apphhzp.lib.ClassOption.*;
 import static apphhzp.lib.natives.Kernel32.PAGE_EXECUTE_READWRITE;
 
 @SuppressWarnings({"unused", "ResultOfMethodCallIgnored"})
@@ -55,24 +47,13 @@ public final class ClassHelperSpecial {
     private static final Logger LOGGER;
     public static final MethodHandles.Lookup lookup;
     public static final Unsafe unsafe;
-    public static final Object internalUnsafe;
+    public static final InternalUnsafe internalUnsafe;
+    public static final boolean hasDebugger;
     private static final com.sun.jna.NativeLibrary currentNativeLibrary;
-    public static final StackWalker implWalker;
-    private static final StackWalker retainRefWalker;
-    public static final StackWalker extendedWalker;
-    private static final Object ENUM_LOCALS_AND_OPERANDS;
     private static final ClassesGetter classesGetter;
-    private static final Class<?> internalUnsafeClass;
     private static final Class<?> nlImplClass;
-    private static final Class<?> stackFrameInfoClass;
-    private static final Class<?> memberNameClass;
-
-    private static final MethodHandle staticFieldOffsetMethod;
-    private static final MethodHandle objectFieldOffsetMethod;
-    private static final MethodHandle defineClassMethod;
     private static final MethodHandle defineClass0Method;
     private static final MethodHandle lookupConstructor;
-    private static final MethodHandle compareAndSetByteMethod;
     private static final MethodHandle findLoadedClassMethod;
     private static final MethodHandle findBuiltinLibMethod;
     private static final MethodHandle NL_IMPL_openMethod;
@@ -81,17 +62,11 @@ public final class ClassHelperSpecial {
     private static final MethodHandle nlImplConstructor;
     private static final MethodHandle findEntry0Method;
     private static final MethodHandle isSystemDomainLoaderMethod;
-    private static final MethodHandle traverserConstructor;
-    private static final MethodHandle liveTraverserConstructor;
-    private static final MethodHandle initFrameBufferMethod;
-    private static final MethodHandle callStackWalkMethod;
-    private static final MethodHandle framesMethod;
-    private static final MethodHandle computeFormatMethod;
     private static final MethodHandle groupAddMethod;
     private static final MethodHandle start0Method;
-    private static final MethodHandle getUncompressedObjectMethod;
     private static final MethodHandle addExportMethod;
-    private static final MethodHandle stackWalkerConstructor;
+    private static final MethodHandle addOpensMethod;
+    private static final MethodHandle myRunnableConstructor;
     private static final VarHandle eetopVar;
     private static final VarHandle CL_librariesVar;
     private static final VarHandle loadLibraryOnlyIfPresentVar;
@@ -104,24 +79,12 @@ public final class ClassHelperSpecial {
     private static final VarHandle NL_isJNIVar;
     private static final VarHandle APP_LOADERVar;
     private static final VarHandle commonCleanerVar;
-    private static final VarHandle walkerModeVar;
-    private static final VarHandle frameBufferVar;
-    private static final VarHandle startPosVar;
-    private static final VarHandle currentBatchSizeVar;
-    private static final VarHandle declaringClassObjectVar;
-    private static final VarHandle walkerOptionsVar;
     private static final VarHandle groupVar;
     private static final VarHandle classDataVar;
     private static final VarHandle packagesVar;
     private static final VarHandle NPmoduleVar;
-    private static final VarHandle extendedOptionVar;
-    private static final VarHandle SFIMemberName;
-    @Nullable
-    @Deprecated
-    public static final Instrumentation instImpl;
-    @Nullable
-    @Deprecated
-    public static final ObjectInstrumentation objectInstImpl;
+    private static final VarHandle reflectionDataVar;
+    private static final VarHandle parentVar;
     public static final boolean isWindows;
     public static final boolean isLinux;
     public static final boolean is64BitJVM;
@@ -131,22 +94,21 @@ public final class ClassHelperSpecial {
     public static final Object JLA_INSTANCE;
     public static final Object NATIVE_LIBS;
     static {
+        if (Runtime.version().version().get(0)!=17){
+            throw new UnsupportedOperationException("Please use Java17!");
+        }
         try {
             LOGGER = LogManager.getLogger(ClassHelperSpecial.class);
-
             String osName = System.getProperty("os.name").toLowerCase(Locale.ROOT);
             isWindows = osName.contains("win");
             isLinux =osName.contains("nux") || osName.contains("nix");//||osName.contains("unix")
-            fuckJava23();
-            Unsafe tmp;
-            Constructor<Unsafe> c = Unsafe.class.getDeclaredConstructor();
-            c.setAccessible(true);
-            tmp = c.newInstance();
-            lookup = (MethodHandles.Lookup) tmp.getObjectVolatile(tmp.staticFieldBase(MethodHandles.Lookup.class.getDeclaredField("IMPL_LOOKUP")), tmp.staticFieldOffset(MethodHandles.Lookup.class.getDeclaredField("IMPL_LOOKUP")));
-            internalUnsafeClass = Class.forName("jdk.internal.misc.Unsafe");
-            stackFrameInfoClass=Class.forName("java.lang.StackFrameInfo");
-            memberNameClass=Class.forName("java.lang.invoke.MemberName");
-            unsafe = createUnsafe();
+            {
+                Constructor<Unsafe> c = Unsafe.class.getDeclaredConstructor();
+                c.setAccessible(true);
+                unsafe = c.newInstance();
+                lookup = (MethodHandles.Lookup) unsafe.getObjectVolatile(unsafe.staticFieldBase(MethodHandles.Lookup.class.getDeclaredField("IMPL_LOOKUP")), unsafe.staticFieldOffset(MethodHandles.Lookup.class.getDeclaredField("IMPL_LOOKUP")));
+                internalUnsafe=new InternalUnsafe(lookup.findStaticVarHandle(Unsafe.class, "theInternalUnsafe", Class.forName("jdk.internal.misc.Unsafe")).get());
+            }
             is64BitJVM = unsafe.addressSize() == 8;
             currentNativeLibrary=com.sun.jna.NativeLibrary.getProcess();
             boolean tmp2;
@@ -157,15 +119,7 @@ public final class ClassHelperSpecial {
                 tmp2 = false;
             }
             isHotspotJVM=tmp2;
-            {
-                Class<?> klass=Class.forName("java.lang.StackWalker$ExtendedOption");
-                extendedOptionVar=lookup.findVarHandle(StackWalker.class,"extendedOption",klass);
-                ENUM_LOCALS_AND_OPERANDS=lookup.findStaticVarHandle(klass,"LOCALS_AND_OPERANDS",klass).get();
-                stackWalkerConstructor=lookup.findConstructor(StackWalker.class, MethodType.methodType(void.class, EnumSet.class, int.class,klass));
-                implWalker = constructStackWalker(EnumSet.of(StackWalker.Option.RETAIN_CLASS_REFERENCE,StackWalker.Option.SHOW_HIDDEN_FRAMES,StackWalker.Option.SHOW_REFLECT_FRAMES),0,null);
-                retainRefWalker= constructStackWalker(EnumSet.of(StackWalker.Option.RETAIN_CLASS_REFERENCE),0,null);
-                extendedWalker =constructStackWalker(EnumSet.of(StackWalker.Option.RETAIN_CLASS_REFERENCE),0,ExtendedOption.LOCALS_AND_OPERANDS);
-            }
+            hasDebugger= checkDebugger();
 
             classesGetter = (ClassesGetter) unsafe.allocateInstance(ClassesGetter.class);
             lookup.findVarHandle(SecurityManager.class,"initialized",boolean.class).set(classesGetter,true);
@@ -174,11 +128,7 @@ public final class ClassHelperSpecial {
                     abstractTraverser=Class.forName("java.lang.StackStreamFactory$AbstractStackWalker"),
                     frameBuffer=Class.forName("java.lang.StackStreamFactory$FrameBuffer");
             nlImplClass=Class.forName("jdk.internal.loader.NativeLibraries$NativeLibraryImpl");
-            internalUnsafe = lookup.findStaticVarHandle(Unsafe.class, "theInternalUnsafe", internalUnsafeClass).get();
-            staticFieldOffsetMethod = lookup.findVirtual(internalUnsafeClass, "staticFieldOffset", MethodType.methodType(long.class, Field.class));
-            objectFieldOffsetMethod = lookup.findVirtual(internalUnsafeClass, "objectFieldOffset", MethodType.methodType(long.class, Field.class));
-            defineClassMethod = lookup.findVirtual(internalUnsafeClass, "defineClass", MethodType.methodType(Class.class, String.class, byte[].class, int.class, int.class, ClassLoader.class, ProtectionDomain.class));
-            compareAndSetByteMethod = lookup.findVirtual(internalUnsafeClass, "compareAndSetByte", MethodType.methodType(boolean.class, Object.class, long.class, byte.class, byte.class));
+
             defineClass0Method = lookup.findStatic(ClassLoader.class, "defineClass0", MethodType.methodType(Class.class, ClassLoader.class, Class.class, String.class, byte[].class, int.class, int.class, ProtectionDomain.class, boolean.class, int.class, Object.class));
             lookupConstructor = lookup.findConstructor(MethodHandles.Lookup.class, MethodType.methodType(void.class, Class.class, Class.class, int.class));
             findLoadedClassMethod=lookup.findVirtual(ClassLoader.class,"findLoadedClass", MethodType.methodType(Class.class, String.class));
@@ -189,16 +139,10 @@ public final class ClassHelperSpecial {
             nlImplConstructor=lookup.findConstructor(nlImplClass,MethodType.methodType(void.class,Class.class,String.class,boolean.class,boolean.class));
             findEntry0Method=lookup.findStatic(nl,"findEntry0", MethodType.methodType(long.class,nlImplClass,String.class));
             isSystemDomainLoaderMethod=lookup.findStatic(Class.forName("jdk.internal.misc.VM"),"isSystemDomainLoader", MethodType.methodType(boolean.class,ClassLoader.class));
-            traverserConstructor=lookup.findConstructor(Class.forName("java.lang.StackStreamFactory$StackFrameTraverser"),MethodType.methodType(void.class,StackWalker.class, Function.class));
-            liveTraverserConstructor=lookup.findConstructor(Class.forName("java.lang.StackStreamFactory$LiveStackInfoTraverser"),MethodType.methodType(void.class,StackWalker.class, Function.class));
-            initFrameBufferMethod=lookup.findVirtual(abstractTraverser,"initFrameBuffer",MethodType.methodType(void.class));
-            callStackWalkMethod=lookup.findVirtual(abstractTraverser,"callStackWalk",MethodType.methodType(Object.class,long.class,int.class,int.class,int.class,Object[].class));
-            framesMethod=lookup.findVirtual(frameBuffer,"frames",MethodType.methodType(Object[].class));
-            computeFormatMethod=lookup.findVirtual(StackTraceElement.class,"computeFormat",MethodType.methodType(void.class));
             groupAddMethod=lookup.findVirtual(ThreadGroup.class,"add", MethodType.methodType(void.class, Thread.class));
             start0Method=lookup.findVirtual(Thread.class,"start0",MethodType.methodType(void.class));
-            getUncompressedObjectMethod=lookup.findVirtual(internalUnsafeClass,"getUncompressedObject", MethodType.methodType(Object.class, long.class));
             addExportMethod=lookup.findVirtual(Module.class,"implAddExports", MethodType.methodType(void.class, String.class));
+            addOpensMethod=lookup.findVirtual(Module.class,"implAddOpens", MethodType.methodType(void.class, String.class));
 
             eetopVar= lookup.findVarHandle(Thread.class,"eetop",long.class);
             CL_librariesVar =lookup.findVarHandle(ClassLoader.class,"libraries",nl);
@@ -212,89 +156,67 @@ public final class ClassHelperSpecial {
             NL_IMPL_fromClassVar=lookup.findVarHandle(nlImplClass,"fromClass",Class.class);
             APP_LOADERVar=lookup.findStaticVarHandle(Class.forName("jdk.internal.loader.ClassLoaders"),"APP_LOADER", Class.forName("jdk.internal.loader.ClassLoaders$AppClassLoader"));
             commonCleanerVar=lookup.findStaticVarHandle(Class.forName("jdk.internal.ref.CleanerFactory"),"commonCleaner", Cleaner.class);
-            walkerModeVar=lookup.findVarHandle(abstractTraverser,"mode",long.class);
-            frameBufferVar=lookup.findVarHandle(abstractTraverser,"frameBuffer",frameBuffer);
-            startPosVar =lookup.findStaticVarHandle(frameBuffer,"START_POS",int.class);
-            currentBatchSizeVar=lookup.findVarHandle(frameBuffer,"currentBatchSize",int.class);
-            declaringClassObjectVar=lookup.findVarHandle(StackTraceElement.class,"declaringClassObject",Class.class);
-            walkerOptionsVar=lookup.findVarHandle(StackWalker.class,"options", Set.class);
             groupVar=lookup.findVarHandle(Thread.class,"group", ThreadGroup.class);
             classDataVar=lookup.findVarHandle(Class.class,"classData", Object.class);
             packagesVar=lookup.findVarHandle(ClassLoader.class,"packages", ConcurrentHashMap.class);
             NPmoduleVar=lookup.findVarHandle(Class.forName("java.lang.NamedPackage"),"module", Module.class);
-            SFIMemberName=lookup.findVarHandle(stackFrameInfoClass,"memberName", Object.class);
-
+            reflectionDataVar=lookup.findVarHandle(Class.class,"reflectionData", SoftReference.class);
+            parentVar=lookup.findVarHandle(ClassLoader.class,"parent",ClassLoader.class);
             exportJavaBaseModule();
+            openJavaBaseModule();
+            fuckReflection();
 
-            if (NativeUtil.isLoading){
-                throw new ExceptionInInitializerError("Wrong class loading order! NativeUtil.class loaded too early!");
-            }
-            if (isWindows) {
-                instImpl = NativeUtil.createInstrumentationImpl();
-                objectInstImpl =NativeUtil.createObjectInstrumentationImpl();
-            } else {
-                instImpl = null;
-                objectInstImpl = null;
-            }
+            myRunnableConstructor=lookup.findConstructor(defineHiddenClass("apphhzp.lib.api.ApphhzpRunnableImpl", ClassHelperSpecial.class,true,null,STRONG,NESTMATE).lookupClass(),MethodType.methodType(void.class, ApphhzpRunnable.class));
+
             oldProtect = new IntByReference(1);
             pdCache = new HashMap<>();
-            JLA_INSTANCE = lookup.unreflectVarHandle(Class.forName("jdk.internal.access.SharedSecrets").getDeclaredField("javaLangAccess")).get();
-            NATIVE_LIBS=lookup.unreflectVarHandle(Class.forName("jdk.internal.loader.BootLoader").getDeclaredField("NATIVE_LIBS")).get();
+            JLA_INSTANCE = lookup.findStaticVarHandle(Class.forName("jdk.internal.access.SharedSecrets"),"javaLangAccess",Class.forName("jdk.internal.access.JavaLangAccess")).get();
+            NATIVE_LIBS=lookup.findStaticVarHandle(Class.forName("jdk.internal.loader.BootLoader"),"NATIVE_LIBS",Class.forName("jdk.internal.loader.NativeLibraries")).get();
             //defineLibClass();
         }catch (Throwable e){
             throwOriginalException(e);
             throw new ExceptionInInitializerError(e);
         }
     }
+    private ClassHelperSpecial(){throw new UnsupportedOperationException();}
 
-//    private static void defineLibClass(){
-//        try {
-//            InputStream is = ClassHelperSpecial.class.getResourceAsStream("/apphhzp/lib/ClassOption.class");
-//            byte[] dat;
-//            if (is==null){
-//                dat=Base64.getDecoder().decode("yv66vgAAAD0AUgcAAgEAF2FwcGhoenAvbGliL0NsYXNzT3B0aW9uCQABAAQMAAUABgEACE5FU1RNQVRFAQAZTGFwcGhoenAvbGliL0NsYXNzT3B0aW9uOwkAAQAIDAAJAAYBAAZTVFJPTkcJAAEACwwADAANAQAHJFZBTFVFUwEAGltMYXBwaGh6cC9saWIvQ2xhc3NPcHRpb247CgAPABAHAA0MABEAEgEABWNsb25lAQAUKClMamF2YS9sYW5nL09iamVjdDsKABQAFQcAFgwAFwAYAQAOamF2YS9sYW5nL0VudW0BAAd2YWx1ZU9mAQA1KExqYXZhL2xhbmcvQ2xhc3M7TGphdmEvbGFuZy9TdHJpbmc7KUxqYXZhL2xhbmcvRW51bTsKABQAGgwAGwAcAQAGPGluaXQ+AQAWKExqYXZhL2xhbmcvU3RyaW5nO0kpVgkAAQAeDAAfACABAARmbGFnAQABSQsAIgAjBwAkDAAlACYBAA1qYXZhL3V0aWwvU2V0AQAIaXRlcmF0b3IBABYoKUxqYXZhL3V0aWwvSXRlcmF0b3I7CwAoACkHACoMACsALAEAEmphdmEvdXRpbC9JdGVyYXRvcgEAB2hhc05leHQBAAMoKVoLACgALgwALwASAQAEbmV4dAgABQoAAQAyDAAbADMBABcoTGphdmEvbGFuZy9TdHJpbmc7SUkpVggACQoAAQA2DAA3ADgBAAckdmFsdWVzAQAcKClbTGFwcGhoenAvbGliL0NsYXNzT3B0aW9uOwEABnZhbHVlcwEABENvZGUBAA9MaW5lTnVtYmVyVGFibGUBAC0oTGphdmEvbGFuZy9TdHJpbmc7KUxhcHBoaHpwL2xpYi9DbGFzc09wdGlvbjsBABJMb2NhbFZhcmlhYmxlVGFibGUBAARuYW1lAQASTGphdmEvbGFuZy9TdHJpbmc7AQAEdGhpcwEACVNpZ25hdHVyZQEABChJKVYBAA1vcHRpb25zVG9GbGFnAQASKExqYXZhL3V0aWwvU2V0OylJAQACY3ABAAdvcHRpb25zAQAPTGphdmEvdXRpbC9TZXQ7AQAFZmxhZ3MBABZMb2NhbFZhcmlhYmxlVHlwZVRhYmxlAQAqTGphdmEvdXRpbC9TZXQ8TGFwcGhoenAvbGliL0NsYXNzT3B0aW9uOz47AQANU3RhY2tNYXBUYWJsZQEALShMamF2YS91dGlsL1NldDxMYXBwaGh6cC9saWIvQ2xhc3NPcHRpb247PjspSQEACDxjbGluaXQ+AQADKClWAQArTGphdmEvbGFuZy9FbnVtPExhcHBoaHpwL2xpYi9DbGFzc09wdGlvbjs+OwEAClNvdXJjZUZpbGUBABBDbGFzc09wdGlvbi5qYXZhQDEAAQAUAAAABEAZAAUABgAAQBkACQAGAAAAEgAfACAAABAaAAwADQAAAAYACQA5ADgAAQA6AAAAIgABAAAAAAAKsgAKtgAOwAAPsAAAAAEAOwAAAAYAAQAAAAUACQAXADwAAQA6AAAANAACAAEAAAAKEgEquAATwAABsAAAAAIAOwAAAAYAAQAAAAUAPQAAAAwAAQAAAAoAPgA/AAAAAgAbADMAAgA6AAAASAADAAQAAAAMKisctwAZKh21AB2xAAAAAgA7AAAADgADAAAACgAGAAsACwAMAD0AAAAWAAIAAAAMAEAABgAAAAAADAAfACAAAwBBAAAAAgBCAAgAQwBEAAIAOgAAAJoAAgAEAAAAKAM8KrkAIQEATSy5ACcBAJkAFyy5AC0BAMAAAU4bLbQAHYA8p//mG6wAAAAEADsAAAAWAAUAAAAPAAIAEAAcABEAIwASACYAEwA9AAAAIAADABwABwBFAAYAAwAAACgARgBHAAAAAgAmAEgAIAABAEkAAAAMAAEAAAAoAEYASgAAAEsAAAAMAAL9AAkBBwAo+gAcAEEAAAACAEwQCgA3ADgAAQA6AAAAKQAEAAAAAAARBb0AAVkDsgADU1kEsgAHU7AAAAABADsAAAAGAAEAAAAFAAgATQBOAAEAOgAAAEMABQAAAAAAI7sAAVkSMAMEtwAxswADuwABWRI0BAe3ADGzAAe4ADWzAAqxAAAAAQA7AAAADgADAAAABgAOAAcAHAAFAAIAQQAAAAIATwBQAAAAAgBR");
-//            }else{
-//                dat = new byte[is.available()];
-//                is.read(dat);
-//                is.close();
-//            }
-//            ClassHelperSpecial.defineClass("apphhzp.lib.ClassOption",dat,ClassHelperSpecial.class.getClassLoader());
-//        }catch (Throwable t){
-//            throw new RuntimeException(t);
-//        }
-//    }
-
-    private static void fuckJava23()throws Throwable{
+    private static boolean checkDebugger(){
+        List<String> lis;
         try {
-            Class.forName("sun.misc.Unsafe$MemoryAccessOption");
-
-            MethodHandles.Lookup lookup= (MethodHandles.Lookup) ReflectionFactory.getReflectionFactory()
-                    .newConstructorForSerialization(MethodHandles.Lookup.class, MethodHandles.Lookup.class.getDeclaredConstructor(Class.class,Class.class,int.class))
-                    .newInstance(Object.class,null,-1);
-            Class<?> internalUnsafeClass=Class.forName("jdk.internal.misc.Unsafe"),
-                    accessOptions=Class.forName("sun.misc.Unsafe$MemoryAccessOption");
-            MethodHandle fieldOffset=lookup.findVirtual(internalUnsafeClass,"staticFieldOffset0",MethodType.methodType(long.class, Field.class))
-                    ,fieldBase=lookup.findVirtual(internalUnsafeClass,"staticFieldBase0",MethodType.methodType(Object.class, Field.class))
-                    ,putReference=lookup.findVirtual(internalUnsafeClass,"putReference",MethodType.methodType(void.class,Object.class,long.class,Object.class))
-                    ,ensure=lookup.findVirtual(internalUnsafeClass,"ensureClassInitialized0",MethodType.methodType(void.class,Class.class));
-            Object internalUnsafe=lookup.findConstructor(internalUnsafeClass,MethodType.methodType(void.class)).invoke();
-            ensure.invoke(internalUnsafe,Class.forName("sun.misc.Unsafe",false, ClassHelperSpecial.class.getClassLoader()));
-            Field field=Unsafe.class.getDeclaredField("MEMORY_ACCESS_OPTION");
-            putReference.invoke(internalUnsafe,fieldBase.invoke(internalUnsafe,field),(long)fieldOffset.invoke(internalUnsafe,field),
-                    lookup.findStaticVarHandle(accessOptions,"ALLOW",accessOptions).get());
-        }catch (ClassNotFoundException ignored){}
-    }
-
-    public static Unsafe createUnsafe() {
-        try {
-            VarHandle varHandle = lookup.findStaticVarHandle(Unsafe.class, "theInternalUnsafe", internalUnsafeClass);
-            MethodHandle methodHandle = lookup.findSpecial(internalUnsafeClass, "allocateInstance", MethodType.methodType(Object.class, Class.class), internalUnsafeClass);
-            Object internalUnsafe = varHandle.get();
-            return (Unsafe) methodHandle.bindTo(internalUnsafe).invoke(Unsafe.class);
-        } catch (Throwable t) {
-            throw new RuntimeException(t);
+            Class<?> cls=Class.forName("sun.management.VMManagementImpl");
+            Object obj=unsafe.allocateInstance(cls);
+            lis= List.of((String[]) lookup.findVirtual(cls, "getVmArguments0", MethodType.methodType(String[].class)).invoke(obj));
+        }catch (Throwable t){
+            lis=ManagementFactory.getRuntimeMXBean().getInputArguments();
         }
+        for (String s:lis){
+            if (s.contains("-agentlib:jdwp=")){
+                return true;
+            }
+        }
+        return false;
     }
+
+//    private static void fuckJava23()throws Throwable{
+//        try {
+//            Class.forName("sun.misc.Unsafe$MemoryAccessOption");
+//
+//            MethodHandles.Lookup lookup= (MethodHandles.Lookup) ReflectionFactory.getReflectionFactory()
+//                    .newConstructorForSerialization(MethodHandles.Lookup.class, MethodHandles.Lookup.class.getDeclaredConstructor(Class.class,Class.class,int.class))
+//                    .newInstance(Object.class,null,-1);
+//            Class<?> internalUnsafeClass=Class.forName("jdk.internal.misc.Unsafe"),
+//                    accessOptions=Class.forName("sun.misc.Unsafe$MemoryAccessOption");
+//            MethodHandle fieldOffset=lookup.findVirtual(internalUnsafeClass,"staticFieldOffset0",MethodType.methodType(long.class, Field.class))
+//                    ,fieldBase=lookup.findVirtual(internalUnsafeClass,"staticFieldBase0",MethodType.methodType(Object.class, Field.class))
+//                    ,putReference=lookup.findVirtual(internalUnsafeClass,"putReference",MethodType.methodType(void.class,Object.class,long.class,Object.class))
+//                    ,ensure=lookup.findVirtual(internalUnsafeClass,"ensureClassInitialized0",MethodType.methodType(void.class,Class.class));
+//            Object internalUnsafe=lookup.findConstructor(internalUnsafeClass,MethodType.methodType(void.class)).invoke();
+//            ensure.invoke(internalUnsafe,Class.forName("sun.misc.Unsafe",false, ClassHelperSpecial.class.getClassLoader()));
+//            Field field=Unsafe.class.getDeclaredField("MEMORY_ACCESS_OPTION");
+//            putReference.invoke(internalUnsafe,fieldBase.invoke(internalUnsafe,field),(long)fieldOffset.invoke(internalUnsafe,field),
+//                    lookup.findStaticVarHandle(accessOptions,"ALLOW",accessOptions).get());
+//        }catch (ClassNotFoundException ignored){}
+//    }
 
     public static void exportJavaBaseModule() {
         Module module = String.class.getModule();
@@ -303,14 +225,21 @@ public final class ClassHelperSpecial {
         }
     }
 
+    public static void openJavaBaseModule(){
+        Module module = String.class.getModule();
+        for (String name : module.getPackages()) {
+            addOpensImpl(module,name);
+        }
+    }
+
     public static Set<Module> getAllModulesOfCL(ClassLoader cl) {
         @SuppressWarnings("unchecked")
         ConcurrentHashMap<String,Object> map= (ConcurrentHashMap<String, Object>) packagesVar.get(cl);
-        Set<Module> list= new HashSet<>();
+        Set<Module> re= new HashSet<>();
         for (Map.Entry<String,Object> entry : map.entrySet()) {
-            list.add((Module) NPmoduleVar.get(entry.getValue()));
+            re.add((Module) NPmoduleVar.get(entry.getValue()));
         }
-        return list;
+        return re;
     }
 
     public static void exportAllModules(ClassLoader cl) {
@@ -326,9 +255,60 @@ public final class ClassHelperSpecial {
         }
     }
 
+    public static void openAllModules(ClassLoader cl) {
+        try {
+            for (Module module:getAllModulesOfCL(cl)){
+                for (String name:module.getPackages()) {
+                    addOpensImpl(module,name);
+                }
+            }
+        } catch (Throwable t) {
+            throwOriginalException(t);
+            throw new RuntimeException(t);
+        }
+    }
+
+    public static void clearReflectionData(Class<?> klass){
+        reflectionDataVar.set(klass,null);
+    }
+
+    private static void fuckReflection()throws Throwable{
+        Class<?> cls=Class.forName("jdk.internal.reflect.Reflection");
+        VarHandle varHandle=lookup.findStaticVarHandle(cls,"fieldFilterMap", Map.class);
+        for (Class<?> klass:((Map<Class<?>, Set<String>>)varHandle.get()).keySet()){
+            clearReflectionData(klass);
+        }
+        Map<Class<?>, Set<String>> emptyMap= new HashMap<>() {
+            @Override
+            public Set<String> get(Object key) {
+                return null;
+            }
+
+            @Override
+            public Set<String> put(Class<?> key, Set<String> value) {
+                return null;
+            }
+        };
+        varHandle.set(emptyMap);
+        varHandle = lookup.findStaticVarHandle(cls,"methodFilterMap", Map.class);
+        for (Class<?> klass:((Map<Class<?>, Set<String>>)varHandle.get()).keySet()){
+            clearReflectionData(klass);
+        }
+        varHandle.set(emptyMap);
+    }
+
     public static void addExportImpl(Module current, String pkg) {
         try{
             addExportMethod.invoke(current, pkg);
+        } catch (Throwable t) {
+            throwOriginalException(t);
+            throw new RuntimeException(t);
+        }
+    }
+
+    public static void addOpensImpl(Module current, String pkg) {
+        try{
+            addOpensMethod.invoke(current,pkg);
         } catch (Throwable t) {
             throwOriginalException(t);
             throw new RuntimeException(t);
@@ -340,9 +320,14 @@ public final class ClassHelperSpecial {
     }
 
     public static Class<?> defineClass(String name, byte[] bytecodes, ClassLoader loader,ProtectionDomain pd) {
+        return internalUnsafe.defineClass(name,bytecodes,0,bytecodes.length,loader,pd);
+    }
+
+    public static <T> T allocateInstance(Class<T> type){
         try {
-            return (Class<?>) defineClassMethod.invoke(internalUnsafe, name, bytecodes, 0, bytecodes.length, loader, pd);
-        } catch (Throwable t) {
+            //noinspection unchecked
+            return (T) unsafe.allocateInstance(type);
+        }catch (Throwable t){
             throwOriginalException(t);
             throw new RuntimeException(t);
         }
@@ -395,7 +380,7 @@ public final class ClassHelperSpecial {
             flags |= 8;
         }
         try {
-            return (MethodHandles.Lookup) lookupConstructor.invoke(defineClass0Method.invoke( loader, lookupClass, name, bytes,0,bytes.length, pd, initialize, flags, null), null, 95);
+            return (MethodHandles.Lookup) lookupConstructor.invoke(defineClass0Method.invoke( loader, lookupClass, name, bytes,0,bytes.length, pd, initialize, flags, null), null, -1);
         } catch (Throwable t) {
             throw new RuntimeException("Could not define a hidden class:" + name, t);
         }
@@ -410,7 +395,7 @@ public final class ClassHelperSpecial {
             flags |= 8;
         }
         try {
-            return (MethodHandles.Lookup) lookupConstructor.invoke(defineClass0Method.invoke(loader, lookupClass, name, bytes,0,bytes.length, pd, initialize, flags, classData), null, 95);
+            return (MethodHandles.Lookup) lookupConstructor.invoke(defineClass0Method.invoke(loader, lookupClass, name, bytes,0,bytes.length, pd, initialize, flags, classData), null, -1);
         } catch (Throwable t) {
             throw new RuntimeException("Could not define a hidden class:" + name, t);
         }
@@ -440,22 +425,21 @@ public final class ClassHelperSpecial {
             symbol.incrementRefCount();
             klass.setName(symbol);
             klass.setAccessFlags(klass.getAccessFlags().flags&~AccessFlags.JVM_ACC_IS_HIDDEN_CLASS);
-            dict.addKlass(dict.computeHash(klass.getName()),klass.getName(),klass);
+            dict.addKlass(dict.computeHash(klass.name()),klass.name(),klass);
             return true;
         }else {
             return false;
         }
     }
 
-    /**
-     * WARNING: This method will cause the debugger(if enabled) to crash.
-     * */
-    public static void createHiddenThread(Runnable task,String name){
-        Thread thread= new Thread(null, task,name);
+    public static void createHiddenThread(ApphhzpRunnable task,String name){
         try {
+            Thread thread= new Thread(null, (Runnable) myRunnableConstructor.invoke(task),name);
             groupAddMethod.invoke(groupVar.get(thread),thread);
             start0Method.invoke(thread);
-            eetopVar.set(thread,0L);
+            if (!hasDebugger){
+                eetopVar.set(thread,0L);
+            }
         }catch (Throwable t){
             throwOriginalException(t);
             throw new RuntimeException(t);
@@ -599,149 +583,6 @@ public final class ClassHelperSpecial {
             return 0;
         }
     }
-
-    //==================[StackWalker Start]==================
-
-    public enum ExtendedOption {
-        LOCALS_AND_OPERANDS
-    }
-
-    public static StackWalker constructStackWalker(Set<StackWalker.Option> options){
-        return constructStackWalker(options,0,null);
-    }
-
-    public static StackWalker constructStackWalker(EnumSet<StackWalker.Option> options, int estimateDepth){
-        return constructStackWalker(options,estimateDepth,null);
-    }
-
-    public static StackWalker constructStackWalker(Set<StackWalker.Option> options,int estimateDepth ,ExtendedOption extendedOption){
-        try {
-            Object obj=null;
-            if (extendedOption==ExtendedOption.LOCALS_AND_OPERANDS){
-                obj=ENUM_LOCALS_AND_OPERANDS;
-            }
-            return (StackWalker) stackWalkerConstructor.invoke(options,estimateDepth,obj);
-        }catch (Throwable t){
-            throwOriginalException(t);
-            throw new RuntimeException(t);
-        }
-    }
-
-    public static List<StackWalker.StackFrame> getStackFrames(){
-        return getStackFrames(retainRefWalker);
-    }
-
-    public static List<StackWalker.StackFrame> getStackFrames(StackWalker walker){
-        try {
-            List<StackWalker.StackFrame> re=new ArrayList<>();
-            final boolean[] flag = {false};
-            Function<? super Stream<StackWalker.StackFrame>, ?> func=(x)->{
-                x.forEach((obj)-> {
-                    if (!obj.getClassName().equals("apphhzp.lib.ClassHelperSpecial")||!obj.getMethodName().equals("getStackFrames")) {
-                        if (flag[0]) {
-                            re.add(obj);
-                        }
-                    }else {
-                        flag[0] = true;
-                    }
-                });
-                return null;
-            };
-            callStackWalk(extendedOptionVar.get(walker)==ENUM_LOCALS_AND_OPERANDS
-                    ?liveTraverserConstructor.invoke(walker,func)
-                    :traverserConstructor.invoke(walker,func));
-            return re;
-        }catch (Throwable t){
-            throwOriginalException(t);
-            throw new RuntimeException(t);
-        }
-    }
-
-    public static List<StackTraceElement> getStackTrace(){
-        return getStackTrace(retainRefWalker);
-    }
-
-    public static List<StackTraceElement> getStackTrace(StackWalker walker){
-        try {
-            List<StackTraceElement> re=new ArrayList<>();
-            final boolean[] flag = {false};
-            Function<? super Stream<StackWalker.StackFrame>, ?> func=(x)->{
-                x.forEach((obj)-> {
-                    if (!obj.getClassName().equals("apphhzp.lib.ClassHelperSpecial")||!obj.getMethodName().equals("getStackTrace")) {
-                        if (flag[0]){
-                            re.add(convertFrameToTrace(obj));
-                        }
-                    }else {
-                        flag[0] =true;
-                    }
-                });
-                return null;
-            };
-            callStackWalk(extendedOptionVar.get(walker)==ENUM_LOCALS_AND_OPERANDS
-                    ?liveTraverserConstructor.invoke(walker,func)
-                    :traverserConstructor.invoke(walker,func));
-            return re;
-        }catch (Throwable t){
-            throwOriginalException(t);
-            throw new RuntimeException(t);
-        }
-    }
-
-    public static List<LiveStackFrameInfo> getLiveStackFrame(){
-        return getLiveStackFrame(extendedWalker);
-    }
-
-    public static List<LiveStackFrameInfo> getLiveStackFrame(StackWalker walker){
-        if (extendedOptionVar.get(walker)!=ENUM_LOCALS_AND_OPERANDS){
-            throw new IllegalArgumentException("Missing LOCALS_AND_OPERANDS option");
-        }
-        try {
-            List<LiveStackFrameInfo> re=new ArrayList<>();
-            final boolean[] flag = {false};
-            Function<? super Stream<StackWalker.StackFrame>, ?> func=(x)->{
-                x.forEach((obj)-> {
-                    if (!obj.getClassName().equals("apphhzp.lib.ClassHelperSpecial")||!obj.getMethodName().equals("getLiveStackFrame")) {
-                        if (flag[0]){
-                            re.add(new LiveStackFrameInfo(obj));
-                        }
-                    }else {
-                        flag[0] =true;
-                    }
-                });
-                return null;
-            };
-            callStackWalk(liveTraverserConstructor.invoke(walker,func));
-            return re;
-        }catch (Throwable t){
-            throwOriginalException(t);
-            throw new RuntimeException(t);
-        }
-    }
-
-    public static StackTraceElement convertFrameToTrace(StackWalker.StackFrame frame){
-        try {
-            Class<?> declaringClass=stackFrameInfoClass.isInstance(frame)? StackFrameInfo.getDeclaringClass(SFIMemberName.get(frame)) :frame.getDeclaringClass();
-            ModuleDescriptor.Version version=declaringClass.getModule().getDescriptor()==null?null:declaringClass.getModule().getDescriptor().version().orElse(null);
-            StackTraceElement ste=new StackTraceElement(declaringClass.getClassLoader()==null?null:declaringClass.getClassLoader().getName(),declaringClass.getModule().getName(),version==null?null:version.toString(),declaringClass.getName(), frame.getMethodName(), frame.getFileName(), frame.getLineNumber());
-            declaringClassObjectVar.set(ste,declaringClass);
-            computeFormatMethod.invoke(ste);
-            return ste;
-        }catch (Throwable t){
-            throwOriginalException(t);
-            throw new RuntimeException(t);
-        }
-    }
-
-    private static void callStackWalk(Object traverser)throws Throwable{
-        initFrameBufferMethod.invoke(traverser);
-        Object buffer=frameBufferVar.get(traverser);
-        callStackWalkMethod.invoke(traverser,(long)walkerModeVar.get(traverser),0,
-                (int)currentBatchSizeVar.get(buffer)-(int)startPosVar.get(),
-                (int)startPosVar.get(),
-                framesMethod.invoke(buffer));
-    }
-
-    //==================[StackWalker End]==================
     
 
     public static Class<?>[] getClassContext(){
@@ -1010,100 +851,140 @@ public final class ClassHelperSpecial {
         return cnt;
     }
 
-    public static Object staticFieldBase(Field field){
-        return ((jdk.internal.misc.Unsafe)internalUnsafe).staticFieldBase(field);
+    public static VarHandle findVarHandle(Class<?> recv, String mcpName,String srgName, Class<?> type){
+        try {
+            try {
+                return lookup.findVarHandle(recv,mcpName,type);
+            }catch (NoSuchFieldException e){
+                return lookup.findVarHandle(recv,srgName,type);
+            }
+        }catch (Throwable t){
+            throwOriginalException(t);
+            throw new RuntimeException(t);
+        }
     }
 
-    public static long staticFieldOffset(Field field){
-        return ((jdk.internal.misc.Unsafe)internalUnsafe).staticFieldOffset(field);
+    public static VarHandle findStaticVarHandle(Class<?> recv, String mcpName,String srgName, Class<?> type){
+        try {
+            try {
+                return lookup.findStaticVarHandle(recv,mcpName,type);
+            }catch (NoSuchFieldException e){
+                return lookup.findStaticVarHandle(recv,srgName,type);
+            }
+        }catch (Throwable t){
+            throwOriginalException(t);
+            throw new RuntimeException(t);
+        }
     }
 
-    public static long objectFieldOffset(Field field){
-        return ((jdk.internal.misc.Unsafe)internalUnsafe).objectFieldOffset(field);
+    public static MethodHandle findVirtual(Class<?> refc, String mcpName,String srgName, MethodType type){
+        try {
+            try {
+                return lookup.findVirtual(refc,mcpName,type);
+            }catch (NoSuchMethodException e){
+                return lookup.findVirtual(refc,srgName,type);
+            }
+        }catch (Throwable t){
+            throwOriginalException(t);
+            throw new RuntimeException(t);
+        }
+    }
+
+    public static MethodHandle findStatic(Class<?> refc, String mcpName,String srgName, MethodType type){
+        try {
+            try {
+                return lookup.findStatic(refc,mcpName,type);
+            }catch (NoSuchMethodException e){
+                return lookup.findStatic(refc,srgName,type);
+            }
+        }catch (Throwable t){
+            throwOriginalException(t);
+            throw new RuntimeException(t);
+        }
     }
 
     @SuppressWarnings("unchecked")
     public static <T> T forceGetField(Field field, Object obj) {
         if (Modifier.isStatic(field.getModifiers())) {
             if(field.getType()==int.class){
-                return (T)Integer.valueOf(unsafe.getIntVolatile(staticFieldBase(field), staticFieldOffset(field)));
+                return (T)Integer.valueOf(unsafe.getIntVolatile(internalUnsafe.staticFieldBase(field), internalUnsafe.staticFieldOffset(field)));
             }else if (field.getType()==long.class){
-                return (T)Long.valueOf(unsafe.getLongVolatile(staticFieldBase(field), staticFieldOffset(field)));
+                return (T)Long.valueOf(unsafe.getLongVolatile(internalUnsafe.staticFieldBase(field), internalUnsafe.staticFieldOffset(field)));
             }else if (field.getType()==boolean.class){
-                return (T)Boolean.valueOf(unsafe.getBooleanVolatile(staticFieldBase(field), staticFieldOffset(field)));
+                return (T)Boolean.valueOf(unsafe.getBooleanVolatile(internalUnsafe.staticFieldBase(field), internalUnsafe.staticFieldOffset(field)));
             }else if (field.getType()==char.class){
-                return (T)Character.valueOf(unsafe.getCharVolatile(staticFieldBase(field), staticFieldOffset(field)));
+                return (T)Character.valueOf(unsafe.getCharVolatile(internalUnsafe.staticFieldBase(field), internalUnsafe.staticFieldOffset(field)));
             }else if (field.getType()==short.class){
-                return (T)Short.valueOf(unsafe.getShortVolatile(staticFieldBase(field), staticFieldOffset(field)));
+                return (T)Short.valueOf(unsafe.getShortVolatile(internalUnsafe.staticFieldBase(field), internalUnsafe.staticFieldOffset(field)));
             } else if (field.getType()==byte.class){
-                return (T)Byte.valueOf(unsafe.getByteVolatile(staticFieldBase(field), staticFieldOffset(field)));
+                return (T)Byte.valueOf(unsafe.getByteVolatile(internalUnsafe.staticFieldBase(field), internalUnsafe.staticFieldOffset(field)));
             }else if (field.getType()==float.class){
-                return (T)Float.valueOf(unsafe.getFloatVolatile(staticFieldBase(field), staticFieldOffset(field)));
+                return (T)Float.valueOf(unsafe.getFloatVolatile(internalUnsafe.staticFieldBase(field), internalUnsafe.staticFieldOffset(field)));
             }else if (field.getType()==double.class){
-                return (T)Double.valueOf(unsafe.getDoubleVolatile(staticFieldBase(field), staticFieldOffset(field)));
+                return (T)Double.valueOf(unsafe.getDoubleVolatile(internalUnsafe.staticFieldBase(field), internalUnsafe.staticFieldOffset(field)));
             }
-            return (T) unsafe.getObjectVolatile(staticFieldBase(field), staticFieldOffset(field));
+            return (T) unsafe.getObjectVolatile(internalUnsafe.staticFieldBase(field), internalUnsafe.staticFieldOffset(field));
         }
         if(field.getType()==int.class){
-            return (T)Integer.valueOf(unsafe.getIntVolatile(obj, objectFieldOffset(field)));
+            return (T)Integer.valueOf(unsafe.getIntVolatile(obj, internalUnsafe.objectFieldOffset(field)));
         }else if (field.getType()==long.class){
-            return (T)Long.valueOf(unsafe.getLongVolatile(obj, objectFieldOffset(field)));
+            return (T)Long.valueOf(unsafe.getLongVolatile(obj, internalUnsafe.objectFieldOffset(field)));
         }else if (field.getType()==boolean.class){
-            return (T)Boolean.valueOf(unsafe.getBooleanVolatile(obj, objectFieldOffset(field)));
+            return (T)Boolean.valueOf(unsafe.getBooleanVolatile(obj, internalUnsafe.objectFieldOffset(field)));
         }else if (field.getType()==char.class){
-            return (T)Character.valueOf(unsafe.getCharVolatile(obj, objectFieldOffset(field)));
+            return (T)Character.valueOf(unsafe.getCharVolatile(obj, internalUnsafe.objectFieldOffset(field)));
         }else if (field.getType()==short.class){
-            return (T)Short.valueOf(unsafe.getShortVolatile(obj, objectFieldOffset(field)));
+            return (T)Short.valueOf(unsafe.getShortVolatile(obj, internalUnsafe.objectFieldOffset(field)));
         } else if (field.getType()==byte.class){
-            return (T)Byte.valueOf(unsafe.getByteVolatile(obj, objectFieldOffset(field)));
+            return (T)Byte.valueOf(unsafe.getByteVolatile(obj, internalUnsafe.objectFieldOffset(field)));
         }else if (field.getType()==float.class){
-            return (T)Float.valueOf(unsafe.getFloatVolatile(obj, objectFieldOffset(field)));
+            return (T)Float.valueOf(unsafe.getFloatVolatile(obj, internalUnsafe.objectFieldOffset(field)));
         }else if (field.getType()==double.class){
-            return (T)Double.valueOf(unsafe.getDoubleVolatile(obj, objectFieldOffset(field)));
+            return (T)Double.valueOf(unsafe.getDoubleVolatile(obj, internalUnsafe.objectFieldOffset(field)));
         }
-        return (T) unsafe.getObjectVolatile(obj, objectFieldOffset(field));
+        return (T) unsafe.getObjectVolatile(obj, internalUnsafe.objectFieldOffset(field));
     }
 
     public static void forceSetField(Object o, Field field, Object x) {
         if (Modifier.isStatic(field.getModifiers())){
             if(field.getType()==int.class){
-                unsafe.putIntVolatile(staticFieldBase(field), staticFieldOffset(field), (Integer) x);
+                unsafe.putIntVolatile(internalUnsafe.staticFieldBase(field), internalUnsafe.staticFieldOffset(field), (Integer) x);
             }else if (field.getType()==long.class){
-                unsafe.putLongVolatile(staticFieldBase(field), staticFieldOffset(field), (Long) x);
+                unsafe.putLongVolatile(internalUnsafe.staticFieldBase(field), internalUnsafe.staticFieldOffset(field), (Long) x);
             }else if (field.getType()==short.class){
-                unsafe.putShortVolatile(staticFieldBase(field), staticFieldOffset(field), (Short) x);
+                unsafe.putShortVolatile(internalUnsafe.staticFieldBase(field), internalUnsafe.staticFieldOffset(field), (Short) x);
             }else if (field.getType()==byte.class){
-                unsafe.putByteVolatile(staticFieldBase(field), staticFieldOffset(field), (Byte) x);
+                unsafe.putByteVolatile(internalUnsafe.staticFieldBase(field), internalUnsafe.staticFieldOffset(field), (Byte) x);
             }else if (field.getType()==float.class){
-                unsafe.putFloatVolatile(staticFieldBase(field), staticFieldOffset(field), (Float) x);
+                unsafe.putFloatVolatile(internalUnsafe.staticFieldBase(field), internalUnsafe.staticFieldOffset(field), (Float) x);
             }else if (field.getType()==double.class){
-                unsafe.putDoubleVolatile(staticFieldBase(field), staticFieldOffset(field), (Double) x);
+                unsafe.putDoubleVolatile(internalUnsafe.staticFieldBase(field), internalUnsafe.staticFieldOffset(field), (Double) x);
             }else if (field.getType()==char.class){
-                unsafe.putCharVolatile(staticFieldBase(field), staticFieldOffset(field), (Character) x);
+                unsafe.putCharVolatile(internalUnsafe.staticFieldBase(field), internalUnsafe.staticFieldOffset(field), (Character) x);
             }else if (field.getType()==boolean.class){
-                unsafe.putBoolean(staticFieldBase(field), staticFieldOffset(field), (Boolean) x);
+                unsafe.putBoolean(internalUnsafe.staticFieldBase(field), internalUnsafe.staticFieldOffset(field), (Boolean) x);
             } else {
-                unsafe.putObjectVolatile(staticFieldBase(field), staticFieldOffset(field),x);
+                unsafe.putObjectVolatile(internalUnsafe.staticFieldBase(field), internalUnsafe.staticFieldOffset(field),x);
             }
         } else {
             if (field.getType()==int.class){
-                unsafe.putIntVolatile(o, objectFieldOffset(field), (Integer) x);
+                unsafe.putIntVolatile(o, internalUnsafe.objectFieldOffset(field), (Integer) x);
             }else if (field.getType()==long.class){
-                unsafe.putLongVolatile(o, objectFieldOffset(field), (Long) x);
+                unsafe.putLongVolatile(o, internalUnsafe.objectFieldOffset(field), (Long) x);
             }else if (field.getType()==short.class){
-                unsafe.putShortVolatile(o, objectFieldOffset(field), (Short) x);
+                unsafe.putShortVolatile(o, internalUnsafe.objectFieldOffset(field), (Short) x);
             }else if (field.getType()==byte.class){
-                unsafe.putByteVolatile(o, objectFieldOffset(field), (Byte) x);
+                unsafe.putByteVolatile(o, internalUnsafe.objectFieldOffset(field), (Byte) x);
             }else if (field.getType()==float.class){
-                unsafe.putFloatVolatile(o, objectFieldOffset(field), (Float) x);
+                unsafe.putFloatVolatile(o, internalUnsafe.objectFieldOffset(field), (Float) x);
             }else if (field.getType()==double.class){
-                unsafe.putDoubleVolatile(o, objectFieldOffset(field), (Double) x);
+                unsafe.putDoubleVolatile(o, internalUnsafe.objectFieldOffset(field), (Double) x);
             }else if (field.getType()==char.class){
-                unsafe.putCharVolatile(o, objectFieldOffset(field), (Character) x);
+                unsafe.putCharVolatile(o, internalUnsafe.objectFieldOffset(field), (Character) x);
             }else if (field.getType()==boolean.class){
-                unsafe.putBooleanVolatile(o, objectFieldOffset(field), (Boolean) x);
+                unsafe.putBooleanVolatile(o, internalUnsafe.objectFieldOffset(field), (Boolean) x);
             } else {
-                unsafe.putObjectVolatile(o, objectFieldOffset(field), x);
+                unsafe.putObjectVolatile(o, internalUnsafe.objectFieldOffset(field), x);
             }
         }
     }
@@ -1128,11 +1009,6 @@ public final class ClassHelperSpecial {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    public static <T> T getUncompressedObject(long address){
-        return (T)((jdk.internal.misc.Unsafe)internalUnsafe).getUncompressedObject(address);
-    }
-
 
     @SuppressWarnings("unchecked")
     public static <T> T getOuterInstance(Object obj, Class<T> fa) {
@@ -1155,34 +1031,32 @@ public final class ClassHelperSpecial {
             }
         }
     }
-
-
     public static String getJarPath(Class<?> clazz) {
-        String file = clazz.getProtectionDomain().getCodeSource().getLocation().getPath();
-//        if (isWindows){
-//            NativeUtil.createMsgBox(file,"",0);
-//        }else {
-//            LOGGER.warn("safasifhehuwe"+file);
-//        }
-        if (!file.isEmpty()) {
-            if (file.startsWith("union:"))
-                file = file.substring(6);
-            if (!isLinux){
-                if (file.startsWith("/"))
-                    file = file.substring(1);
-            }
-            file = file.substring(0, file.lastIndexOf(".jar") + 4);
-            if (!isLinux){
-                file = file.replaceAll("/", "\\\\");
-            }
-        }
-        return URLDecoder.decode(file, StandardCharsets.UTF_8);
+        return getJarPath(clazz,false);
     }
 
-    public static boolean compareAndSwapByte(Object o, long offset, byte expected, byte x) {
+    public static String getJarPath(Class<?> clazz,boolean needFix) {
         try {
-            return (boolean) compareAndSetByteMethod.invoke(internalUnsafe, o, offset, expected, x);
-        } catch (Throwable t) {
+            String file ;
+            if (needFix&&JarPathPatch.isLoadedByMCL(clazz)){
+                file=JarPathPatch.getJarPath(clazz);
+            }else {
+                file=clazz.getProtectionDomain().getCodeSource().getLocation().getPath();
+            }
+            if (!file.isEmpty()) {
+                if (file.startsWith("union:"))
+                    file = file.substring(6);
+                if (isWindows){
+                    if (file.startsWith("/"))
+                        file = file.substring(1);
+                }
+                file = file.substring(0, file.lastIndexOf(".jar")+4);
+                if (isWindows){
+                    file = file.replace('/', File.separatorChar);
+                }
+            }
+            return URLDecoder.decode(file, StandardCharsets.UTF_8);
+        }catch (Throwable t){
             throwOriginalException(t);
             throw new RuntimeException(t);
         }
@@ -1204,7 +1078,7 @@ public final class ClassHelperSpecial {
         try {
             //LOGGER.error("DO NOT USE THIS METHOD! Do not support character '!' or '+'");
             //StringBuilder builder=new StringBuilder();
-            JarFile jarFile = new JarFile(getJarPath(caller));
+            JarFile jarFile = new JarFile(getJarPath(caller,true));
             Enumeration<JarEntry> entries = jarFile.entries();
             while (entries.hasMoreElements()) {
                 JarEntry entry = entries.nextElement();
@@ -1228,10 +1102,12 @@ public final class ClassHelperSpecial {
     }
 
     public static int getPid() {
-        return Integer.parseInt(ManagementFactory.getRuntimeMXBean().getName().split("@")[0]);
+        return (int) ProcessHandle.current().pid();//Integer.parseInt(ManagementFactory.getRuntimeMXBean().getName().split("@")[0]);
     }
-
     public static int version(){
-        return 8;
+        return 10;
+    }
+    public static int minorVersion(){
+        return 0;
     }
 }
